@@ -1,3 +1,15 @@
 import { Routes } from '@angular/router';
+import { HomeComponent } from './pages/home/home.component';
+import { ProductListComponent } from './pages/product-list/product-list.component';
+import { ProductDetailComponent } from './pages/product-detail/product-detail.component';
+import { CartComponent } from './pages/cart/cart.component';
+import { AccountComponent } from './pages/account/account.component';
 
-export const routes: Routes = [];
+export const routes: Routes = [
+  { path: '', component: HomeComponent },
+  { path: 'category/:categoryId', component: ProductListComponent },
+  { path: 'product/:productId', component: ProductDetailComponent },
+  { path: 'cart', component: CartComponent },
+  { path: 'account', component: AccountComponent },
+  { path: '**', redirectTo: '' }
+];
