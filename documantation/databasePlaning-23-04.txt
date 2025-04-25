@@ -1,0 +1,59 @@
+﻿USERS: 
+1-id
+2-email
+3-username
+
+PaymentMethod:
+1-user id
+2-id
+3-type (enumrater custom)
+4-credit card number
+5-cvc
+6-date
+7-name 
+
+
+PRODUCT:
+1-id
+2-title
+3-price 
+4-descrition
+5-img url
+6-category
+7-admin id
+8-product details(thinks like size, color, cpu, gpu its free to write for admin to use)
+
+
+Admin:
+1-id
+2-name
+3-descrption
+4-icon url
+
+orders:
+1-user id
+2-product id
+3-purchase date
+4-status
+5-tracing id
+6-rating
+7-comment
+8-payment method id
+
+
+Banners(events):
+1-id
+2-title 
+3-start date
+4-end date
+
+
+discounts:
+1-product id
+2-banner id
+3-isPercent(boolean)[if true value count as percent if not it cpunt as cut]
+4-value
+
+
+
+
