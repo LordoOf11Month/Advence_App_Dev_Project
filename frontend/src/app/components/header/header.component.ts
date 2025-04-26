@@ -1,9 +1,10 @@
 import { Component, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CartService } from '../../services/cart.service';
 import { ProductService } from '../../services/product.service';
+import { AuthService } from '../../services/auth.service';
 import { Category } from '../../models/product.model';
 
 @Component({
@@ -400,7 +401,9 @@ export class HeaderComponent {
   
   constructor(
     private productService: ProductService,
-    private cartService: CartService
+    private cartService: CartService,
+    private authService: AuthService,
+    private router: Router
   ) { }
   
   ngOnInit(): void {
@@ -427,5 +430,10 @@ export class HeaderComponent {
     setTimeout(() => {
       this.showSearchSuggestions = false;
     }, 200);
+  }
+
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/']);
   }
 }

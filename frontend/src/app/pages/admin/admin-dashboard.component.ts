@@ -12,7 +12,7 @@ import { AdminStats, OrderStats } from '../../models/admin.model';
     <div class="admin-container">
       <aside class="admin-sidebar">
         <nav class="admin-nav">
-          <a routerLink="/admin" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+          <a routerLink="/admin" routerLinkActive="active">
             <span class="material-symbols-outlined">dashboard</span>
             Dashboard
           </a>

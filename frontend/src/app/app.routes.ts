@@ -7,6 +7,7 @@ import { AccountComponent } from './pages/account/account.component';
 import { LoginComponent } from './pages/login/login.component';
 import { RegisterComponent } from './pages/register/register.component';
 import { AdminDashboardComponent } from './pages/admin/admin-dashboard.component';
+import { AdminProductsComponent } from './pages/admin/admin-products.component';
 import { AuthGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -23,9 +24,12 @@ export const routes: Routes = [
   { path: 'register', component: RegisterComponent },
   {
     path: 'admin',
-    component: AdminDashboardComponent,
     canActivate: [AuthGuard],
-    data: { requiresAdmin: true }
+    data: { requiresAdmin: true },
+    children: [
+      { path: '', component: AdminDashboardComponent },
+      { path: 'products', component: AdminProductsComponent }
+    ]
   },
   { path: '**', redirectTo: '' }
 ];
