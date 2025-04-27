@@ -1,0 +1,17 @@
+﻿Vector embedded recommendation system
+	every user and product has special vector which represent them
+	(products land between users who buy them users land product which they buy)
+	thus similar thing clusster
+
+
+hierarchial taging (multi-diamensional product classification)
+	diffirent concepts like:
+	-type
+	-target auidence
+	-material 
+	-featrue
+	-usage/activity (season (winter), sport,casual)
+	-brand/design
+	-sustainability
+
+
