@@ -51,3 +51,18 @@ export interface AdminStats {
   totalRevenue: number;
   lowStockProducts: number;
 }
+
+export interface OrderTracking {
+  orderId: string;
+  status: AdminOrder['status'];
+  location: string;
+  updatedAt: Date;
+}
+
+export interface UserTransaction {
+  transactionId: string;
+  userId: string;
+  amount: number;
+  status: 'pending' | 'success' | 'failed';
+  createdAt: Date;
+}

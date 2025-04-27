@@ -1,6 +1,8 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AdminService } from '../../services/admin.service';
+import { OrderTracking } from '../../models/admin.model';
 
 @Component({
   selector: 'app-account',
@@ -216,7 +218,7 @@ import { FormsModule } from '@angular/forms';
                     <span class="total-price">₺199.99</span>
                   </div>
                   <div class="order-actions">
-                    <button class="track-btn">Track Order</button>
+                    <button class="track-btn" (click)="trackOrder('12345')">Track Order</button>
                     <button class="details-btn">View Details</button>
                   </div>
                 </div>
@@ -278,6 +280,36 @@ import { FormsModule } from '@angular/forms';
             <h2 class="tab-title">Payment Methods</h2>
             <!-- Payment methods content would go here -->
             <p>Payment methods management content will be implemented here.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tracking Modal -->
+    <div class="modal" *ngIf="showTracking && trackingInfo">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2>Order Tracking</h2>
+          <button class="close-btn" (click)="closeTracking()">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="tracking-details">
+          <div class="status-info">
+            <div class="current-status">
+              <h3>Current Status</h3>
+              <span class="status-badge" [class]="trackingInfo.status">
+                {{trackingInfo.status}}
+              </span>
+            </div>
+            <div class="location">
+              <h3>Current Location</h3>
+              <p>{{trackingInfo.location}}</p>
+            </div>
+            <div class="last-update">
+              <h3>Last Updated</h3>
+              <p>{{trackingInfo.updatedAt | date:'medium'}}</p>
+            </div>
           </div>
         </div>
       </div>
@@ -711,13 +743,130 @@ import { FormsModule } from '@angular/forms';
         text-align: center;
       }
     }
+
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+
+    .modal-content {
+      background-color: var(--white);
+      border-radius: var(--radius-md);
+      width: 100%;
+      max-width: 500px;
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--neutral-200);
+    }
+
+    .modal-header h2 {
+      font-size: 1.25rem;
+      margin: 0;
+    }
+
+    .close-btn {
+      background: none;
+      color: var(--neutral-500);
+      padding: var(--space-1);
+    }
+
+    .close-btn:hover {
+      color: var(--neutral-700);
+    }
+
+    .tracking-details {
+      padding: var(--space-4);
+    }
+
+    .status-info {
+      display: grid;
+      gap: var(--space-4);
+    }
+
+    .current-status h3,
+    .location h3,
+    .last-update h3 {
+      font-size: 0.875rem;
+      color: var(--neutral-600);
+      margin: 0 0 var(--space-2);
+    }
+
+    .current-status .status-badge {
+      display: inline-block;
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      text-transform: capitalize;
+    }
+
+    .status-badge.pending {
+      background-color: rgba(255, 171, 0, 0.1);
+      color: var(--warning);
+    }
+
+    .status-badge.processing {
+      background-color: rgba(0, 102, 255, 0.1);
+      color: var(--secondary);
+    }
+
+    .status-badge.shipped {
+      background-color: rgba(54, 179, 126, 0.1);
+      color: var(--success);
+    }
+
+    .status-badge.delivered {
+      background-color: rgba(54, 179, 126, 0.1);
+      color: var(--success);
+    }
+
+    .status-badge.cancelled {
+      background-color: rgba(255, 86, 48, 0.1);
+      color: var(--error);
+    }
+
+    .location p,
+    .last-update p {
+      margin: 0;
+      font-size: 1rem;
+      color: var(--neutral-900);
+    }
   `]
 })
 export class AccountComponent {
   activeTab: string = 'profile';
   orderFilter: string = 'all';
+  selectedOrder: any = null;
+  showTracking: boolean = false;
+  trackingInfo: OrderTracking | null = null;
   
+  constructor(private adminService: AdminService) {}
+
   setActiveTab(tab: string): void {
     this.activeTab = tab;
+  }
+
+  trackOrder(orderId: string): void {
+    this.adminService.getOrderTracking(orderId).subscribe((tracking: OrderTracking) => {
+      this.trackingInfo = tracking;
+      this.showTracking = true;
+    });
+  }
+
+  closeTracking(): void {
+    this.showTracking = false;
+    this.trackingInfo = null;
   }
 }

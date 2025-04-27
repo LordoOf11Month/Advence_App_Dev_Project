@@ -8,6 +8,8 @@ import { LoginComponent } from './pages/login/login.component';
 import { RegisterComponent } from './pages/register/register.component';
 import { AdminDashboardComponent } from './pages/admin/admin-dashboard.component';
 import { AdminProductsComponent } from './pages/admin/admin-products.component';
+import { AdminOrdersComponent } from './pages/admin/admin-orders.component';
+import { AdminUsersComponent } from './pages/admin/admin-users.component';
 import { AuthGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -28,7 +30,9 @@ export const routes: Routes = [
     data: { requiresAdmin: true },
     children: [
       { path: '', component: AdminDashboardComponent },
-      { path: 'products', component: AdminProductsComponent }
+      { path: 'products', component: AdminProductsComponent },
+      { path: 'orders', component: AdminOrdersComponent },
+      { path: 'users', component: AdminUsersComponent }
     ]
   },
   { path: '**', redirectTo: '' }

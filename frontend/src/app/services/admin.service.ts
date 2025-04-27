@@ -6,7 +6,9 @@ import {
   AdminOrder, 
   AdminUser, 
   OrderStats, 
-  AdminStats 
+  AdminStats,
+  OrderTracking,
+  UserTransaction
 } from '../models/admin.model';
 
 @Injectable({
@@ -119,6 +121,23 @@ export class AdminService {
     return of(stats).pipe(delay(500));
   }
 
+  // Order Tracking
+  getOrderTracking(orderId: string): Observable<OrderTracking> {
+    const order = this.orders.find(o => o.id === orderId);
+    if (!order) {
+      return throwError(() => new Error('Order not found'));
+    }
+
+    const tracking: OrderTracking = {
+      orderId: order.id,
+      status: order.status,
+      location: 'Warehouse', // Example location
+      updatedAt: order.updatedAt
+    };
+
+    return of(tracking).pipe(delay(500));
+  }
+
   // User Management
   getUsers(): Observable<AdminUser[]> {
     return of(this.users).pipe(delay(500));
@@ -134,6 +153,46 @@ export class AdminService {
     return of(user).pipe(delay(500));
   }
 
+  banUser(userId: string): Observable<void> {
+    const user = this.users.find(u => u.id === userId);
+    if (!user) {
+      return throwError(() => new Error('User not found'));
+    }
+
+    user.status = 'banned';
+    return of(void 0).pipe(delay(500));
+  }
+
+  unbanUser(userId: string): Observable<void> {
+    const user = this.users.find(u => u.id === userId);
+    if (!user) {
+      return throwError(() => new Error('User not found'));
+    }
+
+    user.status = 'active';
+    return of(void 0).pipe(delay(500));
+  }
+
+  getUserTransactions(userId: string): Observable<UserTransaction[]> {
+    const user = this.users.find(u => u.id === userId);
+    if (!user) {
+      return throwError(() => new Error('User not found'));
+    }
+
+    // Mock transactions data
+    const transactions: UserTransaction[] = this.orders
+      .filter(o => o.userId === userId)
+      .map(o => ({
+        transactionId: o.id,
+        userId: o.userId,
+        amount: o.total,
+        status: o.status === 'cancelled' ? 'failed' : o.status === 'pending' ? 'pending' : 'success',
+        createdAt: o.createdAt
+      }));
+
+    return of(transactions).pipe(delay(500));
+  }
+
   // Dashboard Stats
   getAdminStats(): Observable<AdminStats> {
     const stats: AdminStats = {
@@ -145,5 +204,32 @@ export class AdminService {
     };
     
     return of(stats).pipe(delay(500));
+  }
+
+  // Issue Resolution
+  resolvePaymentIssue(orderId: string): Observable<void> {
+    const order = this.orders.find(o => o.id === orderId);
+    if (!order) {
+      return throwError(() => new Error('Order not found'));
+    }
+
+    if (order.status !== 'pending') {
+      return throwError(() => new Error('Order is not in pending state'));
+    }
+
+    order.status = 'processing';
+    order.updatedAt = new Date();
+    return of(void 0).pipe(delay(500));
+  }
+
+  resolveOrderIssue(orderId: string): Observable<void> {
+    const order = this.orders.find(o => o.id === orderId);
+    if (!order) {
+      return throwError(() => new Error('Order not found'));
+    }
+
+    order.status = 'processing';
+    order.updatedAt = new Date();
+    return of(void 0).pipe(delay(500));
   }
 }
