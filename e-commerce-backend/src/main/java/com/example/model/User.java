@@ -1,10 +1,16 @@
 package com.example.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
 import java.sql.Timestamp;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
+@Getter
+@Setter
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -39,85 +45,23 @@ public class User {
     @Column(name = "ban_reason", columnDefinition = "TEXT")
     private String banReason;
 
-    public int getUserId() {
-        return userId;
-    }
+    @OneToMany(mappedBy = "seller")
+    private List<Store> stores;
 
-    public void setUserId(int userId) {
-        this.userId = userId;
-    }
+    @OneToMany(mappedBy = "user")
+    private List<Order> orders;
 
-    public String getName() {
-        return name;
-    }
+    @OneToMany(mappedBy = "user")
+    private List<Address> addresses;
 
-    public void setName(String name) {
-        this.name = name;
-    }
+    @OneToMany(mappedBy = "user")
+    private List<CartItem> cartItems;
 
-    public String getSurname() {
-        return surname;
-    }
+    @OneToMany(mappedBy = "user")
+    private List<Issue> issues;
 
-    public void setSurname(String surname) {
-        this.surname = surname;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPasswordHash() {
-        return passwordHash;
-    }
-
-    public void setPasswordHash(String passwordHash) {
-        this.passwordHash = passwordHash;
-    }
-
-    public Role getRole() {
-        return role;
-    }
-
-    public void setRole(Role role) {
-        this.role = role;
-    }
-
-    public Timestamp getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Timestamp createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public boolean isBanned() {
-        return isBanned;
-    }
-
-    public void setBanned(boolean banned) {
-        isBanned = banned;
-    }
-
-    public Timestamp getBannedAt() {
-        return bannedAt;
-    }
-
-    public void setBannedAt(Timestamp bannedAt) {
-        this.bannedAt = bannedAt;
-    }
-
-    public String getBanReason() {
-        return banReason;
-    }
-
-    public void setBanReason(String banReason) {
-        this.banReason = banReason;
-    }
+    @OneToMany(mappedBy = "resolvedBy")
+    private List<Issue> resolvedIssues;
 
     public enum Role {
         customer,
