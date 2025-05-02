@@ -25,6 +25,10 @@ import { Category } from '../../models/product.model';
               <span class="material-symbols-outlined">notifications</span>
               <span class="hidden-sm">Notifications</span>
             </a>
+            <a routerLink="/admin" *ngIf="isAdmin">
+              <span class="material-symbols-outlined">admin_panel_settings</span>
+              <span class="hidden-sm">Admin</span>
+            </a>
             <a routerLink="/account">
               <span class="material-symbols-outlined">person</span>
               <span class="hidden-sm">Account</span>
@@ -597,6 +601,7 @@ export class HeaderComponent {
   showAllCategories: boolean = false;
   isSellerRoute: boolean = false;
   isAdminRoute: boolean = false;
+  isAdmin: boolean = false;
   
   constructor(
     private productService: ProductService,
@@ -620,6 +625,10 @@ export class HeaderComponent {
     
     this.cartService.cart$.subscribe(() => {
       this.cartCount = this.cartService.getCartCount();
+    });
+
+    this.authService.currentUser$.subscribe(user => {
+      this.isAdmin = user?.role === 'admin';
     });
   }
   
