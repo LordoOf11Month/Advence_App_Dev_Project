@@ -44,6 +44,42 @@ import { Category } from '../../models/product.model';
             <h1>Trendyol</h1>
           </a>
         </div>
+
+        <div class="all-categories-btn" 
+             (mouseenter)="showAllCategories = true"
+             (mouseleave)="showAllCategories = false">
+          <button class="categories-toggle">
+            <span class="material-symbols-outlined">menu</span>
+            Tüm Kategoriler
+          </button>
+          
+          <div class="mega-menu all-categories-menu" *ngIf="showAllCategories">
+            <div class="mega-menu-content">
+              <div class="submenu-columns">
+                <div class="submenu-column" *ngFor="let category of categories">
+                  <h3 class="submenu-title">
+                    <a [routerLink]="['/category', category.slug]">{{category.name}}</a>
+                  </h3>
+                  <ul class="submenu-list" *ngIf="category.subcategories?.length">
+                    <li *ngFor="let subcategory of category.subcategories">
+                      <a [routerLink]="['/category', subcategory.slug]">
+                        {{subcategory.name}}
+                        <span class="material-symbols-outlined" *ngIf="subcategory.subcategories?.length">chevron_right</span>
+                      </a>
+                      <div class="nested-submenu" *ngIf="subcategory.subcategories?.length">
+                        <ul class="nested-submenu-list">
+                          <li *ngFor="let child of subcategory.subcategories">
+                            <a [routerLink]="['/category', child.slug]">{{child.name}}</a>
+                          </li>
+                        </ul>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         
         <div class="search-bar">
           <input 
@@ -80,21 +116,8 @@ import { Category } from '../../models/product.model';
       <nav class="categories-nav" [class.show]="showMobileMenu">
         <div class="container">
           <ul class="categories-list">
-            <li *ngFor="let category of categories" 
-                class="category-item"
-                (mouseenter)="hoveredCategory = category"
-                (mouseleave)="hoveredCategory = null">
+            <li *ngFor="let category of categories" class="category-item">
               <a [routerLink]="['/category', category.slug]">{{category.name}}</a>
-              
-              <div class="subcategories-dropdown" *ngIf="hoveredCategory === category && category.subcategories?.length">
-                <div class="subcategories-container">
-                  <ul class="subcategories-list">
-                    <li *ngFor="let subcategory of category.subcategories">
-                      <a [routerLink]="['/category', subcategory.slug]">{{subcategory.name}}</a>
-                    </li>
-                  </ul>
-                </div>
-              </div>
             </li>
           </ul>
         </div>
@@ -276,6 +299,7 @@ import { Category } from '../../models/product.model';
       list-style: none;
       margin: 0;
       padding: 0;
+      flex-wrap: wrap;
     }
     
     .category-item {
@@ -292,6 +316,79 @@ import { Category } from '../../models/product.model';
     
     .category-item > a:hover {
       color: var(--primary);
+    }
+    
+    .mega-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      background: var(--white);
+      box-shadow: var(--shadow-md);
+      border-radius: 0 0 var(--radius-md) var(--radius-md);
+      padding: var(--space-3); /* reduced from space-6 */
+      z-index: 100;
+      animation: fadeIn 0.2s ease-in-out;
+    }
+
+    .mega-menu-content {
+      max-width: 900px; /* reduced from 1200px */
+      margin: 0 auto;
+    }
+
+    .submenu-columns {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); /* reduced from 200px */
+      gap: var(--space-3); /* reduced from space-6 */
+    }
+
+    .submenu-column {
+      min-width: 180px; /* reduced from 200px */
+    }
+
+    .submenu-title {
+      font-size: 0.9rem; /* reduced from 1rem */
+      font-weight: 600;
+      margin-bottom: var(--space-2); /* reduced from space-3 */
+      color: var(--neutral-900);
+    }
+
+    .submenu-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .submenu-list li {
+      margin-bottom: var(--space-1); /* reduced from space-2 */
+    }
+
+    .submenu-list a {
+      color: var(--neutral-600);
+      font-size: 0.875rem; /* reduced from 0.9375rem */
+      text-decoration: none;
+      transition: color var(--transition-fast);
+    }
+
+    .submenu-list a:hover {
+      color: var(--primary);
+    }
+
+    @keyframes fadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(-10px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @media (max-width: 992px) {
+      .mega-menu {
+        display: none;
+      }
     }
     
     .subcategories-dropdown {
@@ -388,16 +485,116 @@ import { Category } from '../../models/product.model';
         padding: var(--space-2);
       }
     }
+
+    .all-categories-btn {
+      position: relative;
+      margin-right: var(--space-4);
+    }
+
+    .categories-toggle {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      background-color: var(--primary);
+      color: var(--white);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      transition: background-color var(--transition-fast);
+    }
+
+    .categories-toggle:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .categories-toggle .material-symbols-outlined {
+      font-size: 1.25rem;
+    }
+
+    .all-categories-menu {
+      width: 900px;
+      left: 0;
+      padding: var(--space-3);
+    }
+
+    .all-categories-menu .submenu-columns {
+      grid-template-columns: repeat(4, 1fr);
+      gap: var(--space-3);
+    }
+
+    .submenu-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .submenu-list li {
+      position: relative;
+      margin-bottom: var(--space-1);
+    }
+
+    .submenu-list a {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: var(--neutral-600);
+      font-size: 0.875rem;
+      text-decoration: none;
+      transition: color var(--transition-fast);
+      padding: var(--space-1) 0;
+    }
+
+    .submenu-list a:hover {
+      color: var(--primary);
+    }
+
+    .nested-submenu {
+      display: none;
+      position: absolute;
+      left: 100%;
+      top: 0;
+      min-width: 200px;
+      background: var(--white);
+      box-shadow: var(--shadow-md);
+      border-radius: var(--radius-md);
+      padding: var(--space-2);
+      z-index: 101;
+    }
+
+    .submenu-list li:hover .nested-submenu {
+      display: block;
+    }
+
+    .nested-submenu-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+    }
+
+    .nested-submenu-list a {
+      padding: var(--space-2) var(--space-3);
+      display: block;
+    }
+
+    .material-symbols-outlined {
+      font-size: 1rem;
+    }
+
+    @media (max-width: 992px) {
+      .all-categories-btn {
+        display: none;
+      }
+    }
   `]
 })
 export class HeaderComponent {
   searchQuery: string = '';
   showSearchSuggestions: boolean = false;
   categories: Category[] = [];
-  hoveredCategory: Category | null = null;
   showMobileMenu: boolean = false;
   isScrolled: boolean = false;
   cartCount: number = 0;
+  showAllCategories: boolean = false;
   
   constructor(
     private productService: ProductService,
