@@ -1,6 +1,6 @@
 import { Component, HostListener } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule, Router } from '@angular/router';
+import { RouterModule, Router, NavigationEnd } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CartService } from '../../services/cart.service';
 import { ProductService } from '../../services/product.service';
@@ -113,7 +113,7 @@ import { Category } from '../../models/product.model';
         </div>
       </div>
       
-      <nav class="categories-nav" [class.show]="showMobileMenu">
+      <nav class="categories-nav" [class.show]="showMobileMenu" *ngIf="!isSellerRoute && !isAdminRoute">
         <div class="container">
           <ul class="categories-list">
             <li *ngFor="let category of categories" class="category-item">
@@ -595,13 +595,23 @@ export class HeaderComponent {
   isScrolled: boolean = false;
   cartCount: number = 0;
   showAllCategories: boolean = false;
+  isSellerRoute: boolean = false;
+  isAdminRoute: boolean = false;
   
   constructor(
     private productService: ProductService,
     private cartService: CartService,
     private authService: AuthService,
     private router: Router
-  ) { }
+  ) {
+    // Check if current route is a seller or admin route
+    this.router.events.subscribe((event) => {
+      if (event instanceof NavigationEnd) {
+        this.isSellerRoute = event.url.startsWith('/seller');
+        this.isAdminRoute = event.url.startsWith('/admin');
+      }
+    });
+  }
   
   ngOnInit(): void {
     this.productService.getCategories().subscribe(categories => {
