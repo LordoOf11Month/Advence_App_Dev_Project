@@ -544,8 +544,13 @@ export class AdminProductsComponent implements OnInit {
     id: '',
     title: '',
     price: 0,
-    stock: 0,
+    category: '',
     status: 'active',
+    inStock: true,
+    stock: 0,
+    sellerId: '',
+    sellerName: '',
+    dateAdded: new Date(),
     lastUpdated: new Date()
   };
 
@@ -601,8 +606,13 @@ export class AdminProductsComponent implements OnInit {
       id: '',
       title: '',
       price: 0,
-      stock: 0,
+      category: '',
       status: 'active',
+      inStock: true,
+      stock: 0,
+      sellerId: '',
+      sellerName: '',
+      dateAdded: new Date(),
       lastUpdated: new Date()
     };
     this.showProductForm = true;
@@ -622,29 +632,39 @@ export class AdminProductsComponent implements OnInit {
     this.saving = true;
 
     if (this.editingProduct) {
+      // Keep existing ID when editing
       this.adminService.updateProduct(this.currentProduct).subscribe({
-        next: () => {
-          this.loadProducts();
-          this.closeProductForm();
+        next: (product) => {
+          const index = this.products.findIndex(p => p.id === product.id);
+          if (index !== -1) {
+            this.products[index] = product;
+          }
+          this.filterProducts();
+          this.showProductForm = false;
           this.saving = false;
         },
-        error: () => {
+        error: (error) => {
+          console.error('Error updating product:', error);
           this.saving = false;
-          // Handle error
         }
       });
     } else {
-      // For new products, generate a random ID
-      this.currentProduct.id = Math.random().toString(36).substr(2, 9);
-      this.adminService.updateProduct(this.currentProduct).subscribe({
-        next: () => {
-          this.loadProducts();
-          this.closeProductForm();
+      // Generate a new ID for new products
+      const newProduct = {
+        ...this.currentProduct,
+        id: Math.random().toString(36).substr(2, 9)
+      };
+      
+      this.adminService.updateProduct(newProduct).subscribe({
+        next: (product) => {
+          this.products.push(product);
+          this.filterProducts();
+          this.showProductForm = false;
           this.saving = false;
         },
-        error: () => {
+        error: (error) => {
+          console.error('Error creating product:', error);
           this.saving = false;
-          // Handle error
         }
       });
     }

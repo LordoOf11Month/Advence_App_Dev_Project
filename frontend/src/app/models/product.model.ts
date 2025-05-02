@@ -1,10 +1,10 @@
 export interface Product {
   id: number;
   title: string;
+  description: string;
   price: number;
   originalPrice?: number;
   discountPercentage?: number;
-  description: string;
   category: string;
   brand: string;
   rating: number;
@@ -12,10 +12,22 @@ export interface Product {
   images: string[];
   colors?: string[];
   sizes?: string[];
-  isFavorite?: boolean;
-  inStock: boolean;
   freeShipping?: boolean;
   fastDelivery?: boolean;
+  inStock: boolean;
+  sellerId: string;
+  sellerName: string;
+  variants?: ProductVariant[];
+  isFavorite?: boolean;
+}
+
+export interface ProductVariant {
+  id: number;
+  productId: number;
+  color?: string;
+  size?: string;
+  price?: number;
+  inStock: boolean;
 }
 
 export interface Category {
@@ -28,9 +40,9 @@ export interface Category {
 
 export interface Banner {
   id: number;
-  imageUrl: string;
   title: string;
   subtitle?: string;
+  imageUrl: string;
   linkUrl: string;
 }
 

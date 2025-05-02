@@ -17,7 +17,7 @@ import { Category } from '../../models/product.model';
         <div class="container flex-between">
           <div class="top-links hidden-sm">
             <a href="#">Download App</a>
-            <a href="#">Sell on Trendyol</a>
+            <a routerLink="/seller/register">Sell on Trendyol</a>
             <a href="#">Help & Support</a>
           </div>
           <div class="top-links">
@@ -266,7 +266,7 @@ import { Category } from '../../models/product.model';
     }
     
     .suggestion-group a:hover {
-      color: var(--primary);
+      color: var (--primary);
     }
     
     .cart-link {

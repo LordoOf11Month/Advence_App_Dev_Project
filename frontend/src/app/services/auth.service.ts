@@ -2,14 +2,14 @@ import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
 import { tap, delay } from 'rxjs/operators';
 import { jwtDecode } from 'jwt-decode';
-import { User, LoginCredentials, RegisterData, AuthResponse } from '../models/auth.model';
+import { User, LoginCredentials, RegisterData, AuthResponse, SellerRegistrationData } from '../models/auth.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
   private currentUserSubject = new BehaviorSubject<User | null>(null);
-  currentUser$ = this.currentUserSubject.asObservable();
+  public currentUser$ = this.currentUserSubject.asObservable();
   
   constructor() {
     this.loadStoredUser();
@@ -50,6 +50,26 @@ export class AuthService {
       );
     }
     
+    if (credentials.email === 'seller@example.com' && credentials.password === 'seller123') {
+      const response: AuthResponse = {
+        user: {
+          id: '3',
+          email: credentials.email,
+          firstName: 'Sample',
+          lastName: 'Seller',
+          role: 'seller',
+          storeName: 'Tech Galaxy',
+          storeDescription: 'Your one-stop shop for all electronics'
+        },
+        token: 'mock-jwt-token'
+      };
+      
+      return of(response).pipe(
+        delay(1000),
+        tap(res => this.handleAuthResponse(res))
+      );
+    }
+    
     if (credentials.email === 'user@example.com' && credentials.password === 'user123') {
       const response: AuthResponse = {
         user: {
@@ -71,7 +91,10 @@ export class AuthService {
     return throwError(() => new Error('Invalid credentials'));
   }
   
-  register(data: RegisterData): Observable<AuthResponse> {
+  register(data: RegisterData | SellerRegistrationData): Observable<AuthResponse> {
+    // Check if it's a seller registration
+    const isSeller = 'storeName' in data;
+    
     // Mock registration - replace with actual API call
     const response: AuthResponse = {
       user: {
@@ -79,7 +102,11 @@ export class AuthService {
         email: data.email,
         firstName: data.firstName,
         lastName: data.lastName,
-        role: 'user'
+        role: isSeller ? 'seller' : 'user',
+        ...(isSeller && {
+          storeName: (data as SellerRegistrationData).storeName,
+          storeDescription: (data as SellerRegistrationData).storeDescription
+        })
       },
       token: 'mock-jwt-token'
     };
@@ -107,8 +134,8 @@ export class AuthService {
   isAdmin(): boolean {
     return this.currentUserSubject.value?.role === 'admin';
   }
-  
-  getToken(): string | null {
-    return localStorage.getItem('token');
+
+  isSeller(): boolean {
+    return this.currentUserSubject.value?.role === 'seller';
   }
 }

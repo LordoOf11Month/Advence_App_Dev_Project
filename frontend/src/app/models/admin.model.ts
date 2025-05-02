@@ -2,24 +2,35 @@ export interface AdminProduct {
   id: string;
   title: string;
   price: number;
-  stock: number;
+  category: string;
   status: 'active' | 'inactive';
+  inStock: boolean;
+  stock: number;
+  sellerId: string;
+  sellerName: string;
+  dateAdded: Date;
   lastUpdated: Date;
 }
 
 export interface AdminOrder {
   id: string;
   userId: string;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
-  total: number;
+  userEmail: string;
   items: Array<{
-    productId: string;
+    productId: number;
+    productName: string;
     quantity: number;
     price: number;
   }>;
-  shippingAddress: string;
+  totalAmount: number;
+  total: number;
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  sellerId: string;
+  sellerName: string;
+  dateCreated: Date;
+  dateUpdated: Date;
   createdAt: Date;
-  updatedAt: Date;
+  shippingAddress: string;
 }
 
 export interface AdminUser {
@@ -27,10 +38,11 @@ export interface AdminUser {
   email: string;
   firstName: string;
   lastName: string;
-  status: 'active' | 'banned';
-  role: 'user' | 'admin';
+  role: 'admin' | 'seller' | 'user';
+  status: 'active' | 'suspended' | 'banned';
+  dateJoined: Date;
+  lastLogin?: Date;
   joinDate: Date;
-  lastLogin: Date;
   orderCount: number;
   totalSpent: number;
 }
@@ -45,10 +57,12 @@ export interface OrderStats {
 }
 
 export interface AdminStats {
-  totalUsers: number;
-  activeUsers: number;
   totalOrders: number;
   totalRevenue: number;
+  totalUsers: number;
+  totalProducts: number;
+  totalSellers: number;
+  activeUsers: number;
   lowStockProducts: number;
 }
 
@@ -65,4 +79,26 @@ export interface UserTransaction {
   amount: number;
   status: 'pending' | 'success' | 'failed';
   createdAt: Date;
+}
+
+export interface AdminSeller {
+  id: string;
+  userId: string;
+  email: string;
+  firstName: string;
+  lastName: string;
+  storeName: string;
+  storeDescription: string;
+  rating: number;
+  productCount: number;
+  totalSales: number;
+  status: 'active' | 'suspended';
+  dateJoined: Date;
+  lastActive: Date;
+  commissionRate: number;
+  paymentInfo?: {
+    bankName: string;
+    accountNumber: string;
+    accountHolder: string;
+  };
 }

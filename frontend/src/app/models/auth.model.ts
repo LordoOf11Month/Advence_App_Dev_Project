@@ -3,7 +3,9 @@ export interface User {
   email: string;
   firstName: string;
   lastName: string;
-  role: 'user' | 'admin';
+  role: 'admin' | 'seller' | 'user';
+  storeName?: string;
+  storeDescription?: string;
 }
 
 export interface LoginCredentials {
@@ -11,12 +13,31 @@ export interface LoginCredentials {
   password: string;
 }
 
-export interface RegisterData extends LoginCredentials {
+export interface RegisterData {
   firstName: string;
   lastName: string;
+  email: string;
+  password: string;
+}
+
+export interface SellerRegistrationData extends RegisterData {
+  storeName: string;
+  storeDescription: string;
 }
 
 export interface AuthResponse {
   user: User;
   token: string;
+}
+
+export interface SellerProfile {
+  id: string;
+  userId: string;
+  storeName: string;
+  storeDescription: string;
+  rating: number;
+  productCount: number;
+  totalSales: number;
+  dateJoined: Date;
+  status: 'active' | 'suspended';
 }

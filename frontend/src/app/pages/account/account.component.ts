@@ -1,13 +1,16 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { RouterModule } from '@angular/router';
 import { AdminService } from '../../services/admin.service';
+import { AuthService } from '../../services/auth.service';
 import { OrderTracking } from '../../models/admin.model';
+import { User } from '../../models/auth.model';
 
 @Component({
   selector: 'app-account',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <div class="container">
       <h1 class="page-title">My Account</h1>
@@ -68,6 +71,15 @@ import { OrderTracking } from '../../models/admin.model';
             >
               <span class="material-symbols-outlined">credit_card</span>
               <span>Payment Methods</span>
+            </button>
+
+            <button
+              *ngIf="isSeller"
+              class="nav-item seller-dashboard"
+              routerLink="/seller/dashboard"
+            >
+              <span class="material-symbols-outlined">store</span>
+              <span>Seller Dashboard</span>
             </button>
             
             <button class="nav-item logout">
@@ -340,7 +352,7 @@ import { OrderTracking } from '../../models/admin.model';
       align-items: center;
       padding: var(--space-4);
       background-color: var(--neutral-800);
-      color: var(--white);
+      color: var (--white);
     }
     
     .user-avatar {
@@ -543,7 +555,7 @@ import { OrderTracking } from '../../models/admin.model';
     .filter-btn.active {
       background-color: var(--primary);
       color: var(--white);
-      border-color: var(--primary);
+      border-color: var (--primary);
     }
     
     .order-list {
@@ -843,6 +855,17 @@ import { OrderTracking } from '../../models/admin.model';
       font-size: 1rem;
       color: var(--neutral-900);
     }
+
+    .nav-item.seller-dashboard {
+      background-color: var(--primary-light);
+      color: var(--primary);
+      margin-top: var(--space-4);
+    }
+
+    .nav-item.seller-dashboard:hover {
+      background-color: var(--primary);
+      color: var(--white);
+    }
   `]
 })
 export class AccountComponent {
@@ -851,8 +874,16 @@ export class AccountComponent {
   selectedOrder: any = null;
   showTracking: boolean = false;
   trackingInfo: OrderTracking | null = null;
+  isSeller: boolean = false;
   
-  constructor(private adminService: AdminService) {}
+  constructor(
+    private adminService: AdminService,
+    private authService: AuthService
+  ) {
+    this.authService.currentUser$.subscribe((user: User | null) => {
+      this.isSeller = user?.role === 'seller';
+    });
+  }
 
   setActiveTab(tab: string): void {
     this.activeTab = tab;

@@ -10,6 +10,9 @@ import { AdminDashboardComponent } from './pages/admin/admin-dashboard.component
 import { AdminProductsComponent } from './pages/admin/admin-products.component';
 import { AdminOrdersComponent } from './pages/admin/admin-orders.component';
 import { AdminUsersComponent } from './pages/admin/admin-users.component';
+import { AdminSellersComponent } from './pages/admin/admin-sellers.component';
+import { SellerDashboardComponent } from './pages/seller/seller-dashboard.component';
+import { SellerRegisterComponent } from './pages/seller/seller-register.component';
 import { AuthGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -24,6 +27,10 @@ export const routes: Routes = [
   },
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
+  { 
+    path: 'seller/register', 
+    loadComponent: () => import('./pages/seller/seller-register.component').then(m => m.SellerRegisterComponent) 
+  },
   {
     path: 'admin',
     canActivate: [AuthGuard],
@@ -32,8 +39,25 @@ export const routes: Routes = [
       { path: '', component: AdminDashboardComponent },
       { path: 'products', component: AdminProductsComponent },
       { path: 'orders', component: AdminOrdersComponent },
-      { path: 'users', component: AdminUsersComponent }
+      { path: 'users', component: AdminUsersComponent },
+      { path: 'sellers', component: AdminSellersComponent }
     ]
+  },
+  {
+    path: 'seller',
+    canActivate: [AuthGuard],
+    data: { requiresSeller: true },
+    children: [
+      { path: '', component: SellerDashboardComponent },
+      { path: 'products', component: SellerDashboardComponent },
+      { path: 'orders', component: SellerDashboardComponent },
+      { path: 'profile', component: SellerDashboardComponent }
+    ]
+  },
+  {
+    path: 'seller/dashboard',
+    loadComponent: () => import('./pages/seller/seller-dashboard.component').then(m => m.SellerDashboardComponent),
+    canActivate: [AuthGuard]
   },
   { path: '**', redirectTo: '' }
 ];

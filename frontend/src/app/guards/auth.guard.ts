@@ -18,6 +18,13 @@ export class AuthGuard {
         this.router.navigate(['/']);
         return false;
       }
+
+      // Check for seller route
+      if (route.data['requiresSeller'] && !this.authService.isSeller()) {
+        this.router.navigate(['/']);
+        return false;
+      }
+
       return true;
     }
     

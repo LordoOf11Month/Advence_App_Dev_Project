@@ -21,16 +21,26 @@ export class AdminService {
       id: '1',
       title: 'Men\'s Casual T-Shirt',
       price: 199.99,
-      stock: 50,
+      category: 'Clothing',
       status: 'active',
+      inStock: true,
+      stock: 50,
+      sellerId: 'seller1',
+      sellerName: 'Fashion Store',
+      dateAdded: new Date(),
       lastUpdated: new Date()
     },
     {
       id: '2',
       title: 'Women\'s Summer Dress',
       price: 349.99,
-      stock: 30,
+      category: 'Clothing',
       status: 'active',
+      inStock: true,
+      stock: 30,
+      sellerId: 'seller1',
+      sellerName: 'Fashion Store',
+      dateAdded: new Date(),
       lastUpdated: new Date()
     }
   ];
@@ -39,14 +49,19 @@ export class AdminService {
     {
       id: '1',
       userId: '2',
+      userEmail: 'user@example.com',
       status: 'processing',
       total: 199.99,
+      totalAmount: 199.99,
       items: [
-        { productId: '1', quantity: 1, price: 199.99 }
+        { productId: 1, productName: 'Men\'s Casual T-Shirt', quantity: 1, price: 199.99 }
       ],
       shippingAddress: '123 Main St, City, Country',
-      createdAt: new Date(),
-      updatedAt: new Date()
+      sellerId: 'seller1',
+      sellerName: 'Fashion Store',
+      dateCreated: new Date(),
+      dateUpdated: new Date(),
+      createdAt: new Date()
     }
   ];
 
@@ -58,8 +73,9 @@ export class AdminService {
       lastName: 'User',
       status: 'active',
       role: 'user',
-      joinDate: new Date(),
+      dateJoined: new Date(),
       lastLogin: new Date(),
+      joinDate: new Date(),
       orderCount: 1,
       totalSpent: 199.99
     }
@@ -104,7 +120,7 @@ export class AdminService {
     }
     
     order.status = status;
-    order.updatedAt = new Date();
+    order.dateUpdated = new Date();
     return of(order).pipe(delay(500));
   }
 
@@ -132,7 +148,7 @@ export class AdminService {
       orderId: order.id,
       status: order.status,
       location: 'Warehouse', // Example location
-      updatedAt: order.updatedAt
+      updatedAt: order.dateUpdated
     };
 
     return of(tracking).pipe(delay(500));
@@ -200,7 +216,9 @@ export class AdminService {
       activeUsers: this.users.filter(u => u.status === 'active').length,
       totalOrders: this.orders.length,
       totalRevenue: this.orders.reduce((sum, order) => sum + order.total, 0),
-      lowStockProducts: this.products.filter(p => p.stock < 10).length
+      lowStockProducts: this.products.filter(p => p.stock < 10).length,
+      totalProducts: this.products.length,
+      totalSellers: 1 // Mock value
     };
     
     return of(stats).pipe(delay(500));
@@ -218,7 +236,7 @@ export class AdminService {
     }
 
     order.status = 'processing';
-    order.updatedAt = new Date();
+    order.dateUpdated = new Date();
     return of(void 0).pipe(delay(500));
   }
 
@@ -229,7 +247,7 @@ export class AdminService {
     }
 
     order.status = 'processing';
-    order.updatedAt = new Date();
+    order.dateUpdated = new Date();
     return of(void 0).pipe(delay(500));
   }
 }

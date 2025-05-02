@@ -28,7 +28,9 @@ export class ProductService {
       isFavorite: false,
       inStock: true,
       freeShipping: true,
-      fastDelivery: true
+      fastDelivery: true,
+      sellerId: 'seller1',
+      sellerName: 'Fashion Store'
     },
     {
       id: 2,
@@ -49,7 +51,9 @@ export class ProductService {
       sizes: ['XS', 'S', 'M', 'L'],
       isFavorite: true,
       inStock: true,
-      freeShipping: true
+      freeShipping: true,
+      sellerId: 'seller2',
+      sellerName: 'Elegance Boutique'
     },
     {
       id: 3,
@@ -70,7 +74,9 @@ export class ProductService {
       sizes: ['39', '40', '41', '42', '43', '44'],
       isFavorite: false,
       inStock: true,
-      fastDelivery: true
+      fastDelivery: true,
+      sellerId: 'seller3',
+      sellerName: 'SportEx Store'
     },
     {
       id: 4,
@@ -91,7 +97,9 @@ export class ProductService {
       isFavorite: true,
       inStock: true,
       freeShipping: true,
-      fastDelivery: true
+      fastDelivery: true,
+      sellerId: 'seller4',
+      sellerName: 'TechGear Store'
     },
     {
       id: 5,
@@ -111,7 +119,9 @@ export class ProductService {
       colors: ['Black', 'Gray', 'Blue'],
       isFavorite: false,
       inStock: true,
-      freeShipping: true
+      freeShipping: true,
+      sellerId: 'seller5',
+      sellerName: 'UrbanStyle Store'
     },
     {
       id: 6,
@@ -132,7 +142,9 @@ export class ProductService {
       isFavorite: true,
       inStock: true,
       freeShipping: true,
-      fastDelivery: true
+      fastDelivery: true,
+      sellerId: 'seller6',
+      sellerName: 'SoundPro Store'
     }
   ];
 
