@@ -29,6 +29,10 @@ import { Category } from '../../models/product.model';
               <span class="material-symbols-outlined">admin_panel_settings</span>
               <span class="hidden-sm">Admin</span>
             </a>
+            <a routerLink="/seller" *ngIf="isSeller">
+              <span class="material-symbols-outlined">store</span>
+              <span class="hidden-sm">Seller Dashboard</span>
+            </a>
             <a routerLink="/account">
               <span class="material-symbols-outlined">person</span>
               <span class="hidden-sm">Account</span>
@@ -602,6 +606,7 @@ export class HeaderComponent {
   isSellerRoute: boolean = false;
   isAdminRoute: boolean = false;
   isAdmin: boolean = false;
+  isSeller: boolean = false;
   
   constructor(
     private productService: ProductService,
@@ -629,6 +634,7 @@ export class HeaderComponent {
 
     this.authService.currentUser$.subscribe(user => {
       this.isAdmin = user?.role === 'admin';
+      this.isSeller = user?.role === 'seller';
     });
   }
   
