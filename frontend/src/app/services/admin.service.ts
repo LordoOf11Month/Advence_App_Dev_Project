@@ -50,18 +50,19 @@ export class AdminService {
       id: '1',
       userId: '2',
       userEmail: 'user@example.com',
-      status: 'processing',
-      total: 199.99,
-      totalAmount: 199.99,
+      customerName: 'Regular User',
       items: [
         { productId: 1, productName: 'Men\'s Casual T-Shirt', quantity: 1, price: 199.99 }
       ],
-      shippingAddress: '123 Main St, City, Country',
+      totalAmount: 199.99,
+      total: 199.99,
+      status: 'processing',
       sellerId: 'seller1',
       sellerName: 'Fashion Store',
       dateCreated: new Date(),
       dateUpdated: new Date(),
-      createdAt: new Date()
+      createdAt: new Date(),
+      shippingAddress: '123 Main St, City, Country'
     }
   ];
 
@@ -211,14 +212,26 @@ export class AdminService {
 
   // Dashboard Stats
   getAdminStats(): Observable<AdminStats> {
+    const totalUsersCount = this.users.length;
+    const activeUsersCount = this.users.filter(u => u.status === 'active').length;
+    const totalOrdersCount = this.orders.length;
+    const totalRevenueSum = this.orders.reduce((sum, order) => sum + order.total, 0);
+    const lowStockCount = this.products.filter(p => p.stock < 10).length;
+    const totalProductsCount = this.products.length;
+    const totalSellersCount = 1; // Mock value
+    const activeProductsCount = this.products.filter(p => p.status === 'active').length;
+    const pendingOrdersCount = this.orders.filter(o => o.status === 'pending').length;
+
     const stats: AdminStats = {
-      totalUsers: this.users.length,
-      activeUsers: this.users.filter(u => u.status === 'active').length,
-      totalOrders: this.orders.length,
-      totalRevenue: this.orders.reduce((sum, order) => sum + order.total, 0),
-      lowStockProducts: this.products.filter(p => p.stock < 10).length,
-      totalProducts: this.products.length,
-      totalSellers: 1 // Mock value
+      totalUsers: totalUsersCount,
+      activeUsers: activeUsersCount,
+      totalOrders: totalOrdersCount,
+      totalRevenue: totalRevenueSum,
+      lowStockProducts: lowStockCount,
+      totalProducts: totalProductsCount,
+      totalSellers: totalSellersCount,
+      activeProducts: activeProductsCount,
+      pendingOrders: pendingOrdersCount
     };
     
     return of(stats).pipe(delay(500));

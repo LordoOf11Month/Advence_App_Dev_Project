@@ -16,6 +16,7 @@ export interface AdminOrder {
   id: string;
   userId: string;
   userEmail: string;
+  customerName: string;
   items: Array<{
     productId: number;
     productName: string;
@@ -63,6 +64,8 @@ export interface AdminStats {
   totalProducts: number;
   totalSellers: number;
   activeUsers: number;
+  activeProducts: number;
+  pendingOrders: number;
   lowStockProducts: number;
 }
 
@@ -88,17 +91,21 @@ export interface AdminSeller {
   firstName: string;
   lastName: string;
   storeName: string;
-  storeDescription: string;
-  rating: number;
-  productCount: number;
-  totalSales: number;
-  status: 'active' | 'suspended';
+  storeDescription?: string;
+  status: 'active' | 'suspended' | 'banned';
   dateJoined: Date;
   lastActive: Date;
+  totalProducts: number;
+  totalOrders: number;
+  totalRevenue: number;
+  productCount: number;
+  totalSales: number;
+  rating: number;
+  reviewCount: number;
   commissionRate: number;
   paymentInfo?: {
     bankName: string;
-    accountNumber: string;
     accountHolder: string;
+    accountNumber: string;
   };
 }

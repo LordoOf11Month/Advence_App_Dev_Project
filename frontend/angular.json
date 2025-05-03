@@ -26,13 +26,38 @@
             }
           },
           "options": {
-            "assets": [],
+            "assets": [
+              "src/favicon.ico",
+              "src/assets"
+            ],
             "index": "src/index.html",
             "browser": "src/main.ts",
             "outputPath": "dist/demo",
             "polyfills": ["zone.js"],
             "scripts": [],
-            "styles": ["src/global_styles.css"],
+            "styles": [
+              "src/global_styles.css",
+              {
+                "input": "@fontsource/roboto/300.css",
+                "bundleName": "roboto-300",
+                "inject": true
+              },
+              {
+                "input": "@fontsource/roboto/400.css",
+                "bundleName": "roboto-400",
+                "inject": true
+              },
+              {
+                "input": "@fontsource/roboto/500.css",
+                "bundleName": "roboto-500",
+                "inject": true
+              },
+              {
+                "input": "src/material-symbols.css",
+                "bundleName": "material-symbols",
+                "inject": true
+              }
+            ],
             "tsConfig": "tsconfig.app.json"
           }
         },

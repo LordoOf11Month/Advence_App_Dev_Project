@@ -508,6 +508,7 @@ export class SellerDashboardComponent implements OnInit {
         id: '1',
         userId: 'user1',
         userEmail: 'customer@example.com',
+        customerName: 'John Customer',
         items: [
           { productId: 1, productName: 'Wireless Earbuds', quantity: 1, price: 299.99 }
         ],

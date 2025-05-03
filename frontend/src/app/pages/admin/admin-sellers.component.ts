@@ -528,12 +528,16 @@ export class AdminSellersComponent implements OnInit {
       totalSales: seller.totalSales,
       status: seller.status,
       dateJoined: seller.dateJoined,
-      lastActive: new Date(), // Default to current date if not available
-      commissionRate: 0.1, // Default commission rate
+      lastActive: new Date(),
+      totalProducts: seller.productCount, // Map to existing productCount
+      totalOrders: 0, // Default value
+      totalRevenue: 0, // Default value
+      reviewCount: 0, // Default value
+      commissionRate: 0.1,
       paymentInfo: {
         bankName: '',
         accountNumber: '',
-        accountHolder: seller.storeName // Use store name as default
+        accountHolder: seller.storeName
       }
     };
   }

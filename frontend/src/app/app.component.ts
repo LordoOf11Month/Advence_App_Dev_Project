@@ -4,6 +4,7 @@ import { RouterModule } from '@angular/router';
 
 import { HeaderComponent } from './components/header/header.component';
 import { FooterComponent } from './components/footer/footer.component';
+import { ErrorDisplayComponent } from './components/error-display/error-display.component';
 
 @Component({
   selector: 'app-root',
@@ -13,6 +14,7 @@ import { FooterComponent } from './components/footer/footer.component';
     RouterModule,
     HeaderComponent,
     FooterComponent,
+    ErrorDisplayComponent
   ],
   template: `
     <div class="app-container">
@@ -21,6 +23,7 @@ import { FooterComponent } from './components/footer/footer.component';
         <router-outlet></router-outlet>
       </main>
       <app-footer></app-footer>
+      <app-error-display></app-error-display>
     </div>
   `,
   styles: [`

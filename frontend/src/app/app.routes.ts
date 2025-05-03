@@ -37,10 +37,7 @@ export const routes: Routes = [
     data: { requiresAdmin: true },
     children: [
       { path: '', component: AdminDashboardComponent },
-      { path: 'products', component: AdminProductsComponent },
-      { path: 'orders', component: AdminOrdersComponent },
-      { path: 'users', component: AdminUsersComponent },
-      { path: 'sellers', component: AdminSellersComponent }
+      { path: '**', redirectTo: '' }
     ]
   },
   {
