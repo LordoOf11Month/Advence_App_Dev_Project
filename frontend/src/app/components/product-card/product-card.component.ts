@@ -27,7 +27,10 @@ import { Product } from '../../models/product.model';
         <div class="product-info">
           <h3 class="product-title">{{product.title}}</h3>
           
-          <div class="product-brand">{{product.brand}}</div>
+          <a [routerLink]="['/store', product.sellerId]" class="seller-link" (click)="$event.stopPropagation()">
+            <span class="material-symbols-outlined">store</span>
+            {{product.sellerName}}
+          </a>
           
           <div class="product-rating">
             <div class="stars" [attr.data-rating]="product.rating">
@@ -162,11 +165,23 @@ import { Product } from '../../models/product.model';
       overflow: hidden;
       height: 2.8rem;
     }
-    
-    .product-brand {
+
+    .seller-link {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
       font-size: 0.8125rem;
       color: var(--neutral-600);
       margin-bottom: var(--space-2);
+      text-decoration: none;
+    }
+
+    .seller-link:hover {
+      color: var(--primary);
+    }
+
+    .seller-link .material-symbols-outlined {
+      font-size: 1rem;
     }
     
     .product-rating {

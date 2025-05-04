@@ -13,12 +13,14 @@ import { AdminUsersComponent } from './pages/admin/admin-users.component';
 import { AdminSellersComponent } from './pages/admin/admin-sellers.component';
 import { SellerDashboardComponent } from './pages/seller/seller-dashboard.component';
 import { SellerRegisterComponent } from './pages/seller/seller-register.component';
+import { StorePageComponent } from './pages/store/store-page.component';
 import { AuthGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'category/:categoryId', component: ProductListComponent },
   { path: 'product/:productId', component: ProductDetailComponent },
+  { path: 'store/:sellerId', component: StorePageComponent },
   { path: 'cart', component: CartComponent },
   { 
     path: 'account', 
@@ -37,6 +39,10 @@ export const routes: Routes = [
     data: { requiresAdmin: true },
     children: [
       { path: '', component: AdminDashboardComponent },
+      { path: 'products', component: AdminProductsComponent },
+      { path: 'orders', component: AdminOrdersComponent },
+      { path: 'users', component: AdminUsersComponent },
+      { path: 'sellers', component: AdminSellersComponent },
       { path: '**', redirectTo: '' }
     ]
   },

@@ -60,6 +60,11 @@ import { ProductCarouselComponent } from '../../components/product-carousel/prod
             <h1 class="product-title">{{product.title}}</h1>
             <div class="product-brand">{{product.brand}}</div>
             
+            <a [routerLink]="['/store', product.sellerId]" class="seller-link">
+              <span class="material-symbols-outlined">store</span>
+              {{product.sellerName}}
+            </a>
+            
             <div class="product-rating">
               <div class="stars" [attr.data-rating]="product.rating">
                 <span 
@@ -286,6 +291,25 @@ import { ProductCarouselComponent } from '../../components/product-carousel/prod
       font-size: 1rem;
       color: var(--neutral-600);
       margin-bottom: var(--space-2);
+    }
+    
+    .seller-link {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      font-size: 0.9375rem;
+      color: var(--neutral-600);
+      margin-bottom: var(--space-3);
+      text-decoration: none;
+      transition: color var(--transition-fast);
+    }
+
+    .seller-link:hover {
+      color: var(--primary);
+    }
+
+    .seller-link .material-symbols-outlined {
+      font-size: 1.125rem;
     }
     
     .product-rating {
