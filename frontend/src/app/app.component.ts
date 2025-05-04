@@ -12,10 +12,6 @@ import { FooterComponent } from './components/footer/footer.component';
     <div class="app-container">
       <app-header></app-header>
       
-      <div class="announcement-bar">
-        🎉 New Feature: Product Reviews & Ratings - Share your experience with our products! 🎉
-      </div>
-      
       <main>
         <router-outlet></router-outlet>
       </main>
@@ -34,15 +30,6 @@ import { FooterComponent } from './components/footer/footer.component';
       flex: 1;
       padding-top: var(--space-4);
       padding-bottom: var(--space-4);
-    }
-    
-    .announcement-bar {
-      background-color: #4CAF50;
-      color: white;
-      text-align: center;
-      padding: 8px;
-      font-size: 14px;
-      font-weight: 500;
     }
   `]
 })

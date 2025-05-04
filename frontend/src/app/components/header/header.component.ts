@@ -154,7 +154,7 @@ import { Category } from '../../models/product.model';
     }
     
     .header-spacer {
-      height: 140px;
+      height: 120px; /* Reduced from 140px */
     }
     
     .top-bar {
@@ -188,7 +188,7 @@ import { Category } from '../../models/product.model';
     .main-header {
       display: flex;
       align-items: center;
-      padding: var(--space-3) 0;
+      padding: var(--space-2) 0; /* Reduced from space-3 */
     }
     
     .logo {
@@ -300,6 +300,7 @@ import { Category } from '../../models/product.model';
       background-color: var(--white);
       border-top: 1px solid var(--neutral-200);
       border-bottom: 1px solid var(--neutral-200);
+      height: 36px; /* Set a fixed height */
     }
     
     .categories-list {
@@ -307,18 +308,32 @@ import { Category } from '../../models/product.model';
       list-style: none;
       margin: 0;
       padding: 0;
-      flex-wrap: wrap;
+      flex-wrap: nowrap; /* Changed from wrap to nowrap */
+      overflow-x: auto;
+      -ms-overflow-style: none; /* IE and Edge */
+      scrollbar-width: none; /* Firefox */
+      max-width: 100%;
+      white-space: nowrap;
+      height: 100%; /* Take full height of parent */
+    }
+    
+    .categories-list::-webkit-scrollbar {
+      display: none; /* Chrome, Safari, Opera */
     }
     
     .category-item {
       position: relative;
+      height: 100%; /* Take full height of parent */
+      display: inline-flex; /* Changed to inline-flex */
+      align-items: center;
     }
     
     .category-item > a {
       display: block;
-      padding: var(--space-3) var(--space-4);
+      padding: 0 var(--space-2); /* Reduced horizontal padding even more */
       color: var(--neutral-800);
       font-weight: 500;
+      font-size: 0.85rem; /* Reduced from 0.9rem */
       transition: color var(--transition-fast);
     }
     

@@ -101,7 +101,45 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   private currentSectionIndex = 0;
   private scrolling = false;
   private touchStartY: number = 0;
+  private touchStartX: number = 0;
+  private touchEndY: number = 0;
+  private touchEndX: number = 0;
   private touchThreshold: number = 50;
+  private touchStartTime: number = 0;
+  private isSwiping: boolean = false;
+  private swipeCooldown: boolean = false;
+
+  // Mobile view detection - improved
+  isMobileView: boolean = false;
+  
+  @HostListener('window:resize', ['$event'])
+  onResize() {
+    this.checkIfMobile();
+  }
+  
+  private checkIfMobile(): void {
+    const prevMobileState = this.isMobileView;
+    this.isMobileView = window.innerWidth <= 768; // Same breakpoint as CSS
+    
+    // If state changed, update UI accordingly
+    if (prevMobileState !== this.isMobileView) {
+      // Allow time for DOM to update
+      setTimeout(() => {
+        // Update active section in nav
+        const activeNavLink = document.querySelector(this.isMobileView ? 
+          '.mobile-nav a.active' : 
+          '.admin-nav a.active');
+          
+        if (activeNavLink) {
+          activeNavLink.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'nearest', 
+            inline: 'center' 
+          });
+        }
+      }, 100);
+    }
+  }
 
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
@@ -146,81 +184,70 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.showTransactions = false;
   }
 
+  // Disable swipe navigation completely
+  @HostListener('touchstart', ['$event'])
+  onTouchStart(event: TouchEvent) {
+    // Just store position for reference but don't trigger navigation
+    this.touchStartY = event.touches[0].clientY;
+    this.touchStartX = event.touches[0].clientX;
+    this.touchStartTime = Date.now();
+    this.isSwiping = false;
+  }
+
+  @HostListener('touchmove', ['$event'])
+  onTouchMove(event: TouchEvent) {
+    // No action - let native scrolling handle it
+    return;
+  }
+
+  @HostListener('touchend', ['$event'])
+  onTouchEnd(event: TouchEvent) {
+    // No action - disable swipe navigation
+    return;
+  }
+
+  // Manual navigation only via clicks
+  scrollToSection(sectionId: string): void {
+    const section = document.getElementById(sectionId);
+    if (section) {
+      // Get the index of the current section
+      const sectionIndex = ['overview', 'products', 'orders', 'users'].indexOf(sectionId);
+      this.currentSectionIndex = sectionIndex;
+      this.activeSection = sectionId;
+      
+      // Simply use native scroll with an offset
+      const yOffset = -100; // Header offset
+      const y = section.getBoundingClientRect().top + window.pageYOffset + yOffset;
+      
+      window.scrollTo({
+        top: y,
+        behavior: 'smooth'
+      });
+      
+      // Also scroll the nav to show active item
+      setTimeout(() => {
+        const activeNavLink = document.querySelector('.admin-nav a.active');
+        if (activeNavLink && this.isMobileView) {
+          activeNavLink.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+        }
+      }, 100);
+    }
+  }
+
+  // For keyboard navigation (keep it simple)
   private navigateToNextSection(): void {
     if (this.currentSectionIndex < this.sections.length - 1) {
-      this.currentSectionIndex++;
-      this.scrollToCurrentSection();
+      const nextIndex = this.currentSectionIndex + 1;
+      const sectionId = ['overview', 'products', 'orders', 'users'][nextIndex];
+      this.scrollToSection(sectionId);
     }
   }
 
   private navigateToPreviousSection(): void {
     if (this.currentSectionIndex > 0) {
-      this.currentSectionIndex--;
-      this.scrollToCurrentSection();
-    }
-  }
-
-  private scrollToCurrentSection(): void {
-    this.scrolling = true;
-    const section = this.sections.toArray()[this.currentSectionIndex];
-    section.nativeElement.scrollIntoView({ behavior: 'smooth' });
-    this.activeSection = section.nativeElement.id;
-    
-    // Update active section after scrolling finishes
-    setTimeout(() => {
-      this.scrolling = false;
-      this.updateActiveSection();
-    }, 1000);
-  }
-
-  private updateActiveSection(): void {
-    if (this.scrolling) return;
-    
-    const sections = this.sections.toArray();
-    const viewportHeight = window.innerHeight;
-    const headerOffset = 100; // Adjust based on your header height
-    
-    for (let i = 0; i < sections.length; i++) {
-      const section = sections[i].nativeElement;
-      const rect = section.getBoundingClientRect();
-      const sectionTop = rect.top - headerOffset;
-      const sectionBottom = rect.bottom - headerOffset;
-      
-      // Section is considered active if it takes up most of the viewport
-      if (sectionTop <= viewportHeight / 3 && sectionBottom >= viewportHeight / 3) {
-        this.activeSection = section.id;
-        this.currentSectionIndex = i;
-        break;
-      }
-    }
-  }
-
-  @HostListener('touchstart', ['$event'])
-  onTouchStart(event: TouchEvent) {
-    this.touchStartY = event.touches[0].clientY;
-  }
-
-  @HostListener('touchmove', ['$event'])
-  onTouchMove(event: TouchEvent) {
-    const currentY = event.touches[0].clientY;
-    const deltaY = this.touchStartY - currentY;
-    
-    if (Math.abs(deltaY) > this.touchThreshold) {
-      if (deltaY > 0) {
-        // Swipe up - go to next section
-        this.navigateToNextSection();
-      } else {
-        // Swipe down - go to previous section
-        this.navigateToPreviousSection();
-      }
-      this.touchStartY = currentY;
-    }
-  }
-
-  @HostListener('window:scroll', ['$event'])
-  onWindowScroll() {
-    if (!this.scrolling) {
-      this.updateActiveSection();
+      const prevIndex = this.currentSectionIndex - 1;
+      const sectionId = ['overview', 'products', 'orders', 'users'][prevIndex];
+      this.scrollToSection(sectionId);
     }
   }
 
@@ -239,6 +266,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.loadProducts();
     this.loadOrders();
     this.loadUsers();
+    this.checkIfMobile();
   }
 
   ngOnDestroy(): void {
@@ -578,24 +606,6 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   updateStatus(order: AdminOrder): void {
     this.selectedOrder = order;
     this.showStatusUpdate = true;
-  }
-
-  scrollToSection(sectionId: string): void {
-    const section = document.getElementById(sectionId);
-    if (section) {
-      this.scrolling = true;
-      section.scrollIntoView({ behavior: 'smooth' });
-      this.activeSection = sectionId;
-      
-      // Update active section after scrolling finishes
-      setTimeout(() => {
-        this.scrolling = false;
-        this.currentSectionIndex = ['overview', 'products', 'orders', 'users'].indexOf(sectionId);
-      }, 1000);
-
-      // Prevent default anchor behavior
-      event?.preventDefault();
-    }
   }
 
   // Product sorting and pagination methods

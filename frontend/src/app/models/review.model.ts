@@ -29,4 +29,7 @@ export interface ReviewRequest {
   comment: string;
   title?: string;
   images?: string[];
-} 
+}
+
+// Add for backward compatibility
+export type NewReview = ReviewRequest; 

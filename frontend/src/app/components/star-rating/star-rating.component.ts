@@ -6,100 +6,106 @@ import { CommonModule } from '@angular/common';
   standalone: true,
   imports: [CommonModule],
   template: `
-    <div class="star-rating" [class.interactive]="interactive">
-      <span 
-        *ngFor="let star of stars; let i = index" 
-        class="material-symbols-outlined"
-        [class.filled]="i < displayValue"
-        [class.half-filled]="i === Math.floor(displayValue) && displayValue % 1 !== 0"
-        (mouseenter)="onStarHover(i+1)"
-        (mouseleave)="onStarLeave()"
-        (click)="onStarClick(i+1)"
+    <div 
+      class="star-rating" 
+      [class.interactive]="interactive"
+      [class.small]="size === 'small'"
+      [class.large]="size === 'large'"
+    >
+      <div 
+        *ngFor="let star of starsArray; let i = index" 
+        class="star" 
+        [class.filled]="i < filledStars"
+        [class.half-filled]="i === Math.floor(filledStars) && hasHalfStar"
+        (click)="interactive && setRating(i + 1)"
+        (mouseenter)="interactive && setHoverRating(i + 1)"
+        (mouseleave)="interactive && resetHoverRating()"
       >
-        star
-      </span>
+        <span class="material-symbols-outlined">star</span>
+      </div>
     </div>
   `,
   styles: [`
     .star-rating {
-      display: flex;
+      display: inline-flex;
       align-items: center;
     }
     
-    .star-rating .material-symbols-outlined {
+    .star {
+      position: relative;
       color: var(--neutral-300);
-      font-size: 1.5rem;
       cursor: default;
-      transition: color var(--transition-fast);
     }
     
-    .star-rating.interactive .material-symbols-outlined {
+    .star .material-symbols-outlined {
+      font-variation-settings: 'FILL' 1;
+    }
+    
+    .star.filled {
+      color: var(--warning);
+    }
+    
+    .star.half-filled {
+      position: relative;
+    }
+    
+    .star.half-filled::after {
+      content: "star";
+      font-family: 'Material Symbols Outlined';
+      font-variation-settings: 'FILL' 1;
+      position: absolute;
+      left: 0;
+      width: 50%;
+      overflow: hidden;
+      color: var(--warning);
+    }
+    
+    .interactive .star {
       cursor: pointer;
     }
     
-    .star-rating .material-symbols-outlined.filled {
-      color: var(--warning);
+    .small .material-symbols-outlined {
+      font-size: 1rem;
     }
     
-    .star-rating .material-symbols-outlined.half-filled {
-      position: relative;
-      color: var(--neutral-300);
+    .star-rating:not(.small):not(.large) .material-symbols-outlined {
+      font-size: 1.5rem;
     }
     
-    .star-rating .material-symbols-outlined.half-filled::after {
-      content: 'star_half';
-      position: absolute;
-      left: 0;
-      color: var(--warning);
-    }
-    
-    .star-rating.interactive:hover .material-symbols-outlined {
-      color: var(--neutral-300);
-    }
-    
-    .star-rating.interactive .material-symbols-outlined:hover ~ .material-symbols-outlined {
-      color: var(--neutral-300);
+    .large .material-symbols-outlined {
+      font-size: 2rem;
     }
   `]
 })
 export class StarRatingComponent {
   @Input() value: number = 0;
-  @Input() interactive: boolean = false;
   @Input() size: 'small' | 'medium' | 'large' = 'medium';
+  @Input() interactive: boolean = false;
   @Output() ratingChange = new EventEmitter<number>();
   
-  stars = [1, 2, 3, 4, 5];
-  hoverValue: number | null = null;
-  displayValue: number = 0;
+  hoverRating: number | null = null;
+  starsArray = [0, 1, 2, 3, 4];
   Math = Math;
   
-  ngOnChanges() {
-    this.updateDisplayValue();
+  get filledStars(): number {
+    return this.hoverRating !== null ? this.hoverRating : this.value;
   }
   
-  onStarHover(value: number): void {
-    if (!this.interactive) return;
-    
-    this.hoverValue = value;
-    this.updateDisplayValue();
+  get hasHalfStar(): boolean {
+    const value = this.hoverRating !== null ? this.hoverRating : this.value;
+    return Math.floor(value) !== value;
   }
   
-  onStarLeave(): void {
-    if (!this.interactive) return;
-    
-    this.hoverValue = null;
-    this.updateDisplayValue();
+  setRating(rating: number): void {
+    this.value = rating;
+    this.ratingChange.emit(rating);
   }
   
-  onStarClick(value: number): void {
-    if (!this.interactive) return;
-    
-    this.value = value;
-    this.updateDisplayValue();
-    this.ratingChange.emit(value);
+  setHoverRating(rating: number): void {
+    this.hoverRating = rating;
   }
   
-  private updateDisplayValue(): void {
-    this.displayValue = this.hoverValue !== null ? this.hoverValue : this.value;
+  resetHoverRating(): void {
+    this.hoverRating = null;
   }
-} 
+}

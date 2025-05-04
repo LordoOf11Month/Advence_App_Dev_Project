@@ -1,4 +1,5 @@
 <div class="admin-container">
+  <!-- Desktop sidebar -->
   <aside class="admin-sidebar">
     <nav class="admin-nav">
       <a [class.active]="activeSection === 'overview'" (click)="scrollToSection('overview')">
@@ -34,324 +35,339 @@
         <span>Close modal</span>
       </div>
     </div>
-
-    <div class="touch-instructions">
-      <span>Swipe up/down to navigate</span>
-    </div>
   </aside>
 
   <main class="admin-content" #mainContent>
-    <!-- Overview Section -->
-    <section id="overview" #section>
-      <h2>Overview</h2>
-      
-      <div *ngIf="isLoadingStats">
-        <app-loading-spinner></app-loading-spinner>
-      </div>
-
-      <div *ngIf="statsError" class="error-message">
-        {{ statsError }}
-      </div>
-
-      <div *ngIf="stats && !isLoadingStats" class="stats-grid">
-        <div class="stat-card">
-          <div class="stat-icon" style="background-color: var(--primary);">
-            <!-- Icon here -->
-          </div>
-          <div class="stat-info">
-            <h3>Total Revenue</h3>
-            <div class="stat-value">${{ stats.totalRevenue | number:'1.0-0' }}</div>
-            <small>Past 30 days</small>
-          </div>
+    <!-- Mobile navigation (only displayed on mobile) -->
+    <nav class="mobile-nav" *ngIf="isMobileView">
+      <a [class.active]="activeSection === 'overview'" (click)="scrollToSection('overview')">
+        Overview
+      </a>
+      <a [class.active]="activeSection === 'products'" (click)="scrollToSection('products')">
+        Products
+      </a>
+      <a [class.active]="activeSection === 'orders'" (click)="scrollToSection('orders')">
+        Orders
+      </a>
+      <a [class.active]="activeSection === 'users'" (click)="scrollToSection('users')">
+        Users
+      </a>
+    </nav>
+    
+    <!-- Sections wrapper to prevent layout shifts -->
+    <div class="sections-wrapper">
+      <!-- Overview Section -->
+      <section id="overview" #section>
+        <h2>Overview</h2>
+        
+        <div *ngIf="isLoadingStats">
+          <app-loading-spinner></app-loading-spinner>
         </div>
 
-        <div class="stat-card">
-          <div class="stat-icon" style="background-color: var(--success);">
-            <!-- Icon here -->
-          </div>
-          <div class="stat-info">
-            <h3>Active Products</h3>
-            <div class="stat-value">{{ stats.activeProducts }}</div>
-            <small>{{ stats.totalProducts }} total</small>
-          </div>
+        <div *ngIf="statsError" class="error-message">
+          {{ statsError }}
         </div>
 
-        <div class="stat-card">
-          <div class="stat-icon" style="background-color: var(--warning);">
-            <!-- Icon here -->
+        <div *ngIf="stats && !isLoadingStats" class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon" style="background-color: var(--primary);">
+              <!-- Icon here -->
+            </div>
+            <div class="stat-info">
+              <h3>Total Revenue</h3>
+              <div class="stat-value">${{ stats.totalRevenue | number:'1.0-0' }}</div>
+              <small>Past 30 days</small>
+            </div>
           </div>
-          <div class="stat-info">
-            <h3>Pending Orders</h3>
-            <div class="stat-value">{{ stats.pendingOrders }}</div>
-            <small>{{ stats.totalOrders }} total</small>
+
+          <div class="stat-card">
+            <div class="stat-icon" style="background-color: var(--success);">
+              <!-- Icon here -->
+            </div>
+            <div class="stat-info">
+              <h3>Active Products</h3>
+              <div class="stat-value">{{ stats.activeProducts }}</div>
+              <small>{{ stats.totalProducts }} total</small>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon" style="background-color: var(--warning);">
+              <!-- Icon here -->
+            </div>
+            <div class="stat-info">
+              <h3>Pending Orders</h3>
+              <div class="stat-value">{{ stats.pendingOrders }}</div>
+              <small>{{ stats.totalOrders }} total</small>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Products Section -->
-    <section id="products" #section>
-      <h2>Products</h2>
-      
-      <div *ngIf="isLoadingProducts">
-        <app-loading-spinner></app-loading-spinner>
-      </div>
+      <!-- Products Section -->
+      <section id="products" #section>
+        <h2>Products</h2>
+        
+        <div *ngIf="isLoadingProducts">
+          <app-loading-spinner></app-loading-spinner>
+        </div>
 
-      <div *ngIf="productsError" class="error-message">
-        {{ productsError }}
-      </div>
+        <div *ngIf="productsError" class="error-message">
+          {{ productsError }}
+        </div>
 
-      <div *ngIf="!isLoadingProducts && !productsError">
-        <div class="table-actions">
-          <button (click)="openProductForm()">Add Product</button>
-          
-          <div class="filters">
-            <input 
-              type="text" 
-              [(ngModel)]="productSearchQuery" 
-              (ngModelChange)="filterProducts()"
-              placeholder="Search products..."
-            >
+        <div *ngIf="!isLoadingProducts && !productsError">
+          <div class="table-actions">
+            <button (click)="openProductForm()">Add Product</button>
             
-            <select [(ngModel)]="productStatusFilter" (ngModelChange)="filterProducts()">
-              <option value="all">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="out-of-stock">Out of Stock</option>
-            </select>
+            <div class="filters">
+              <input 
+                type="text" 
+                [(ngModel)]="productSearchQuery" 
+                (ngModelChange)="filterProducts()"
+                placeholder="Search products..."
+              >
+              
+              <select [(ngModel)]="productStatusFilter" (ngModelChange)="filterProducts()">
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="out-of-stock">Out of Stock</option>
+              </select>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th (click)="sortProducts('title')">
+                  Title
+                  <span *ngIf="productSort.column === 'title'" [class]="productSort.direction">↕</span>
+                </th>
+                <th (click)="sortProducts('price')">
+                  Price
+                  <span *ngIf="productSort.column === 'price'" [class]="productSort.direction">↕</span>
+                </th>
+                <th (click)="sortProducts('stock')">
+                  Stock
+                  <span *ngIf="productSort.column === 'stock'" [class]="productSort.direction">↕</span>
+                </th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let product of paginatedProducts?.items">
+                <td>{{ product.title }}</td>
+                <td>${{ product.price }}</td>
+                <td>{{ product.stock }}</td>
+                <td>
+                  <span [class]="'status-badge ' + product.status">
+                    {{ product.status }}
+                  </span>
+                </td>
+                <td>
+                  <button (click)="editProduct(product)">Edit</button>
+                  <button (click)="deleteProduct(product.id)" class="danger">Delete</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="pagination" *ngIf="paginatedProducts">
+            <div class="page-size">
+              <select [(ngModel)]="productPagination.pageSize" (ngModelChange)="onProductPageSizeChange()">
+                <option *ngFor="let size of getPageSizes(productPagination.totalItems)" [value]="size">
+                  {{ size }} per page
+                </option>
+              </select>
+            </div>
+
+            <div class="page-numbers">
+              <button 
+                *ngFor="let page of calculateVisiblePages(productPagination.currentPage, paginatedProducts.totalPages)"
+                (click)="goToProductPage(page)"
+                [class.active]="page === productPagination.currentPage"
+              >
+                {{ page }}
+              </button>
+            </div>
           </div>
         </div>
+      </section>
 
-        <table>
-          <thead>
-            <tr>
-              <th (click)="sortProducts('title')">
-                Title
-                <span *ngIf="productSort.column === 'title'" [class]="productSort.direction">↕</span>
-              </th>
-              <th (click)="sortProducts('price')">
-                Price
-                <span *ngIf="productSort.column === 'price'" [class]="productSort.direction">↕</span>
-              </th>
-              <th (click)="sortProducts('stock')">
-                Stock
-                <span *ngIf="productSort.column === 'stock'" [class]="productSort.direction">↕</span>
-              </th>
-              <th>Status</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let product of paginatedProducts?.items">
-              <td>{{ product.title }}</td>
-              <td>${{ product.price }}</td>
-              <td>{{ product.stock }}</td>
-              <td>
-                <span [class]="'status-badge ' + product.status">
-                  {{ product.status }}
-                </span>
-              </td>
-              <td>
-                <button (click)="editProduct(product)">Edit</button>
-                <button (click)="deleteProduct(product.id)" class="danger">Delete</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+      <!-- Orders Section -->
+      <section id="orders" #section>
+        <h2>Orders</h2>
+        
+        <div *ngIf="isLoadingOrders">
+          <app-loading-spinner></app-loading-spinner>
+        </div>
 
-        <div class="pagination" *ngIf="paginatedProducts">
-          <div class="page-size">
-            <select [(ngModel)]="productPagination.pageSize" (ngModelChange)="onProductPageSizeChange()">
-              <option *ngFor="let size of getPageSizes(productPagination.totalItems)" [value]="size">
-                {{ size }} per page
-              </option>
-            </select>
-          </div>
+        <div *ngIf="ordersError" class="error-message">
+          {{ ordersError }}
+        </div>
 
-          <div class="page-numbers">
+        <div *ngIf="!isLoadingOrders && !ordersError">
+          <div class="status-filters">
             <button 
-              *ngFor="let page of calculateVisiblePages(productPagination.currentPage, paginatedProducts.totalPages)"
-              (click)="goToProductPage(page)"
-              [class.active]="page === productPagination.currentPage"
+              *ngFor="let status of allOrderStatuses"
+              (click)="filterByOrderStatus(status)"
+              [class.active]="selectedOrderStatus === status"
             >
-              {{ page }}
+              {{ status }}
             </button>
           </div>
-        </div>
-      </div>
-    </section>
 
-    <!-- Orders Section -->
-    <section id="orders" #section>
-      <h2>Orders</h2>
-      
-      <div *ngIf="isLoadingOrders">
-        <app-loading-spinner></app-loading-spinner>
-      </div>
+          <table>
+            <thead>
+              <tr>
+                <th (click)="sortOrders('id')">
+                  Order ID
+                  <span *ngIf="orderSort.column === 'id'" [class]="orderSort.direction">↕</span>
+                </th>
+                <th (click)="sortOrders('customer')">
+                  Customer
+                  <span *ngIf="orderSort.column === 'customer'" [class]="orderSort.direction">↕</span>
+                </th>
+                <th (click)="sortOrders('total')">
+                  Total
+                  <span *ngIf="orderSort.column === 'total'" [class]="orderSort.direction">↕</span>
+                </th>
+                <th (click)="sortOrders('status')">
+                  Status
+                  <span *ngIf="orderSort.column === 'status'" [class]="orderSort.direction">↕</span>
+                </th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let order of paginatedOrders?.items">
+                <td>{{ order.id }}</td>
+                <td>{{ order.customerName }}</td>
+                <td>${{ order.total }}</td>
+                <td>
+                  <span [class]="'status-badge ' + order.status">
+                    {{ order.status }}
+                  </span>
+                </td>
+                <td>
+                  <button (click)="viewOrderDetails(order)">View</button>
+                  <button (click)="updateOrderStatus(order)">Update Status</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-      <div *ngIf="ordersError" class="error-message">
-        {{ ordersError }}
-      </div>
+          <div class="pagination" *ngIf="paginatedOrders">
+            <div class="page-size">
+              <select [(ngModel)]="orderPagination.pageSize" (ngModelChange)="onOrderPageSizeChange()">
+                <option *ngFor="let size of getPageSizes(orderPagination.totalItems)" [value]="size">
+                  {{ size }} per page
+                </option>
+              </select>
+            </div>
 
-      <div *ngIf="!isLoadingOrders && !ordersError">
-        <div class="status-filters">
-          <button 
-            *ngFor="let status of allOrderStatuses"
-            (click)="filterByOrderStatus(status)"
-            [class.active]="selectedOrderStatus === status"
-          >
-            {{ status }}
-          </button>
-        </div>
-
-        <table>
-          <thead>
-            <tr>
-              <th (click)="sortOrders('id')">
-                Order ID
-                <span *ngIf="orderSort.column === 'id'" [class]="orderSort.direction">↕</span>
-              </th>
-              <th (click)="sortOrders('customer')">
-                Customer
-                <span *ngIf="orderSort.column === 'customer'" [class]="orderSort.direction">↕</span>
-              </th>
-              <th (click)="sortOrders('total')">
-                Total
-                <span *ngIf="orderSort.column === 'total'" [class]="orderSort.direction">↕</span>
-              </th>
-              <th (click)="sortOrders('status')">
-                Status
-                <span *ngIf="orderSort.column === 'status'" [class]="orderSort.direction">↕</span>
-              </th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let order of paginatedOrders?.items">
-              <td>{{ order.id }}</td>
-              <td>{{ order.customerName }}</td>
-              <td>${{ order.total }}</td>
-              <td>
-                <span [class]="'status-badge ' + order.status">
-                  {{ order.status }}
-                </span>
-              </td>
-              <td>
-                <button (click)="viewOrderDetails(order)">View</button>
-                <button (click)="updateOrderStatus(order)">Update Status</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-
-        <div class="pagination" *ngIf="paginatedOrders">
-          <div class="page-size">
-            <select [(ngModel)]="orderPagination.pageSize" (ngModelChange)="onOrderPageSizeChange()">
-              <option *ngFor="let size of getPageSizes(orderPagination.totalItems)" [value]="size">
-                {{ size }} per page
-              </option>
-            </select>
-          </div>
-
-          <div class="page-numbers">
-            <button 
-              *ngFor="let page of calculateVisiblePages(orderPagination.currentPage, paginatedOrders.totalPages)"
-              (click)="goToOrderPage(page)"
-              [class.active]="page === orderPagination.currentPage"
-            >
-              {{ page }}
-            </button>
+            <div class="page-numbers">
+              <button 
+                *ngFor="let page of calculateVisiblePages(orderPagination.currentPage, paginatedOrders.totalPages)"
+                (click)="goToOrderPage(page)"
+                [class.active]="page === orderPagination.currentPage"
+              >
+                {{ page }}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
 
-    <!-- Users Section -->
-    <section id="users" #section>
-      <h2>Users</h2>
-      
-      <div *ngIf="isLoadingUsers">
-        <app-loading-spinner></app-loading-spinner>
-      </div>
+      <!-- Users Section -->
+      <section id="users" #section>
+        <h2>Users</h2>
+        
+        <div *ngIf="isLoadingUsers">
+          <app-loading-spinner></app-loading-spinner>
+        </div>
 
-      <div *ngIf="usersError" class="error-message">
-        {{ usersError }}
-      </div>
+        <div *ngIf="usersError" class="error-message">
+          {{ usersError }}
+        </div>
 
-      <div *ngIf="!isLoadingUsers && !usersError">
-        <table>
-          <thead>
-            <tr>
-              <th (click)="sortUsers('name')">
-                Name
-                <span *ngIf="userSort.column === 'name'" [class]="userSort.direction">↕</span>
-              </th>
-              <th (click)="sortUsers('email')">
-                Email
-                <span *ngIf="userSort.column === 'email'" [class]="userSort.direction">↕</span>
-              </th>
-              <th (click)="sortUsers('role')">
-                Role
-                <span *ngIf="userSort.column === 'role'" [class]="userSort.direction">↕</span>
-              </th>
-              <th (click)="sortUsers('status')">
-                Status
-                <span *ngIf="userSort.column === 'status'" [class]="userSort.direction">↕</span>
-              </th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let user of paginatedUsers?.items">
-              <td>{{ user.firstName }} {{ user.lastName }}</td>
-              <td>{{ user.email }}</td>
-              <td>{{ user.role }}</td>
-              <td>
-                <span [class]="'status-badge ' + user.status">
-                  {{ user.status }}
-                </span>
-              </td>
-              <td>
-                <button (click)="viewUserTransactions(user.id)">Transactions</button>
-                <button 
-                  *ngIf="user.status !== 'banned'"
-                  (click)="banUser(user.id)" 
-                  class="danger"
-                >
-                  Ban
-                </button>
-                <button 
-                  *ngIf="user.status === 'banned'"
-                  (click)="unbanUser(user.id)"
-                >
-                  Unban
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+        <div *ngIf="!isLoadingUsers && !usersError">
+          <table>
+            <thead>
+              <tr>
+                <th (click)="sortUsers('name')">
+                  Name
+                  <span *ngIf="userSort.column === 'name'" [class]="userSort.direction">↕</span>
+                </th>
+                <th (click)="sortUsers('email')">
+                  Email
+                  <span *ngIf="userSort.column === 'email'" [class]="userSort.direction">↕</span>
+                </th>
+                <th (click)="sortUsers('role')">
+                  Role
+                  <span *ngIf="userSort.column === 'role'" [class]="userSort.direction">↕</span>
+                </th>
+                <th (click)="sortUsers('status')">
+                  Status
+                  <span *ngIf="userSort.column === 'status'" [class]="userSort.direction">↕</span>
+                </th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let user of paginatedUsers?.items">
+                <td>{{ user.firstName }} {{ user.lastName }}</td>
+                <td>{{ user.email }}</td>
+                <td>{{ user.role }}</td>
+                <td>
+                  <span [class]="'status-badge ' + user.status">
+                    {{ user.status }}
+                  </span>
+                </td>
+                <td>
+                  <button (click)="viewUserTransactions(user.id)">Transactions</button>
+                  <button 
+                    *ngIf="user.status !== 'banned'"
+                    (click)="banUser(user.id)" 
+                    class="danger"
+                  >
+                    Ban
+                  </button>
+                  <button 
+                    *ngIf="user.status === 'banned'"
+                    (click)="unbanUser(user.id)"
+                  >
+                    Unban
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
 
-        <div class="pagination" *ngIf="paginatedUsers">
-          <div class="page-size">
-            <select [(ngModel)]="userPagination.pageSize" (ngModelChange)="onUserPageSizeChange()">
-              <option *ngFor="let size of getPageSizes(userPagination.totalItems)" [value]="size">
-                {{ size }} per page
-              </option>
-            </select>
-          </div>
+          <div class="pagination" *ngIf="paginatedUsers">
+            <div class="page-size">
+              <select [(ngModel)]="userPagination.pageSize" (ngModelChange)="onUserPageSizeChange()">
+                <option *ngFor="let size of getPageSizes(userPagination.totalItems)" [value]="size">
+                  {{ size }} per page
+                </option>
+              </select>
+            </div>
 
-          <div class="page-numbers">
-            <button 
-              *ngFor="let page of calculateVisiblePages(userPagination.currentPage, paginatedUsers.totalPages)"
-              (click)="goToUserPage(page)"
-              [class.active]="page === userPagination.currentPage"
-            >
-              {{ page }}
-            </button>
+            <div class="page-numbers">
+              <button 
+                *ngFor="let page of calculateVisiblePages(userPagination.currentPage, paginatedUsers.totalPages)"
+                (click)="goToUserPage(page)"
+                [class.active]="page === userPagination.currentPage"
+              >
+                {{ page }}
+              </button>
+            </div>
           </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </div>
   </main>
 </div>
 

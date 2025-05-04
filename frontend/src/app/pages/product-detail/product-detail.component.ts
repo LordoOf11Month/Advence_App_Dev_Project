@@ -6,17 +6,24 @@ import { ProductService } from '../../services/product.service';
 import { CartService } from '../../services/cart.service';
 import { Product } from '../../models/product.model';
 import { ProductCarouselComponent } from '../../components/product-carousel/product-carousel.component';
-import { ReviewListComponent } from '../../components/reviews/review-list.component';
+import { ProductReviewsComponent } from '../../components/reviews/product-reviews.component';
 
 @Component({
   selector: 'app-product-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, ProductCarouselComponent, ReviewListComponent],
+  imports: [
+    CommonModule,
+    RouterModule,
+    FormsModule,
+    ProductCarouselComponent,
+    ProductReviewsComponent
+  ],
   template: `
-    <div class="container" *ngIf="product">
-      <div class="breadcrumbs">
-        <a routerLink="/">Home</a> / 
-        <a [routerLink]="['/category', product.category]">{{categoryName}}</a> / 
+    <div class="container mx-auto px-4" *ngIf="product">
+      <!-- Breadcrumbs with Tailwind -->
+      <div class="text-sm text-neutral-600 mb-4">
+        <a routerLink="/" class="text-neutral-600 hover:text-primary">Home</a> / 
+        <a [routerLink]="['/category', product.category]" class="text-neutral-600 hover:text-primary">{{categoryName}}</a> / 
         <span>{{product.title}}</span>
       </div>
       
@@ -37,11 +44,12 @@ import { ReviewListComponent } from '../../components/reviews/review-list.compon
             </div>
           </div>
           
-          <div class="image-actions">
+          <!-- Action buttons with Tailwind -->
+          <div class="flex mt-4 gap-4">
             <button 
-              class="favorite-button" 
+              class="flex items-center gap-2 px-4 py-2 border rounded-md transition-colors duration-200"
+              [class]="product.isFavorite ? 'text-white bg-primary border-primary' : 'text-neutral-700 border-neutral-300 hover:border-primary hover:text-primary'"
               (click)="toggleFavorite()"
-              [class.is-favorite]="product.isFavorite"
             >
               <span class="material-symbols-outlined">
                 {{product.isFavorite ? 'favorite' : 'favorite_border'}}
@@ -49,7 +57,7 @@ import { ReviewListComponent } from '../../components/reviews/review-list.compon
               <span>{{product.isFavorite ? 'Saved to Favorites' : 'Add to Favorites'}}</span>
             </button>
             
-            <button class="share-button">
+            <button class="flex items-center gap-2 px-4 py-2 text-neutral-700 border border-neutral-300 rounded-md hover:border-primary hover:text-primary transition-colors duration-200">
               <span class="material-symbols-outlined">share</span>
               <span>Share</span>
             </button>
@@ -57,26 +65,27 @@ import { ReviewListComponent } from '../../components/reviews/review-list.compon
         </div>
         
         <div class="product-info">
-          <div class="product-header">
-            <h1 class="product-title">{{product.title}}</h1>
-            <div class="product-brand">{{product.brand}}</div>
+          <!-- Product header with Tailwind -->
+          <div class="mb-4">
+            <h1 class="text-2xl font-semibold text-neutral-900">{{product.title}}</h1>
+            <div class="text-sm text-neutral-600 mb-2">{{product.brand}}</div>
             
-            <a [routerLink]="['/store', product.sellerId]" class="seller-link">
-              <span class="material-symbols-outlined">store</span>
+            <a [routerLink]="['/store', product.sellerId]" class="flex items-center gap-1 text-sm text-primary mb-2">
+              <span class="material-symbols-outlined text-base">store</span>
               {{product.sellerName}}
             </a>
             
-            <div class="product-rating">
-              <div class="stars" [attr.data-rating]="product.rating">
+            <div class="flex items-center">
+              <div class="flex">
                 <span 
                   *ngFor="let star of [1,2,3,4,5]" 
-                  class="material-symbols-outlined"
-                  [class.filled]="star <= Math.round(product.rating)"
+                  class="material-symbols-outlined text-lg"
+                  [class]="star <= Math.round(product.rating) ? 'text-warning' : 'text-neutral-300'"
                 >
                   star
                 </span>
               </div>
-              <span class="rating-text">
+              <span class="text-sm text-neutral-700 ml-2">
                 {{product.rating}} ({{product.reviewCount}} Reviews)
               </span>
             </div>
@@ -159,11 +168,6 @@ import { ReviewListComponent } from '../../components/reviews/review-list.compon
         </div>
       </div>
       
-      <!-- Product Reviews Section -->
-      <div class="product-reviews">
-        <app-review-list [productId]="product.id"></app-review-list>
-      </div>
-      
       <div class="related-products">
         <app-product-carousel
           [products]="relatedProducts"
@@ -172,48 +176,42 @@ import { ReviewListComponent } from '../../components/reviews/review-list.compon
       </div>
     </div>
     
-    <div class="container product-loading" *ngIf="!product">
-      <div class="loading-spinner"></div>
-      <p>Loading product details...</p>
+    <!-- Loading state with Tailwind -->
+    <div class="container mx-auto px-4 flex flex-col items-center justify-center py-8" *ngIf="!product">
+      <div class="w-12 h-12 border-4 border-neutral-200 border-t-primary rounded-full animate-spin mb-4"></div>
+      <p class="text-neutral-600">Loading product details...</p>
     </div>
+    
+    <!-- Reviews Section -->
+    <section class="mt-8 pt-8 border-t border-neutral-200">
+      <div class="container mx-auto px-4">
+        <app-product-reviews [productId]="product?.id || 0"></app-product-reviews>
+      </div>
+    </section>
   `,
   styles: [`
-    .breadcrumbs {
-      font-size: 0.875rem;
-      color: var(--neutral-600);
-      margin-bottom: var(--space-4);
-    }
-    
-    .breadcrumbs a {
-      color: var(--neutral-600);
-      text-decoration: none;
-    }
-    
-    .breadcrumbs a:hover {
-      color: var(--primary);
-    }
-    
     .product-detail {
       display: flex;
       gap: var(--space-6);
-      margin-bottom: var(--space-8);
+      margin-bottom: var(--space-6);
     }
     
     .product-gallery {
-      flex: 0 0 50%;
+      flex: 0 0 45%;
     }
     
     .main-image-container {
+      width: 100%;
+      height: 400px;
       border-radius: var(--radius-md);
       overflow: hidden;
-      margin-bottom: var(--space-3);
-      background-color: var(--white);
+      margin-bottom: var(--space-4);
     }
     
     .main-image {
       width: 100%;
-      aspect-ratio: 1;
-      object-fit: contain;
+      height: 100%;
+      object-fit: cover;
     }
     
     .thumbnail-gallery {
@@ -223,21 +221,17 @@ import { ReviewListComponent } from '../../components/reviews/review-list.compon
     }
     
     .thumbnail-item {
-      width: 70px;
-      height: 70px;
+      width: 80px;
+      height: 80px;
       border-radius: var(--radius-sm);
       overflow: hidden;
-      border: 2px solid var(--neutral-200);
       cursor: pointer;
+      border: 2px solid transparent;
       transition: border-color var(--transition-fast);
     }
     
     .thumbnail-item.active {
       border-color: var(--primary);
-    }
-    
-    .thumbnail-item:hover {
-      border-color: var(--primary-light);
     }
     
     .thumbnail-item img {
@@ -248,34 +242,32 @@ import { ReviewListComponent } from '../../components/reviews/review-list.compon
     
     .image-actions {
       display: flex;
-      gap: var(--space-3);
+      gap: var(--space-4);
     }
     
-    .favorite-button, .share-button {
+    .favorite-button,
+    .share-button {
       display: flex;
       align-items: center;
       gap: var(--space-2);
-      background-color: var(--white);
-      border: 1px solid var(--neutral-300);
-      padding: var(--space-2) var(--space-3);
+      padding: var(--space-2) var(--space-4);
       border-radius: var(--radius-md);
+      background-color: transparent;
+      border: 1px solid var(--neutral-300);
       color: var(--neutral-700);
       transition: all var(--transition-fast);
-      cursor: pointer;
     }
     
-    .favorite-button:hover, .share-button:hover {
+    .favorite-button:hover,
+    .share-button:hover {
       border-color: var(--primary);
       color: var(--primary);
     }
     
     .favorite-button.is-favorite {
-      color: var(--error);
-      border-color: var(--error);
-    }
-    
-    .favorite-button.is-favorite .material-symbols-outlined {
-      color: var(--error);
+      background-color: var(--primary);
+      border-color: var(--primary);
+      color: var(--white);
     }
     
     .product-info {
@@ -287,14 +279,14 @@ import { ReviewListComponent } from '../../components/reviews/review-list.compon
     }
     
     .product-title {
-      font-size: 1.75rem;
+      font-size: 1.5rem;
       font-weight: 600;
       color: var(--neutral-900);
       margin-bottom: var(--space-2);
     }
     
     .product-brand {
-      font-size: 1rem;
+      font-size: 0.875rem;
       color: var(--neutral-600);
       margin-bottom: var(--space-2);
     }
@@ -302,20 +294,10 @@ import { ReviewListComponent } from '../../components/reviews/review-list.compon
     .seller-link {
       display: flex;
       align-items: center;
-      gap: var(--space-2);
-      font-size: 0.9375rem;
-      color: var(--neutral-600);
-      margin-bottom: var(--space-3);
-      text-decoration: none;
-      transition: color var(--transition-fast);
-    }
-
-    .seller-link:hover {
+      gap: var(--space-1);
+      font-size: 0.875rem;
       color: var(--primary);
-    }
-
-    .seller-link .material-symbols-outlined {
-      font-size: 1.125rem;
+      margin-bottom: var(--space-2);
     }
     
     .product-rating {
@@ -325,13 +307,11 @@ import { ReviewListComponent } from '../../components/reviews/review-list.compon
     
     .stars {
       display: flex;
-      align-items: center;
-      margin-right: var(--space-2);
     }
     
     .stars .material-symbols-outlined {
-      color: var(--neutral-300);
       font-size: 1.25rem;
+      color: var(--neutral-300);
     }
     
     .stars .material-symbols-outlined.filled {
@@ -340,36 +320,37 @@ import { ReviewListComponent } from '../../components/reviews/review-list.compon
     
     .rating-text {
       font-size: 0.875rem;
-      color: var(--neutral-600);
+      color: var(--neutral-700);
+      margin-left: var(--space-2);
     }
     
     .product-price {
       display: flex;
       align-items: center;
-      margin-bottom: var(--space-4);
+      margin: var(--space-4) 0;
     }
     
     .current-price {
-      font-size: 1.75rem;
-      font-weight: 700;
+      font-size: 1.5rem;
+      font-weight: 600;
       color: var(--primary);
-      margin-right: var(--space-3);
     }
     
     .original-price {
-      font-size: 1.125rem;
+      font-size: 1rem;
       color: var(--neutral-500);
       text-decoration: line-through;
-      margin-right: var(--space-3);
+      margin-left: var(--space-2);
     }
     
     .discount-badge {
       background-color: var(--primary);
       color: var(--white);
-      font-size: 0.875rem;
+      font-size: 0.75rem;
       font-weight: 600;
       padding: var(--space-1) var(--space-2);
       border-radius: var(--radius-sm);
+      margin-left: var(--space-2);
     }
     
     .product-tags {
@@ -380,30 +361,29 @@ import { ReviewListComponent } from '../../components/reviews/review-list.compon
     }
     
     .tag {
-      font-size: 0.8125rem;
-      padding: var(--space-1) var(--space-3);
-      border-radius: var(--radius-md);
-      font-weight: 500;
+      font-size: 0.75rem;
+      padding: var(--space-1) var(--space-2);
+      border-radius: var(--radius-sm);
     }
     
-    .in-stock {
-      background-color: rgba(54, 179, 126, 0.1);
-      color: var(--success);
+    .tag.in-stock {
+      background-color: var(--success);
+      color: var(--white);
     }
     
-    .out-of-stock {
-      background-color: rgba(255, 86, 48, 0.1);
-      color: var(--error);
+    .tag.out-of-stock {
+      background-color: var(--error);
+      color: var(--white);
     }
     
-    .free-shipping {
-      background-color: rgba(54, 179, 126, 0.1);
-      color: var(--success);
+    .tag.free-shipping {
+      background-color: var(--secondary);
+      color: var(--white);
     }
     
-    .fast-delivery {
-      background-color: rgba(0, 102, 255, 0.1);
-      color: var(--secondary);
+    .tag.fast-delivery {
+      background-color: var(--warning);
+      color: var(--white);
     }
     
     .product-variants {
@@ -411,34 +391,39 @@ import { ReviewListComponent } from '../../components/reviews/review-list.compon
     }
     
     .variant-title {
-      font-size: 1rem;
+      font-size: 0.875rem;
       font-weight: 600;
+      color: var(--neutral-700);
       margin-bottom: var(--space-2);
-      color: var(--neutral-800);
     }
     
-    .color-options, .size-options {
+    .color-options,
+    .size-options {
       display: flex;
       flex-wrap: wrap;
       gap: var(--space-2);
     }
     
-    .color-option, .size-option {
-      padding: var(--space-2) var(--space-3);
+    .color-option,
+    .size-option {
+      padding: var(--space-1) var(--space-3);
       border: 1px solid var(--neutral-300);
       border-radius: var(--radius-md);
+      font-size: 0.875rem;
       cursor: pointer;
       transition: all var(--transition-fast);
     }
     
-    .color-option.selected, .size-option.selected {
+    .color-option:hover,
+    .size-option:hover {
       border-color: var(--primary);
-      background-color: var(--primary);
-      color: var(--white);
     }
     
-    .color-option:hover, .size-option:hover {
-      border-color: var(--primary-light);
+    .color-option.selected,
+    .size-option.selected {
+      background-color: var(--primary);
+      border-color: var(--primary);
+      color: var(--white);
     }
     
     .quantity-selector {
@@ -447,34 +432,20 @@ import { ReviewListComponent } from '../../components/reviews/review-list.compon
     
     .quantity-controls {
       display: flex;
-      align-items: center;
       width: fit-content;
+      border: 1px solid var(--neutral-300);
+      border-radius: var(--radius-md);
+      overflow: hidden;
     }
     
     .quantity-controls button {
       width: 36px;
       height: 36px;
-      border: 1px solid var(--neutral-300);
-      background-color: var(--white);
-      font-size: 1.25rem;
-      font-weight: 500;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-    
-    .quantity-controls button:first-child {
-      border-radius: var(--radius-md) 0 0 var(--radius-md);
-    }
-    
-    .quantity-controls button:last-child {
-      border-radius: 0 var(--radius-md) var(--radius-md) 0;
-    }
-    
-    .quantity-controls button:hover:not(:disabled) {
       background-color: var(--neutral-100);
+      border: none;
+      font-size: 1.25rem;
+      padding: 0;
+      cursor: pointer;
     }
     
     .quantity-controls button:disabled {
@@ -484,30 +455,35 @@ import { ReviewListComponent } from '../../components/reviews/review-list.compon
     
     .quantity-controls input {
       width: 50px;
-      height: 36px;
-      border: 1px solid var(--neutral-300);
-      border-left: none;
-      border-right: none;
       text-align: center;
-      font-size: 1rem;
+      border: none;
+      border-left: 1px solid var(--neutral-300);
+      border-right: 1px solid var(--neutral-300);
+      -moz-appearance: textfield;
+    }
+    
+    .quantity-controls input::-webkit-outer-spin-button,
+    .quantity-controls input::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
     }
     
     .product-actions {
       display: flex;
-      gap: var(--space-3);
-      margin-bottom: var(--space-5);
+      gap: var(--space-4);
+      margin-bottom: var(--space-6);
     }
     
-    .add-to-cart-btn, .buy-now-btn {
-      flex: 1;
+    .add-to-cart-btn,
+    .buy-now-btn {
       display: flex;
       align-items: center;
       justify-content: center;
       gap: var(--space-2);
-      padding: var(--space-3);
-      font-size: 1rem;
-      font-weight: 500;
+      padding: var(--space-3) var(--space-6);
       border-radius: var(--radius-md);
+      font-weight: 500;
+      font-size: 1rem;
       cursor: pointer;
       transition: all var(--transition-fast);
     }
@@ -609,6 +585,12 @@ import { ReviewListComponent } from '../../components/reviews/review-list.compon
         flex-direction: column;
       }
     }
+    
+    .product-reviews-section {
+      margin-top: var(--space-8);
+      padding-top: var(--space-8);
+      border-top: 1px solid var(--neutral-200);
+    }
   `]
 })
 export class ProductDetailComponent implements OnInit {
@@ -629,57 +611,52 @@ export class ProductDetailComponent implements OnInit {
   ) {}
   
   ngOnInit(): void {
-    console.log('ProductDetailComponent initialized');
-    this.route.params.subscribe(params => {
-      this.productId = +params['productId'];
-      console.log('Product ID from route:', this.productId);
-      this.loadProduct();
+    this.route.paramMap.subscribe(params => {
+      const id = params.get('productId');
+      if (id) {
+        this.productId = +id;
+        this.loadProduct();
+      }
     });
   }
   
   loadProduct(): void {
-    console.log('Loading product with ID:', this.productId);
-    this.productService.getProductById(this.productId).subscribe({
-      next: (product) => {
-        console.log('Product loaded:', product);
+    this.productService.getProductById(this.productId).subscribe(product => {
+      if (product) {
         this.product = product;
+        this.selectedImage = product.images[0];
         
-        if (product) {
-          this.selectedImage = product.images[0] || '';
-          this.selectedColor = product.colors?.[0] || '';
-          this.selectedSize = product.sizes?.[0] || '';
-          
-          this.setCategoryName();
-          this.loadRelatedProducts();
-        } else {
-          console.error('Product not found for ID:', this.productId);
+        if (product.colors && product.colors.length > 0) {
+          this.selectedColor = product.colors[0];
         }
-      },
-      error: (error) => {
-        console.error('Error loading product', error);
+        
+        if (product.sizes && product.sizes.length > 0) {
+          this.selectedSize = product.sizes[0];
+        }
+        
+        this.setCategoryName();
+        this.loadRelatedProducts();
       }
     });
   }
   
   setCategoryName(): void {
-    if (!this.product) return;
-    
-    // Convert category ID to readable name (e.g., 'electronics' to 'Electronics')
-    this.categoryName = this.product.category
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+    if (this.product) {
+      // Convert slug to display name
+      this.categoryName = this.product.category
+        .split('-')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+    }
   }
   
   loadRelatedProducts(): void {
-    if (!this.product) return;
-    
-    this.productService.getProductsByCategory(this.product.category).subscribe({
-      next: (products: Product[]) => {
+    if (this.product) {
+      this.productService.getProductsByCategory(this.product.category).subscribe(products => {
         // Filter out the current product
-        this.relatedProducts = products.filter(p => p.id !== this.product?.id);
-      }
-    });
+        this.relatedProducts = products.filter(p => p.id !== this.productId);
+      });
+    }
   }
   
   increaseQuantity(): void {
@@ -695,19 +672,23 @@ export class ProductDetailComponent implements OnInit {
   }
   
   addToCart(): void {
-    if (!this.product) return;
-    
-    this.cartService.addToCart(
-      this.product, 
-      this.quantity, 
-      this.selectedSize, 
-      this.selectedColor
-    );
+    if (this.product) {
+      this.cartService.addToCart(
+        this.product, 
+        this.quantity, 
+        this.selectedSize, 
+        this.selectedColor
+      );
+    }
   }
   
   toggleFavorite(): void {
-    if (!this.product) return;
-    
-    this.product.isFavorite = !this.product.isFavorite;
+    if (this.product) {
+      this.productService.toggleFavorite(this.product.id).subscribe(isFavorite => {
+        if (this.product) {
+          this.product.isFavorite = isFavorite;
+        }
+      });
+    }
   }
 }

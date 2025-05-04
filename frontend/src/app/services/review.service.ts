@@ -1,240 +1,338 @@
 import { Injectable } from '@angular/core';
-import { Observable, of, BehaviorSubject, throwError } from 'rxjs';
-import { delay, map, tap, take, switchMap } from 'rxjs/operators';
-import { Review, ReviewStats, ReviewRequest } from '../models/review.model';
-import { AuthService } from './auth.service';
+import { Observable, of } from 'rxjs';
+import { delay } from 'rxjs/operators';
+import { Review, ReviewStats, NewReview } from '../models/review.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ReviewService {
-  private mockReviews: Review[] = [
+  // Mock data for reviews
+  private reviews: Review[] = [
     {
       id: '1',
       productId: 1001,
       userId: 'user1',
       userName: 'John Doe',
+      userImage: 'https://randomuser.me/api/portraits/men/1.jpg',
       rating: 5,
       title: 'Great product!',
       comment: 'I love this product. Very high quality and worth the price.',
-      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+      images: ['https://via.placeholder.com/400x300?text=Product+Image+1'],
+      isVerifiedPurchase: true,
       likes: 12,
       dislikes: 2,
-      isVerifiedPurchase: true,
-      userImage: 'https://randomuser.me/api/portraits/men/1.jpg'
+      createdAt: new Date('2023-04-27')
     },
     {
       id: '2',
       productId: 1001,
       userId: 'user2',
       userName: 'Jane Smith',
+      userImage: 'https://randomuser.me/api/portraits/women/1.jpg',
       rating: 4,
       title: 'Good but could be better',
       comment: 'The product is good, but it has some minor issues. Overall satisfied with the purchase.',
-      createdAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000),
+      images: [],
+      isVerifiedPurchase: true,
       likes: 5,
       dislikes: 1,
-      isVerifiedPurchase: true,
-      userImage: 'https://randomuser.me/api/portraits/women/2.jpg'
+      createdAt: new Date('2023-04-19')
     },
     {
       id: '3',
       productId: 1001,
       userId: 'user3',
       userName: 'Mike Johnson',
+      userImage: 'https://randomuser.me/api/portraits/men/2.jpg',
       rating: 3,
       title: 'Average product',
-      comment: 'It\'s okay, but not worth the price. There are better alternatives available.',
-      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000),
+      comment: "It's okay, but not worth the price. There are better alternatives available.",
+      images: [],
+      isVerifiedPurchase: false,
       likes: 3,
       dislikes: 4,
-      isVerifiedPurchase: false,
-      userImage: 'https://randomuser.me/api/portraits/men/3.jpg'
+      createdAt: new Date('2023-04-04')
     },
     {
       id: '4',
-      productId: 1002,
+      productId: 1001,
       userId: 'user4',
-      userName: 'Lisa Brown',
+      userName: 'Emily Davis',
+      userImage: 'https://randomuser.me/api/portraits/women/2.jpg',
       rating: 5,
-      title: 'Excellent!',
-      comment: 'This is exactly what I was looking for. Amazing quality and fast delivery.',
-      createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-      likes: 8,
-      dislikes: 0,
+      title: 'Exceeded my expectations',
+      comment: 'This product has exceeded all my expectations. The quality is outstanding and it performs even better than advertised. Highly recommend!',
+      images: ['https://via.placeholder.com/400x300?text=Review+Image+1', 'https://via.placeholder.com/400x300?text=Review+Image+2'],
       isVerifiedPurchase: true,
-      userImage: 'https://randomuser.me/api/portraits/women/4.jpg'
+      likes: 18,
+      dislikes: 0,
+      createdAt: new Date('2023-05-15')
     },
     {
       id: '5',
-      productId: 1002,
+      productId: 1001,
       userId: 'user5',
-      userName: 'David Williams',
+      userName: 'Robert Wilson',
+      userImage: 'https://randomuser.me/api/portraits/men/3.jpg',
       rating: 2,
-      title: 'Disappointed',
-      comment: 'Not what I expected. The quality is poor and it doesn\'t match the description.',
-      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000),
-      likes: 2,
-      dislikes: 7,
+      title: 'Disappointed with quality',
+      comment: 'I was really looking forward to this product, but the quality is poor. It started showing issues within just a week of use.',
+      images: ['https://via.placeholder.com/400x300?text=Quality+Issue+Image'],
       isVerifiedPurchase: true,
-      userImage: 'https://randomuser.me/api/portraits/men/5.jpg'
+      likes: 7,
+      dislikes: 3,
+      createdAt: new Date('2023-06-02')
+    },
+    {
+      id: '6',
+      productId: 1001,
+      userId: 'user6',
+      userName: 'Sarah Thompson',
+      userImage: 'https://randomuser.me/api/portraits/women/3.jpg',
+      rating: 4,
+      title: 'Great value for money',
+      comment: 'This product offers exceptional value for the price point. It has all the features I need and works reliably.',
+      images: [],
+      isVerifiedPurchase: true,
+      likes: 9,
+      dislikes: 1,
+      createdAt: new Date('2023-05-28')
+    },
+    {
+      id: '7',
+      productId: 1001,
+      userId: 'user7',
+      userName: 'David Brown',
+      userImage: 'https://randomuser.me/api/portraits/men/4.jpg',
+      rating: 1,
+      title: 'Waste of money',
+      comment: 'Absolutely terrible product. Broke within days and customer service was no help at all. Stay away!',
+      images: [],
+      isVerifiedPurchase: true,
+      likes: 15,
+      dislikes: 5,
+      createdAt: new Date('2023-06-10')
+    },
+    {
+      id: '8',
+      productId: 1001,
+      userId: 'user8',
+      userName: 'Lisa Martinez',
+      userImage: 'https://randomuser.me/api/portraits/women/4.jpg',
+      rating: 5,
+      title: 'Perfect for my needs',
+      comment: 'I\'ve been using this product daily for a month now and it\'s perfect for my needs. The design is elegant and functionality is top-notch.',
+      images: ['https://via.placeholder.com/400x300?text=Product+In+Use'],
+      isVerifiedPurchase: false,
+      likes: 6,
+      dislikes: 0,
+      createdAt: new Date('2023-05-05')
+    },
+    {
+      id: '9',
+      productId: 1001,
+      userId: 'user9',
+      userName: 'Michael Taylor',
+      userImage: 'https://randomuser.me/api/portraits/men/5.jpg',
+      rating: 3,
+      title: 'Mixed feelings',
+      comment: 'I have mixed feelings about this product. Some features are great while others feel unpolished. It works for now but I might look for alternatives.',
+      images: [],
+      isVerifiedPurchase: true,
+      likes: 4,
+      dislikes: 2,
+      createdAt: new Date('2023-04-12')
+    },
+    {
+      id: '10',
+      productId: 1001,
+      userId: 'user10',
+      userName: 'Jennifer Adams',
+      userImage: 'https://randomuser.me/api/portraits/women/5.jpg',
+      rating: 4,
+      title: 'Very happy with purchase',
+      comment: 'I\'m very happy with my purchase. The product arrived quickly and works as described. The only minor issue is the battery life could be better.',
+      images: [],
+      isVerifiedPurchase: true,
+      likes: 8,
+      dislikes: 1,
+      createdAt: new Date('2023-05-20')
+    },
+    // Reviews for product ID 2
+    {
+      id: '11',
+      productId: 2,
+      userId: 'user1',
+      userName: 'John Doe',
+      userImage: 'https://randomuser.me/api/portraits/men/1.jpg',
+      rating: 4,
+      title: 'Solid purchase',
+      comment: 'Reliable product with good features. I\'ve been using it for several weeks with no issues.',
+      images: [],
+      isVerifiedPurchase: true,
+      likes: 5,
+      dislikes: 1,
+      createdAt: new Date('2023-05-10')
+    },
+    {
+      id: '12',
+      productId: 2,
+      userId: 'user5',
+      userName: 'Robert Wilson',
+      userImage: 'https://randomuser.me/api/portraits/men/3.jpg',
+      rating: 5,
+      title: 'Best in its class',
+      comment: 'I\'ve tried many similar products and this one is by far the best in its class. Worth every penny!',
+      images: ['https://via.placeholder.com/400x300?text=Product+Comparison'],
+      isVerifiedPurchase: true,
+      likes: 12,
+      dislikes: 0,
+      createdAt: new Date('2023-06-05')
+    },
+    {
+      id: '13',
+      productId: 2,
+      userId: 'user7',
+      userName: 'David Brown',
+      userImage: 'https://randomuser.me/api/portraits/men/4.jpg',
+      rating: 3,
+      title: 'Decent but overpriced',
+      comment: 'The product works as advertised but I think it\'s overpriced for what it offers. There are cheaper alternatives with similar features.',
+      images: [],
+      isVerifiedPurchase: false,
+      likes: 3,
+      dislikes: 2,
+      createdAt: new Date('2023-04-28')
     }
   ];
 
-  private reviewsSubject = new BehaviorSubject<Review[]>(this.mockReviews);
-  reviews$ = this.reviewsSubject.asObservable();
+  constructor() { }
 
-  constructor(private authService: AuthService) {}
-
-  getReviewsByProductId(productId: number, sortBy: string = 'recent'): Observable<Review[]> {
-    return this.reviews$.pipe(
-      map(reviews => reviews.filter(review => review.productId === productId)),
-      map(reviews => this.sortReviews(reviews, sortBy)),
-      delay(500) // Simulate network delay
-    );
+  getReviewsByProductId(productId: number, sortOption: string = 'recent', page: number = 1, limit: number = 5): Observable<{ reviews: Review[], total: number }> {
+    // Filter reviews by product ID
+    let filteredReviews = this.reviews.filter(review => review.productId === productId);
+    
+    // Sort reviews based on option
+    switch (sortOption) {
+      case 'recent':
+        filteredReviews.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+      case 'helpful':
+        filteredReviews.sort((a, b) => (b.likes || 0) - (a.likes || 0));
+        break;
+      case 'highest':
+        filteredReviews.sort((a, b) => b.rating - a.rating);
+        break;
+      case 'lowest':
+        filteredReviews.sort((a, b) => a.rating - b.rating);
+        break;
+    }
+    
+    // Calculate pagination
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    const paginatedReviews = filteredReviews.slice(startIndex, endIndex);
+    
+    return of({
+      reviews: paginatedReviews,
+      total: filteredReviews.length
+    }).pipe(delay(800));
   }
 
   getReviewStats(productId: number): Observable<ReviewStats> {
-    return this.reviews$.pipe(
-      map(reviews => {
-        const productReviews = reviews.filter(review => review.productId === productId);
-        const totalReviews = productReviews.length;
-        let totalRating = 0;
-        
-        const ratingCounts: {[key: number]: number} = {1: 0, 2: 0, 3: 0, 4: 0, 5: 0};
-        
-        productReviews.forEach(review => {
-          totalRating += review.rating;
-          if (review.rating >= 1 && review.rating <= 5) {
-            ratingCounts[review.rating]++;
-          }
-        });
-        
-        const averageRating = totalReviews > 0 ? totalRating / totalReviews : 0;
-        
-        return {
-          averageRating,
-          totalReviews,
-          ratingCounts
-        };
-      }),
-      delay(300) // Simulate network delay
-    );
+    const productReviews = this.reviews.filter(review => review.productId === productId);
+    
+    // Calculate average rating
+    const totalRating = productReviews.reduce((sum, review) => sum + review.rating, 0);
+    const averageRating = productReviews.length > 0 ? totalRating / productReviews.length : 0;
+    
+    // Count ratings by star
+    const ratingCounts: {[key: number]: number} = { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 };
+    productReviews.forEach(review => {
+      if (ratingCounts[review.rating] !== undefined) {
+        ratingCounts[review.rating]++;
+      }
+    });
+    
+    return of({
+      averageRating,
+      totalReviews: productReviews.length,
+      ratingCounts
+    }).pipe(delay(500));
   }
 
-  addReview(reviewRequest: ReviewRequest): Observable<Review> {
-    return this.authService.currentUser$.pipe(
-      take(1),
-      switchMap(currentUser => {
-        if (!currentUser) {
-          return throwError(() => new Error('User must be logged in to add a review'));
-        }
-        
-        const newReview: Review = {
-          id: Math.random().toString(36).substring(2, 10),
-          productId: reviewRequest.productId,
-          userId: currentUser.id,
-          userName: `${currentUser.firstName} ${currentUser.lastName}`,
-          rating: reviewRequest.rating,
-          title: reviewRequest.title || '',
-          comment: reviewRequest.comment,
-          createdAt: new Date(),
-          likes: 0,
-          dislikes: 0,
-          isVerifiedPurchase: true, // This would come from order history in a real app
-          userImage: `https://randomuser.me/api/portraits/${Math.random() > 0.5 ? 'men' : 'women'}/${Math.floor(Math.random() * 10) + 1}.jpg`, // Mock image
-          images: reviewRequest.images
-        };
-        
-        const currentReviews = this.reviewsSubject.getValue();
-        const updatedReviews = [newReview, ...currentReviews];
-        this.reviewsSubject.next(updatedReviews);
-        
-        return of(newReview).pipe(delay(800)); // Simulate network delay
-      })
-    );
-  }
-
-  updateReview(id: string, reviewRequest: Partial<ReviewRequest>): Observable<Review> {
-    const currentReviews = this.reviewsSubject.getValue();
-    const reviewIndex = currentReviews.findIndex(review => review.id === id);
-    
-    if (reviewIndex === -1) {
-      return throwError(() => new Error('Review not found'));
-    }
-    
-    const updatedReview = {
-      ...currentReviews[reviewIndex],
-      ...reviewRequest,
-      updatedAt: new Date()
+  addReview(reviewData: NewReview): Observable<Review> {
+    const newReview: Review = {
+      id: Math.random().toString(36).substr(2, 9),
+      productId: reviewData.productId,
+      userId: 'user1', // This would come from auth service in a real app
+      userName: 'Current User',
+      userImage: 'https://randomuser.me/api/portraits/men/3.jpg',
+      rating: reviewData.rating,
+      title: reviewData.title || '',
+      comment: reviewData.comment,
+      images: reviewData.images || [],
+      isVerifiedPurchase: true,
+      likes: 0,
+      dislikes: 0,
+      createdAt: new Date()
     };
     
-    const updatedReviews = [...currentReviews];
-    updatedReviews[reviewIndex] = updatedReview;
-    this.reviewsSubject.next(updatedReviews);
+    this.reviews.unshift(newReview);
     
-    return of(updatedReview).pipe(delay(800)); // Simulate network delay
+    return of(newReview).pipe(delay(1000));
   }
 
-  deleteReview(id: string): Observable<boolean> {
-    const currentReviews = this.reviewsSubject.getValue();
-    const updatedReviews = currentReviews.filter(review => review.id !== id);
+  deleteReview(reviewId: string): Observable<boolean> {
+    const index = this.reviews.findIndex(review => review.id === reviewId);
     
-    if (currentReviews.length === updatedReviews.length) {
-      return of(false).pipe(delay(300)); // Review not found
+    if (index !== -1) {
+      this.reviews.splice(index, 1);
+      return of(true).pipe(delay(500));
     }
     
-    this.reviewsSubject.next(updatedReviews);
-    return of(true).pipe(delay(800)); // Simulate network delay
+    return of(false).pipe(delay(500));
   }
 
-  likeReview(id: string): Observable<Review> {
-    return this.updateReviewLikes(id, 'like');
-  }
-
-  dislikeReview(id: string): Observable<Review> {
-    return this.updateReviewLikes(id, 'dislike');
-  }
-
-  private updateReviewLikes(id: string, action: 'like' | 'dislike'): Observable<Review> {
-    const currentReviews = this.reviewsSubject.getValue();
-    const reviewIndex = currentReviews.findIndex(review => review.id === id);
+  likeReview(reviewId: string): Observable<Review> {
+    const review = this.reviews.find(r => r.id === reviewId);
     
-    if (reviewIndex === -1) {
-      return throwError(() => new Error('Review not found'));
+    if (review) {
+      if (!review.likes) review.likes = 0;
+      review.likes++;
+      return of({...review}).pipe(delay(300));
     }
     
-    const updatedReview = { ...currentReviews[reviewIndex] };
-    
-    if (action === 'like') {
-      updatedReview.likes = (updatedReview.likes || 0) + 1;
-    } else {
-      updatedReview.dislikes = (updatedReview.dislikes || 0) + 1;
-    }
-    
-    const updatedReviews = [...currentReviews];
-    updatedReviews[reviewIndex] = updatedReview;
-    this.reviewsSubject.next(updatedReviews);
-    
-    return of(updatedReview).pipe(delay(300)); // Simulate network delay
+    throw new Error('Review not found');
   }
 
-  private sortReviews(reviews: Review[], sortBy: string): Review[] {
-    const sortedReviews = [...reviews];
+  dislikeReview(reviewId: string): Observable<Review> {
+    const review = this.reviews.find(r => r.id === reviewId);
     
-    switch (sortBy) {
-      case 'recent':
-        return sortedReviews.sort((a, b) => 
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-      case 'helpful':
-        return sortedReviews.sort((a, b) => 
-          ((b.likes || 0) - (b.dislikes || 0)) - ((a.likes || 0) - (a.dislikes || 0)));
-      case 'highest':
-        return sortedReviews.sort((a, b) => b.rating - a.rating);
-      case 'lowest':
-        return sortedReviews.sort((a, b) => a.rating - b.rating);
-      default:
-        return sortedReviews;
+    if (review) {
+      if (!review.dislikes) review.dislikes = 0;
+      review.dislikes++;
+      return of({...review}).pipe(delay(300));
     }
+    
+    throw new Error('Review not found');
+  }
+
+  updateReview(reviewId: string, data: Partial<NewReview>): Observable<Review> {
+    const review = this.reviews.find(r => r.id === reviewId);
+    
+    if (review) {
+      if (data.rating !== undefined) review.rating = data.rating;
+      if (data.title !== undefined) review.title = data.title;
+      if (data.comment !== undefined) review.comment = data.comment;
+      if (data.images !== undefined) review.images = data.images;
+      
+      review.updatedAt = new Date();
+      
+      return of({...review}).pipe(delay(1000));
+    }
+    
+    throw new Error('Review not found');
   }
 } 
