@@ -1,109 +1,94 @@
-USERS:
-	user_id (PK),
-    name,(VARCHAR(50))
-    surname, (VARCHAR(20)) 
-    email,(VARCHAR(70))
-    password_hash,(?)
-    role (ENUM: customer, seller, platform_admin),
-    created_at, (date)
-    stripe_customer_id (VARCHAR(255))
-    isBanned,(boolean)
-    banned_at,(date)
-    Ban_reason (text)
+Users Table
+    • user_id (Primary Key)
+    • first_name (String, 50, Not Null)
+    • last_name (String, 20, Not Null)
+    • email (String, 70, Not Null, Unique)
+    • password_hash (String, 128, Not Null)
+    • role (Enum: customer, seller, platform_admin, Not Null)
+    • created_at (Timestamp, Not Null)
+    • stripe_customer_id (String, 255)
+    • is_banned (Boolean, Default: false, Not Null)
+    • banned_at (OffsetDateTime)
+    • ban_reason (Text)
+Stores Table
+    • store_id (Primary Key)
+    • seller_id (Foreign Key to Users.user_id, Not Null)
+    • store_name (String, 20, Not Null)
+    • description (Text)
+    • created_at (Timestamp, Not Null)
+    • bank_name (String, 100)
+    • account_holder (String, 100)
+    • account_number (String, 50)
+Products Table
+    • product_id (Primary Key)
+    • store_id (Foreign Key to Stores.store_id, Not Null)
+    • category_id (Foreign Key to Categories.category_id)
+    • name (String, 80, Not Null)
+    • description (Text)
+    • price (Decimal, 10,2, Not Null)
+    • stock_quantity (Integer, Not Null)
+Product Images Table
+    • image_id (Primary Key)
+    • product_id (Foreign Key to Products.product_id, Not Null)
+    • image_url (Text, Not Null)
+    • is_primary (Boolean, Default: false, Not Null)
+Categories Table
+    • category_id (Primary Key)
+    • name (String, 120, Not Null)
+    • parent_category_id (Foreign Key to Categories.category_id)
+Orders Table
+    • order_id (Primary Key)
+    • user_id (Foreign Key to Users.user_id, Not Null)
+    • created_at (Timestamp, Not Null)
+    • updated_at (Timestamp)
+    • stripe_charge_id (String, 255)
+    • payment_method_id (Foreign Key to PaymentMethods.id)
+    • shipping_address (Foreign Key to Addresses.address_id, Not Null)
+    • status (String, 50)
+    • estimated_delivery (Date)
+    • actual_delivery_date (Timestamp)
+    • tracking_number (String, 50)
+Order Items Table
+    • order_item_id (Primary Key)
+    • order_id (Foreign Key to Orders.order_id, Not Null)
+    • product_id (Foreign Key to Products.product_id, Not Null)
+    • quantity (Integer, Not Null)
+    • price_at_purchase (Decimal, 10,2, Not Null)
+    • rating (Integer)
+    • comment (Text)
+Payment Methods Table
+    • id (Primary Key)
+    • user_id (Foreign Key to Users.user_id, Not Null)
+    • stripe_payment_method_id (String, 255, Not Null)
+    • brand (String, 50, Not Null)
+    • is_default (Boolean, Default: false, Not Null)
+    • last_4_digits (String, 4)
+    • exp_month (Integer, Not Null)
+    • exp_year (Integer, Not Null)
+Addresses Table
+    • address_id (Primary Key)
+    • user_id (Foreign Key to Users.user_id, Not Null)
+    • street (String, 255, Not Null)
+    • city (String, 100, Not Null)
+    • state (String, 100)
+    • zip_code (String, 20)
+    • country (String, 100, Not Null)
+    • is_primary (Boolean, Default: false, Not Null)
+Cart Items Table
+    • cart_item_id (Primary Key)
+    • user_id (Foreign Key to Users.user_id, Not Null)
+    • product_id (Foreign Key to Products.product_id, Not Null)
+    • quantity (Integer, Not Null)
+Promo Codes Table
+    • code (Primary Key, String, 50)
+    • discount_percent (Integer, Not Null)
+Discounts Table
+    • product_id (Foreign Key to Products.product_id, Composite Primary Key)
+    • banner_id (Foreign Key to Banners.id, Composite Primary Key)
+    • discount_percent (Integer, Not Null)
+Banners Table
+    • id (Primary Key)
+    • title (String, 255, Not Null)
+    • finish_date (Date, Not Null)
+    • image_url (Text)
 
-STORE:
-    store_id (PK),
-    seller_id (FK to User, where User.role = 'seller'),
-    store_name,(VARCHAR(20))
-    description,(text)
-    created_at(date)
-    
-    ---paymentinfo
-    bankname
-    account holder
-    account number
-
-PRODUCT:	
-    product_id (PK),
-    store_id (FK to Store), 
-    category_id (FK to Category), 
-    name,(VARCHAR(80))
-    description,(text)
-    price,(number)
-    stock_quantity,(int)
-
-ORDER:	
-    order_id (PK),
-    user_id (FK to User),
-    created_at, (timestamp)
-    updated_at (timestamp)
-    total_amount, (number)(is it realy needed I can calculate this with sum?)
-    stripe_charge_id (VARCHAR(255))
-    PAYMENT_METHOD_id (FK to PAYMENT_METHOD)
-    shiping_address (FK to Address)
-    status (e.g., pending, shipped)?
-    estimated_delivery (date)
-    actual_delivery_date (date)
-    tracking_number (int)
-
-ORDER-ITEM:	
-    order_item_id (PK), 
-    order_id (FK to Order), 
-    product_id (FK to Product), 
-    store_id (FK to Store), 
-    quantity,(int) 
-    price_at_purchase(number)
-    rating (1-5), 
-    comment,
-    created_at (timestamp)
-
-PAYMENT_METHOD:
-    id (PK) (int)
-    user_id (fk to user)
-    stripe_payment_method_id (VARCHAR(255))
-    brand (mastercard , visa e.g.)
-    isdefault (boolean)
-    last-4-digit (int)
-    exp_month (int)
-    exp_year (int)
-
-CATEGORY:	
-    category_id (PK),
-    name,(VARCHAR(120))
-    parent_category_id (FK to Category for subcategories)
-Address:
-	address_id (PK), 
-	user_id (FK to User), 
-	street, 
-	city, 
-	state, 
-	zip_code, 
-	country, 
-	is_primary
-
-CART-ITEM:
-    cart_item_id (PK), 
-    user_id (FK to user), 
-    product_id (FK to Product), 
-    quantity
-
-PRODUCT-IMAGE:	
-    image_id (PK), 
-    product_id (FK to Product), 
-    image_url, 
-    is_primary
-
-PROMOCODE:
-    code (PK)(VARCHAR(50))
-    discountPERCENT (int) (0-100)
-
-BANNER(EVENT):
-    id(PK) 
-    title 
-    finish date (date)
-    image_url (text)
-
-DİSCOUNT:
-    product_id
-    banner_id
-    discountpercent
