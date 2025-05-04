@@ -5,42 +5,45 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.sql.Timestamp;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 @Entity
 @Table(name = "users")
-@Getter
-@Setter
+@Getter @Setter
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "user_id")
-    private int userId;
+    private Long userId;
 
-    @Column(name = "name", nullable = false, length = 50)
-    private String name;
+    @Column(name = "first_name", length = 50, nullable = false)
+    private String firstName;
 
-    @Column(name = "surname", nullable = false, length = 20)
-    private String surname;
+    @Column(name = "last_name", length = 20, nullable = false)
+    private String lastName;
 
-    @Column(name = "email", nullable = false, unique = true, length = 70)
+    @Column(name = "email", length = 70, nullable = false, unique = true)
     private String email;
 
-    @Column(name = "password_hash", nullable = false)
+    @Column(name = "password_hash", length = 128, nullable = false)
     private String passwordHash;
 
-    @Column(name = "role", nullable = false)
     @Enumerated(EnumType.STRING)
+    @Column(name = "role", nullable = false)
     private Role role;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false)
     private Timestamp createdAt;
 
-    @Column(name = "is_banned")
-    private boolean isBanned;
+    @Column(name = "stripe_customer_id", length = 255)
+    private String stripeCustomerId;
+
+    @Column(name = "is_banned", nullable = false)
+    private Boolean isBanned = false;
 
     @Column(name = "banned_at")
-    private Timestamp bannedAt;
+    private OffsetDateTime bannedAt;
 
     @Column(name = "ban_reason", columnDefinition = "TEXT")
     private String banReason;
@@ -49,19 +52,16 @@ public class User {
     private List<Store> stores;
 
     @OneToMany(mappedBy = "user")
-    private List<Order> orders;
+    private List<OrderEntity> orders;
+
+    @OneToMany(mappedBy = "user")
+    private List<PaymentMethod> paymentMethods;
 
     @OneToMany(mappedBy = "user")
     private List<Address> addresses;
 
     @OneToMany(mappedBy = "user")
     private List<CartItem> cartItems;
-
-    @OneToMany(mappedBy = "user")
-    private List<Issue> issues;
-
-    @OneToMany(mappedBy = "resolvedBy")
-    private List<Issue> resolvedIssues;
 
     public enum Role {
         customer,

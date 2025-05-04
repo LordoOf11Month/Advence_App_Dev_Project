@@ -6,21 +6,21 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "product_images")
-@Getter
-@Setter
+@Getter @Setter
 public class ProductImage {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "image_id")
-    private int imageId;
+    private Long imageId;
 
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
     private Product product;
 
-    @Column(name = "image_url", nullable = false, columnDefinition = "TEXT")
+    @Column(name = "image_url", columnDefinition = "TEXT", nullable = false)
     private String imageUrl;
 
-    @Column(name = "is_primary")
-    private boolean isPrimary;
+    @Column(name = "is_primary", nullable = false)
+    private Boolean isPrimary = false;
 }
+

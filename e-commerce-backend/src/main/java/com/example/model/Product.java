@@ -8,13 +8,12 @@ import java.util.List;
 
 @Entity
 @Table(name = "products")
-@Getter
-@Setter
+@Getter @Setter
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "product_id")
-    private int productId;
+    private Long productId;
 
     @ManyToOne
     @JoinColumn(name = "store_id", nullable = false)
@@ -24,24 +23,24 @@ public class Product {
     @JoinColumn(name = "category_id")
     private Category category;
 
-    @Column(name = "name", nullable = false, length = 80)
+    @Column(name = "name", length = 80, nullable = false)
     private String name;
-
-    @Column(name = "brand", nullable = false, length = 50)
-    private String brand;
 
     @Column(name = "description", columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "price", nullable = false, precision = 12, scale = 2)
+    @Column(name = "price", precision = 10, scale = 2, nullable = false)
     private BigDecimal price;
 
     @Column(name = "stock_quantity", nullable = false)
-    private int stockQuantity;
+    private Integer stockQuantity;
 
     @OneToMany(mappedBy = "product")
-    private List<ProductImage> productImages;
+    private List<ProductImage> images;
 
     @OneToMany(mappedBy = "product")
     private List<OrderItem> orderItems;
+
+    @OneToMany(mappedBy = "product")
+    private List<Discount> discounts;
 }

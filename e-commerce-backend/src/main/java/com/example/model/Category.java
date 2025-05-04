@@ -8,21 +8,24 @@ import java.util.List;
 
 @Entity
 @Table(name = "categories")
-@Getter
-@Setter
+@Getter @Setter
 public class Category {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "category_id")
-    private int categoryId;
+    private Long categoryId;
 
-    @Column(name = "name", nullable = false, length = 120)
+    @Column(name = "name", length = 120, nullable = false)
     private String name;
 
     @ManyToOne
-    @JoinColumn(name = "parent_category_id", referencedColumnName = "category_id", nullable = true)
+    @JoinColumn(name = "parent_category_id")
     private Category parentCategory;
+
+    @OneToMany(mappedBy = "parentCategory")
+    private List<Category> subcategories;
 
     @OneToMany(mappedBy = "category")
     private List<Product> products;
 }
+
