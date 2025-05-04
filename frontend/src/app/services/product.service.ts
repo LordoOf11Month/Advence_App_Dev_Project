@@ -9,7 +9,7 @@ export class ProductService {
   // Mock data for demonstration purposes
   private products: Product[] = [
     {
-      id: 1,
+      id: 1001,
       title: 'Men\'s Casual T-Shirt',
       price: 199.99,
       originalPrice: 299.99,
@@ -33,7 +33,7 @@ export class ProductService {
       sellerName: 'Fashion Store'
     },
     {
-      id: 2,
+      id: 1002,
       title: 'Women\'s Summer Dress',
       price: 349.99,
       originalPrice: 499.99,

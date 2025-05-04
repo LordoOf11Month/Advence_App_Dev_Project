@@ -6,6 +6,7 @@ export interface User {
   role: 'admin' | 'seller' | 'user';
   storeName?: string;
   storeDescription?: string;
+  permissions?: Permission[];
 }
 
 export interface LoginCredentials {
@@ -28,6 +29,16 @@ export interface SellerRegistrationData extends RegisterData {
 export interface AuthResponse {
   user: User;
   token: string;
+  refreshToken: string;
+}
+
+export interface RefreshTokenRequest {
+  refreshToken: string;
+}
+
+export interface RefreshTokenResponse {
+  token: string;
+  refreshToken: string;
 }
 
 export interface SellerProfile {
@@ -41,3 +52,33 @@ export interface SellerProfile {
   dateJoined: Date;
   status: 'active' | 'suspended';
 }
+
+export interface Permission {
+  id: string;
+  name: string;
+  description: string;
+}
+
+export interface RolePermission {
+  roleId: string;
+  permissionId: string;
+  permission: Permission;
+}
+
+export type PermissionName = 
+  // Product permissions
+  | 'products:view' | 'products:create' | 'products:edit' | 'products:delete'
+  // Order permissions
+  | 'orders:view' | 'orders:manage' | 'orders:viewAll'
+  // User permissions
+  | 'users:view' | 'users:edit' | 'users:ban'
+  // Seller permissions
+  | 'sellers:view' | 'sellers:approve' | 'sellers:suspend'
+  // Analytics permissions
+  | 'analytics:view' | 'analytics:export'
+  // Legacy permissions (for backward compatibility)
+  | 'product:create' | 'product:read' | 'product:update' | 'product:delete'
+  | 'order:create' | 'order:read' | 'order:update' | 'order:cancel'
+  | 'user:create' | 'user:read' | 'user:update' | 'user:delete'
+  | 'seller:create' | 'seller:read' | 'seller:update' | 'seller:delete'
+  | 'review:create' | 'review:read' | 'review:update' | 'review:delete';

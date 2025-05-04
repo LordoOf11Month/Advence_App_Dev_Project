@@ -6,11 +6,12 @@ import { ProductService } from '../../services/product.service';
 import { CartService } from '../../services/cart.service';
 import { Product } from '../../models/product.model';
 import { ProductCarouselComponent } from '../../components/product-carousel/product-carousel.component';
+import { ReviewListComponent } from '../../components/reviews/review-list.component';
 
 @Component({
   selector: 'app-product-detail',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, ProductCarouselComponent],
+  imports: [CommonModule, RouterModule, FormsModule, ProductCarouselComponent, ReviewListComponent],
   template: `
     <div class="container" *ngIf="product">
       <div class="breadcrumbs">
@@ -156,6 +157,11 @@ import { ProductCarouselComponent } from '../../components/product-carousel/prod
             <p>{{product.description}}</p>
           </div>
         </div>
+      </div>
+      
+      <!-- Product Reviews Section -->
+      <div class="product-reviews">
+        <app-review-list [productId]="product.id"></app-review-list>
       </div>
       
       <div class="related-products">
@@ -623,52 +629,57 @@ export class ProductDetailComponent implements OnInit {
   ) {}
   
   ngOnInit(): void {
-    this.route.paramMap.subscribe(params => {
-      const id = params.get('productId');
-      if (id) {
-        this.productId = +id;
-        this.loadProduct();
-      }
+    console.log('ProductDetailComponent initialized');
+    this.route.params.subscribe(params => {
+      this.productId = +params['productId'];
+      console.log('Product ID from route:', this.productId);
+      this.loadProduct();
     });
   }
   
   loadProduct(): void {
-    this.productService.getProductById(this.productId).subscribe(product => {
-      if (product) {
+    console.log('Loading product with ID:', this.productId);
+    this.productService.getProductById(this.productId).subscribe({
+      next: (product) => {
+        console.log('Product loaded:', product);
         this.product = product;
-        this.selectedImage = product.images[0];
         
-        if (product.colors && product.colors.length > 0) {
-          this.selectedColor = product.colors[0];
+        if (product) {
+          this.selectedImage = product.images[0] || '';
+          this.selectedColor = product.colors?.[0] || '';
+          this.selectedSize = product.sizes?.[0] || '';
+          
+          this.setCategoryName();
+          this.loadRelatedProducts();
+        } else {
+          console.error('Product not found for ID:', this.productId);
         }
-        
-        if (product.sizes && product.sizes.length > 0) {
-          this.selectedSize = product.sizes[0];
-        }
-        
-        this.setCategoryName();
-        this.loadRelatedProducts();
+      },
+      error: (error) => {
+        console.error('Error loading product', error);
       }
     });
   }
   
   setCategoryName(): void {
-    if (this.product) {
-      // Convert slug to display name
-      this.categoryName = this.product.category
-        .split('-')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-    }
+    if (!this.product) return;
+    
+    // Convert category ID to readable name (e.g., 'electronics' to 'Electronics')
+    this.categoryName = this.product.category
+      .split('-')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
   }
   
   loadRelatedProducts(): void {
-    if (this.product) {
-      this.productService.getProductsByCategory(this.product.category).subscribe(products => {
+    if (!this.product) return;
+    
+    this.productService.getProductsByCategory(this.product.category).subscribe({
+      next: (products: Product[]) => {
         // Filter out the current product
-        this.relatedProducts = products.filter(p => p.id !== this.productId);
-      });
-    }
+        this.relatedProducts = products.filter(p => p.id !== this.product?.id);
+      }
+    });
   }
   
   increaseQuantity(): void {
@@ -684,23 +695,19 @@ export class ProductDetailComponent implements OnInit {
   }
   
   addToCart(): void {
-    if (this.product) {
-      this.cartService.addToCart(
-        this.product, 
-        this.quantity, 
-        this.selectedSize, 
-        this.selectedColor
-      );
-    }
+    if (!this.product) return;
+    
+    this.cartService.addToCart(
+      this.product, 
+      this.quantity, 
+      this.selectedSize, 
+      this.selectedColor
+    );
   }
   
   toggleFavorite(): void {
-    if (this.product) {
-      this.productService.toggleFavorite(this.product.id).subscribe(isFavorite => {
-        if (this.product) {
-          this.product.isFavorite = isFavorite;
-        }
-      });
-    }
+    if (!this.product) return;
+    
+    this.product.isFavorite = !this.product.isFavorite;
   }
 }

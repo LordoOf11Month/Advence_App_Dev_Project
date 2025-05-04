@@ -4,6 +4,8 @@ import { RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { CartService } from '../../services/cart.service';
 import { CartItem } from '../../models/product.model';
+import { Router } from '@angular/router';
+import { OrderService } from '../../services/order.service';
 
 @Component({
   selector: 'app-cart',
@@ -98,7 +100,7 @@ import { CartItem } from '../../models/product.model';
             >Apply</button>
           </div>
           
-          <button class="checkout-button">
+          <button class="checkout-button" (click)="proceedToCheckout()">
             Proceed to Checkout
           </button>
           
@@ -484,11 +486,22 @@ export class CartComponent implements OnInit {
   promoCode: string = '';
   discount: number = 0;
   
-  constructor(private cartService: CartService) {}
+  constructor(
+    private cartService: CartService,
+    private orderService: OrderService,
+    private router: Router
+  ) {}
   
   ngOnInit(): void {
     this.cartService.cart$.subscribe(items => {
       this.cartItems = items;
+    });
+    
+    // Check if there's an active discount
+    this.orderService.orderSummary$.subscribe(summary => {
+      if (summary) {
+        this.discount = summary.discount;
+      }
     });
   }
   
@@ -534,15 +547,21 @@ export class CartComponent implements OnInit {
   }
   
   applyPromoCode(): void {
-    // Mock promo code functionality
-    if (this.promoCode.toUpperCase() === 'WELCOME10') {
-      const subtotal = this.getSubtotal();
-      this.discount = subtotal * 0.1; // 10% discount
-      this.promoCode = '';
-      // You would typically show a success message here
-    } else {
-      this.discount = 0;
-      // You would typically show an error message here
+    if (this.promoCode) {
+      this.orderService.applyDiscountCode(this.promoCode).subscribe(result => {
+        if (result.success) {
+          this.promoCode = '';
+          // Success notification would go here
+        } else {
+          // Error notification would go here
+        }
+      });
+    }
+  }
+  
+  proceedToCheckout(): void {
+    if (this.cartItems.length > 0) {
+      this.router.navigate(['/checkout/shipping']);
     }
   }
 }

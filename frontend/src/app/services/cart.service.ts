@@ -71,4 +71,8 @@ export class CartService {
       0
     );
   }
+  
+  getCartItems(): CartItem[] {
+    return [...this.cartItems];
+  }
 }

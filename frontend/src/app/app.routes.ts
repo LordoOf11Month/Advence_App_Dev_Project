@@ -14,6 +14,10 @@ import { AdminSellersComponent } from './pages/admin/admin-sellers.component';
 import { SellerDashboardComponent } from './pages/seller/seller-dashboard.component';
 import { SellerRegisterComponent } from './pages/seller/seller-register.component';
 import { StorePageComponent } from './pages/store/store-page.component';
+import { ShippingComponent } from './pages/checkout/shipping.component';
+import { PaymentComponent } from './pages/checkout/payment.component';
+import { ReviewComponent } from './pages/checkout/review.component';
+import { ConfirmationComponent } from './pages/checkout/confirmation.component';
 import { AuthGuard } from './guards/auth.guard';
 
 export const routes: Routes = [
@@ -22,6 +26,16 @@ export const routes: Routes = [
   { path: 'product/:productId', component: ProductDetailComponent },
   { path: 'store/:sellerId', component: StorePageComponent },
   { path: 'cart', component: CartComponent },
+  { 
+    path: 'checkout',
+    children: [
+      { path: 'shipping', component: ShippingComponent },
+      { path: 'payment', component: PaymentComponent },
+      { path: 'review', component: ReviewComponent },
+      { path: 'confirmation', component: ConfirmationComponent },
+      { path: '', redirectTo: 'shipping', pathMatch: 'full' }
+    ]
+  },
   { 
     path: 'account', 
     component: AccountComponent,
