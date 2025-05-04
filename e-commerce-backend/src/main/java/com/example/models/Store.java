@@ -14,7 +14,7 @@ public class Store {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "store_id")
-    private Long storeId;
+    private Long id;
 
     @ManyToOne
     @JoinColumn(name = "seller_id", nullable = false)

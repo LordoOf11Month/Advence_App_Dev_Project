@@ -5,7 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.models.Banner;
-import com.example.service.BannerService; // Assume a BannerService exists
+import com.example.services.BannerService; // Assume a BannerService exists
 import java.util.List;
 
 @RestController

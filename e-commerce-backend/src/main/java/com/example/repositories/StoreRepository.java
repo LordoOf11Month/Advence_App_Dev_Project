@@ -9,5 +9,5 @@ import java.util.List;
 
 @Repository
 public interface StoreRepository extends JpaRepository<Store, Integer> {
-    List<Store> findBySellerId(int sellerId);
+    List<Store> findBySeller_Id(int sellerId);
 }

@@ -69,7 +69,7 @@ public class UserService {
 
     private UserDTO mapToDTO(User user) {
         UserDTO dto = new UserDTO();
-        dto.setUserId(user.getUserId());
+        dto.setId(user.getId());
         dto.setFirstName(user.getFirstName());
         dto.setLastName(user.getLastName());
         dto.setEmail(user.getEmail());

@@ -1,6 +1,7 @@
 package com.example.controllers;
 import com.example.models.Product;
-import com.example.service.ProductService;
+import com.example.services.ProductService;
+
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -8,33 +9,34 @@ import java.util.List;
 @RestController
 @RequestMapping("/api/products")
 public class ProductController {
+    private final ProductService productService;
+
+    public ProductController(ProductService productService) {
+        this.productService = productService;
+    }
 
     @GetMapping
-    public List<Product> listProducts() {
-        // Logic to list products
-        return null;
-    }
+public List<Product> listProducts() {
+    return productService.listAllProducts();
+}
 
-    @GetMapping("/{id}")
-    public Product getProduct(@PathVariable Long id) {
-        // Logic to get product details
-        return null;
-    }
+@GetMapping("/{id}")
+public Product getProduct(@PathVariable Long id) {
+    return productService.getProductById(id);
+}
 
-    @PostMapping
-    public Product createProduct(@RequestBody Product product) {
-        // Logic to create a new product
-        return null;
-    }
+@PostMapping
+public Product createProduct(@RequestBody Product product) {
+    return productService.createProduct(product);
+}
 
-    @PutMapping("/{id}")
-    public Product updateProduct(@PathVariable Long id, @RequestBody Product product) {
-        // Logic to update an existing product
-        return null;
-    }
+@PutMapping("/{id}")
+public Product updateProduct(@PathVariable Long id, @RequestBody Product product) {
+    return productService.updateProduct(id, product);
+}
 
-    @DeleteMapping("/{id}")
-    public void deleteProduct(@PathVariable Long id) {
-        // Logic to delete a product
-    }
+@DeleteMapping("/{id}")
+public void deleteProduct(@PathVariable Long id) {
+    productService.deleteProduct(id);
+}
 }

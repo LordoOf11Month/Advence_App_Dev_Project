@@ -5,7 +5,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.models.Category;
-import com.example.service.CategoryService; // Assume a CategoryService exists
+import com.example.services.CategoryService; // Assume a CategoryService exists
 
 import java.util.List;
 
@@ -29,13 +29,13 @@ public class CategoryController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Category> updateCategory(@PathVariable Long id, @RequestBody Category category) {
+    public ResponseEntity<Category> updateCategory(@PathVariable int id, @RequestBody Category category) {
         Category updatedCategory = categoryService.update(id, category);
         return ResponseEntity.ok(updatedCategory);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteCategory(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteCategory(@PathVariable int id) {
         categoryService.delete(id);
         return ResponseEntity.noContent().build();
     }

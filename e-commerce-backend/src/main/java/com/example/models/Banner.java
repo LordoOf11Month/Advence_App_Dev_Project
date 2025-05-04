@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.Setter;
 import java.time.LocalDate;
 import java.util.List;
+import jakarta.validation.constraints.Future;
+import jakarta.validation.constraints.NotBlank;
 
 
 
@@ -17,11 +19,13 @@ public class Banner {
     @Column(name = "id")
     private Long id;
 
-    @Column(name = "title", length = 255, nullable = false)
-    private String title;
-
-    @Column(name = "finish_date", nullable = false)
+    @Column(nullable = false)
+    @Future(message = "Finish date must be in the future")
     private LocalDate finishDate;
+
+    @Column(nullable = false, length = 255)
+    @NotBlank(message = "Title is required")
+    private String title;
 
     @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
