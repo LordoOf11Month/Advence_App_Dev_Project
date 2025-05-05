@@ -58,4 +58,21 @@ public class Store {
 
     @OneToMany(mappedBy = "store")
     private List<Product> products;
+
+    //address information
+    @Column(name = "street", length = 255, nullable = false)
+    private String street;
+
+    @Column(name = "city", length = 100, nullable = false)
+    private String city;
+
+    @Column(name = "state", length = 100)
+    private String state;
+
+    @Column(name = "postal_code", length = 20)
+    private String postalCode;
+
+    @Column(name = "country", length = 100, nullable = false)
+    private String country;
+
 }

@@ -1,6 +1,8 @@
 package com.example.DTO;
 
 import jakarta.validation.constraints.*;
+
+import java.security.PublicKey;
 import java.sql.Timestamp;
 import lombok.Data;
 
@@ -9,7 +11,7 @@ public class StoreDTO {
     @Data
     public static class StoreResponse {
         private Long id;
-        private Long sellerId;
+        private int sellerId;
         private String storeName;
         private String description;
         private Timestamp createdAt;
@@ -22,12 +24,17 @@ public class StoreDTO {
         private String bankName;
         private String accountHolder;
         private String accountNumber;
+        private String street;
+        private String city;
+        private String state;
+        private String postalCode;
+        private String country;
     }
 
     @Data
     public static class StoreCreateRequest {
         @NotNull
-        private Long sellerId;
+        private int sellerId;
 
         @NotBlank
         @Size(max = 20)
@@ -45,6 +52,16 @@ public class StoreDTO {
         private String accountHolder;
 
         private String accountNumber;
+
+        private String street;
+
+        private String city;
+
+        private String state;
+
+        private String postalCode;
+
+        private String country;
     }
 
     @Data
@@ -67,6 +84,20 @@ public class StoreDTO {
         private Boolean isBanned;
 
         private String banReason;
+    }
+
+    @Data
+    public static class AddressUpdateRequest {
+        @NotBlank
+        private String street;
+        @NotBlank
+        private String city;
+        @NotBlank
+        private String state;
+        @NotBlank
+        private String postalCode;
+        @NotBlank
+        private String country;
     }
 
     @Data

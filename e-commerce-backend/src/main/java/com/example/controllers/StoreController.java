@@ -22,12 +22,12 @@ public class StoreController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<StoreResponse> getById(@PathVariable Long id) {
+    public ResponseEntity<StoreResponse> getById(@PathVariable int id) {
         return ResponseEntity.ok(storeService.findById(id));
     }
 
     @GetMapping("/users/{userId}/stores")
-    public ResponseEntity<List<StoreResponse>> getByUser(@PathVariable Long userId) {
+    public ResponseEntity<List<StoreResponse>> getByUser(@PathVariable int userId) {
         return ResponseEntity.ok(storeService.findByOwner(userId));
     }
 
@@ -37,13 +37,19 @@ public class StoreController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<StoreResponse> update(@PathVariable Long id,
+    public ResponseEntity<StoreResponse> update(@PathVariable int id,
                                            @Valid @RequestBody StoreUpdateRequest dto) {
         return ResponseEntity.ok(storeService.update(id, dto));
     }
 
+    @PutMapping("/address/{id}")
+    public ResponseEntity<StoreResponse> updateAddress(@PathVariable int id,
+                                                @Valid @RequestBody AddressUpdateRequest dto) {
+        return ResponseEntity.ok(storeService.updateAddress(id, dto));
+    }
+
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
+    public ResponseEntity<Void> delete(@PathVariable int id) {
         storeService.delete(id);
         return ResponseEntity.noContent().build();
     }
