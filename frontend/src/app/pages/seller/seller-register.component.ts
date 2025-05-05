@@ -4,6 +4,7 @@ import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { SellerService } from '../../services/seller.service';
+import { AccountComponent } from '../account/account.component';
 
 @Component({
   selector: 'app-seller-register',
@@ -20,10 +21,10 @@ import { SellerService } from '../../services/seller.service';
         <form [formGroup]="registerForm" (ngSubmit)="onSubmit()" class="register-form">
           <div class="form-section">
             <h2>Store Information</h2>
-            
+
             <div class="form-group">
               <label for="storeName">Store Name *</label>
-              <input 
+              <input
                 id="storeName"
                 type="text"
                 formControlName="storeName"
@@ -47,7 +48,7 @@ import { SellerService } from '../../services/seller.service';
 
             <div class="form-group">
               <label for="category">Store Category *</label>
-              <select 
+              <select
                 id="category"
                 formControlName="category"
                 [class.error]="isFieldInvalid('category')"
@@ -63,10 +64,10 @@ import { SellerService } from '../../services/seller.service';
 
           <div class="form-section">
             <h2>Business Information</h2>
-            
+
             <div class="form-group">
               <label for="businessName">Legal Business Name *</label>
-              <input 
+              <input
                 id="businessName"
                 type="text"
                 formControlName="businessName"
@@ -80,7 +81,7 @@ import { SellerService } from '../../services/seller.service';
 
             <div class="form-group">
               <label for="taxId">Tax ID / VAT Number *</label>
-              <input 
+              <input
                 id="taxId"
                 type="text"
                 formControlName="taxId"
@@ -95,7 +96,7 @@ import { SellerService } from '../../services/seller.service';
             <div class="form-row">
               <div class="form-group">
                 <label for="phone">Phone Number *</label>
-                <input 
+                <input
                   id="phone"
                   type="tel"
                   formControlName="phone"
@@ -109,7 +110,7 @@ import { SellerService } from '../../services/seller.service';
 
               <div class="form-group">
                 <label for="email">Business Email *</label>
-                <input 
+                <input
                   id="email"
                   type="email"
                   formControlName="email"
@@ -125,10 +126,10 @@ import { SellerService } from '../../services/seller.service';
 
           <div class="form-section">
             <h2>Address Information</h2>
-            
+
             <div class="form-group">
               <label for="address">Street Address *</label>
-              <input 
+              <input
                 id="address"
                 type="text"
                 formControlName="address"
@@ -143,7 +144,7 @@ import { SellerService } from '../../services/seller.service';
             <div class="form-row">
               <div class="form-group">
                 <label for="city">City *</label>
-                <input 
+                <input
                   id="city"
                   type="text"
                   formControlName="city"
@@ -157,7 +158,7 @@ import { SellerService } from '../../services/seller.service';
 
               <div class="form-group">
                 <label for="state">State/Province *</label>
-                <input 
+                <input
                   id="state"
                   type="text"
                   formControlName="state"
@@ -173,7 +174,7 @@ import { SellerService } from '../../services/seller.service';
             <div class="form-row">
               <div class="form-group">
                 <label for="postalCode">Postal Code *</label>
-                <input 
+                <input
                   id="postalCode"
                   type="text"
                   formControlName="postalCode"
@@ -187,7 +188,7 @@ import { SellerService } from '../../services/seller.service';
 
               <div class="form-group">
                 <label for="country">Country *</label>
-                <select 
+                <select
                   id="country"
                   formControlName="country"
                   [class.error]="isFieldInvalid('country')"
@@ -205,7 +206,7 @@ import { SellerService } from '../../services/seller.service';
           <div class="form-section">
             <div class="form-group checkbox-group">
               <label class="checkbox-label">
-                <input 
+                <input
                   type="checkbox"
                   formControlName="terms"
                   [class.error]="isFieldInvalid('terms')"
@@ -453,12 +454,11 @@ export class SellerRegisterComponent {
     this.registerForm = this.fb.group({
       storeName: ['', [Validators.required, Validators.minLength(3)]],
       description: [''],
-      category: ['', Validators.required],
-      businessName: ['', Validators.required],
-      taxId: ['', Validators.required],
-      phone: ['', [Validators.required, Validators.pattern(/^\+?[1-9]\d{1,14}$/)]],
+      Account_number: ['', Validators.required],
+      bank_name: ['', Validators.required],
+      Account_owner_name: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
-      address: ['', Validators.required],
+      street: ['', Validators.required],
       city: ['', Validators.required],
       state: ['', Validators.required],
       postalCode: ['', Validators.required],
