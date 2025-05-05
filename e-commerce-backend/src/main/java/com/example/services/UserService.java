@@ -7,6 +7,9 @@ import com.example.models.User;
 import com.example.models.User.Role;
 import com.example.repositories.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -26,10 +29,19 @@ public class UserService {
     }
 
     public UserResponse getCurrentUser() {
-        // TODO: Replace with authenticated user retrieval logic
-        User user = userRepository.findById(1).orElseThrow();
+        // Get the authentication object from the security context
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+
+        // Assuming your Authentication object contains the username or a UserDetails object
+        String username = authentication.getName(); // Or retrieve a custom UserDetails object
+
+        // Find the user by their unique identifier (e.g., email or username)
+        User user = userRepository.findByEmail(username) // You might need a findByEmail method in your repository
+                .orElseThrow(() -> new UsernameNotFoundException("User not found")); // Handle case where user isn't found
+
         return mapToDTO(user);
     }
+
 
     public UserResponse getUserById(int userId) {
         User user = userRepository.findById(userId).orElseThrow();
@@ -37,8 +49,10 @@ public class UserService {
     }
 
     public UserResponse updateCurrentUser(UpdateUserRequest request) {
-        // TODO: Replace with authenticated user retrieval logic
-        User user = userRepository.findById(1).orElseThrow();
+
+        String email=SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email).orElseThrow(()
+        -> new UsernameNotFoundException("User not found with email: " + email));
         applyUpdates(user, request);
         userRepository.save(user);
         return mapToDTO(user);

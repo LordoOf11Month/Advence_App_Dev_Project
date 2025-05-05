@@ -76,6 +76,6 @@ public class User {
     public enum Role {
         customer,
         seller,
-        platform_admin
+        admin
     }
 }

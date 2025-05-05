@@ -1,6 +1,8 @@
 package com.example.DTO;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Pattern;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 import java.sql.Timestamp;
@@ -26,17 +28,31 @@ public class UserDTO {
 
     @Data
     public static class UpdateUserRequest {
+        @NotBlank // Ensure first name is not null or empty
+        @Size(max = 100) // Example size constraint
         private String firstName;
+
+        @NotBlank // Ensure last name is not null or empty
+        @Size(max = 100) // Example size constraint
         private String lastName;
+
+        // Add validation for phone number if needed (e.g., pattern for digits)
         private String phoneNumber;
-        @Pattern(regexp = "customer|seller|platform_admin")  // must match enum values exactly
+
+        @Pattern(regexp = "customer|seller|admin", message = "Invalid role") // must match enum values exactly
         private String role;
+
+        // Add validation for avatarUrl if needed (e.g., URL format)
         private String avatarUrl;
+
+        // Consider adding validation for email if it can be updated here
+        // @NotBlank @Email @Size(max = 255) private String email;
     }
 
     @Data
     public static class BanRequest {
-        // Optionally allow setting ban reason when banning a user
+        @NotBlank // Ensure ban reason is provided
+        @Size(min = 10, message = "Ban reason must be at least 10 characters long") // Example minimum length
         private String banReason;
     }
 }

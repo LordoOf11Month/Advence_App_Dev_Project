@@ -38,16 +38,21 @@ public class AuthService {
         SecurityContextHolder.getContext().setAuthentication(auth);
         String jwt = jwtUtils.generateJwtToken(auth);
         
-        // Assuming your UserDetails implementation returns email as username:
-        var userDetails = (org.springframework.security.core.userdetails.User) auth.getPrincipal();
+        // Cast the principal to your CustomUserDetails
+        var userDetails = (com.example.security.CustomUserDetails) auth.getPrincipal();
+
+        // Now you can access the underlying User entity and its properties
+        com.example.models.User authenticatedUser = userDetails.getUser();
+
         var roles = auth.getAuthorities().stream()
                 .map(GrantedAuthority::getAuthority)
                 .collect(Collectors.toList());
-        
+
         JwtResponse response = new JwtResponse();
         response.setToken(jwt);
-        response.setEmail(userDetails.getUsername());
+        response.setEmail(authenticatedUser.getEmail()); // Get email from your User entity
         response.setRoles(roles);
+        response.setId((long) authenticatedUser.getId()); // Get the user ID from your User entity and set it in JwtResponse
         return response;
     }
 

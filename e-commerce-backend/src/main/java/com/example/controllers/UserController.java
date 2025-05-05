@@ -6,6 +6,7 @@ import com.example.services.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -33,24 +34,28 @@ public class UserController {
         return ResponseEntity.ok(userService.getUserById(id));
     }
 
+
     @PutMapping("/me")
     public ResponseEntity<UserResponse> updateCurrentUser(@Valid @RequestBody UpdateUserRequest updateUserRequest) {
         return ResponseEntity.ok(userService.updateCurrentUser(updateUserRequest));
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/{userId}")
     public ResponseEntity<UserResponse> updateUser(@PathVariable String userId, @Valid @RequestBody UpdateUserRequest updateUserRequest) {
         int id = Integer.parseInt(userId);
         return ResponseEntity.ok(userService.updateUser(id, updateUserRequest));
     }
 
+
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/{userId}")
     public ResponseEntity<Void> deleteUser(@PathVariable String userId) {
         int id = Integer.parseInt(userId);
         userService.deleteUser(id);
         return ResponseEntity.noContent().build();
     }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @PatchMapping("/{id}/ban")
     public ResponseEntity<UserResponse> banToggle(@PathVariable String id) {
         int userId = Integer.parseInt(id);
