@@ -1,0 +1,37 @@
+<!-- ...existing code... -->
+<div class="modal" *ngIf="showStatusUpdate">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Update Order Status</h2>
+      <button class="close-btn" (click)="closeStatusUpdate()">
+        <span class="material-symbols-outlined">close</span>
+      </button>
+    </div>
+    
+    <div class="status-update-form">
+      <div class="status-options">
+        <button 
+          *ngFor="let status of orderStatuses"
+          class="status-btn"
+          [class.active]="selectedOrderStatus === status"
+          (click)="selectStatus(status)"
+        >
+          <span class="status-icon" [class]="status"></span>
+          <span class="status-label">{{status | titlecase}}</span>
+        </button>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn secondary" (click)="closeStatusUpdate()">Cancel</button>
+        <button 
+          class="btn primary" 
+          (click)="confirmStatusUpdate()"
+          [disabled]="selectedOrderStatus === 'all'"
+        >
+          Update Status
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- ...existing code... -->

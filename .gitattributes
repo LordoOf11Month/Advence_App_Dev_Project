@@ -1,0 +1,41 @@
+# Set default behavior to automatically normalize line endings
+* text=auto
+
+# TypeScript and JavaScript files should use LF
+*.ts text eol=lf
+*.js text eol=lf
+*.tsx text eol=lf
+*.jsx text eol=lf
+*.json text eol=lf
+
+# Angular template files should use LF
+*.html text eol=lf
+*.css text eol=lf
+*.scss text eol=lf
+
+# Assets
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.svg text eol=lf
+
+# Fonts
+*.woff binary
+*.woff2 binary
+*.eot binary
+*.ttf binary
+*.otf binary
+
+# Shell scripts should use LF
+*.sh text eol=lf
+
+# Windows scripts should use CRLF
+*.bat text eol=crlf
+*.cmd text eol=crlf
+
+# Special files
+.gitattributes text eol=lf
+.gitignore text eol=lf
+.editorconfig text eol=lf 
