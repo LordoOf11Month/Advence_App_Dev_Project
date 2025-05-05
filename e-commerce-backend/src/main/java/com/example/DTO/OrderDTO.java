@@ -29,7 +29,7 @@ public class OrderDTO {
         @Min(value = 1, message = "Quantity must be at least 1") // Based on OrderItem.quantity non-null constraint and logic
         private int quantity;
 
-        private BigDecimal priceAtPurchase;
+        private double priceAtPurchase;
     }
 
     @Data

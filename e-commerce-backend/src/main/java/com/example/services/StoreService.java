@@ -51,6 +51,7 @@ public class StoreService {
         // Assuming sellerId is provided in the DTO
         User seller = userRepository.findById(dto.getSellerId())
                 .orElseThrow(() -> new EntityNotFoundException("User not found with id: " + dto.getSellerId()));
+        seller.setRole(User.Role.seller);
         store.setSeller(seller);
         store.setStoreName(dto.getStoreName());
         store.setDescription(dto.getDescription());

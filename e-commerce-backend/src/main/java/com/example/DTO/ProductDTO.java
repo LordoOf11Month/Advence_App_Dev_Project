@@ -15,7 +15,6 @@ public class ProductDTO {
         private String description;
         private BigDecimal price;
         private String category;
-        private String brand;
         private List<String> images;
         private boolean inStock;
         private LocalDateTime createdAt;
@@ -32,8 +31,6 @@ public class ProductDTO {
         private BigDecimal price;
         @NotBlank
         private String category;
-        @NotBlank
-        private String brand;
     }
 
     @Data // From Lombok, generates getters, setters, etc.

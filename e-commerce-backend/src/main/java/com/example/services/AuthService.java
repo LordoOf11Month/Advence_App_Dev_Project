@@ -6,6 +6,11 @@ import com.example.DTO.AuthDTO.RegisterRequest;
 import com.example.models.User;
 import com.example.repositories.UserRepository;
 import com.example.security.JwtUtils;
+import com.stripe.Stripe;
+import com.stripe.exception.StripeException;
+import com.stripe.model.Customer;
+import com.stripe.param.CustomerCreateParams;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -14,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.sql.Timestamp;
 import java.util.stream.Collectors;
 
 @Service
@@ -23,6 +29,11 @@ public class AuthService {
     private final JwtUtils jwtUtils;
     private final UserRepository userRepo;
     private final PasswordEncoder encoder;
+
+    @Value("${stripe.api.key}")
+    private String stripeApiKey;
+
+
 
     public AuthService(AuthenticationManager authManager, JwtUtils jwtUtils, UserRepository userRepo, PasswordEncoder encoder) {
         this.authManager = authManager;
@@ -37,7 +48,7 @@ public class AuthService {
         );
         SecurityContextHolder.getContext().setAuthentication(auth);
         String jwt = jwtUtils.generateJwtToken(auth);
-        
+
         // Cast the principal to your CustomUserDetails
         var userDetails = (com.example.security.CustomUserDetails) auth.getPrincipal();
 
@@ -64,8 +75,28 @@ public class AuthService {
         // Set fields on user entity; map RegisterRequest fields properly
         user.setEmail(req.getEmail());
         user.setPasswordHash(encoder.encode(req.getPassword()));
-        user.setRole(User.Role.customer); // your enum values are lowercase
-        // Optionally set other required fields like createdAt, etc.
+        user.setRole(User.Role.customer);
+        user.setFirstName(req.getFirstName());
+        user.setLastName(req.getLastName());
+        user.setCreatedAt(new Timestamp(System.currentTimeMillis()));
+
+        // Create a Stripe customer and get the ID
+        try {
+            Stripe.apiKey =this.stripeApiKey; // Set your Stripe API key
+            CustomerCreateParams params = CustomerCreateParams.builder()
+                    .setEmail(req.getEmail())
+                    .setName(req.getFirstName() + " " + req.getLastName())
+                    .build();
+
+            Customer customer = Customer.create(params);
+            user.setStripeCustomerId(customer.getId()); // Set the Stripe customer ID
+        } catch (StripeException e) {
+            // Handle Stripe API errors
+            // You might want to log the error and potentially throw a custom exception
+            throw new RuntimeException("Error creating Stripe customer: " + e.getMessage(), e);
+        }
+
+        // Save the user to the database
         userRepo.save(user);
     }
 }

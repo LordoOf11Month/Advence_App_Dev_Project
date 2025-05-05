@@ -51,7 +51,7 @@ public class ProductService {
     }
 
     // Get products by category ID
-    public List<ProductResponse> findByCategory(Long categoryId) {
+    public List<ProductResponse> findByCategory(int categoryId) {
         return productRepository.findByCategory_Id(categoryId).stream()
                 .map(this::toProductResponse)
                 .collect(Collectors.toList());
