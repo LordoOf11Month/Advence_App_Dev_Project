@@ -1,0 +1,167 @@
+[
+  {
+    "id": "s1",
+    "userId": "user10",
+    "storeName": "TechHub Electronics",
+    "storeDescription": "Quality products from TechHub Electronics",
+    "rating": "3.6",
+    "productCount": 115,
+    "totalSales": 2067,
+    "dateJoined": "2023-06-03T21:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "id": "s2",
+    "userId": "user11",
+    "storeName": "Fashion Paradise",
+    "storeDescription": "Quality products from Fashion Paradise",
+    "rating": "4.9",
+    "productCount": 194,
+    "totalSales": 4211,
+    "dateJoined": "2023-07-14T21:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "id": "s3",
+    "userId": "user12",
+    "storeName": "Home Essentials",
+    "storeDescription": "Quality products from Home Essentials",
+    "rating": "3.9",
+    "productCount": 97,
+    "totalSales": 4072,
+    "dateJoined": "2023-09-07T21:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "id": "s4",
+    "userId": "user13",
+    "storeName": "BeautyWorld",
+    "storeDescription": "Quality products from BeautyWorld",
+    "rating": "3.8",
+    "productCount": 53,
+    "totalSales": 781,
+    "dateJoined": "2023-03-26T21:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "id": "s5",
+    "userId": "user14",
+    "storeName": "Sports Unlimited",
+    "storeDescription": "Quality products from Sports Unlimited",
+    "rating": "4.2",
+    "productCount": 172,
+    "totalSales": 4983,
+    "dateJoined": "2023-06-02T21:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "id": "s6",
+    "userId": "user15",
+    "storeName": "Baby Wonders",
+    "storeDescription": "Quality products from Baby Wonders",
+    "rating": "3.8",
+    "productCount": 310,
+    "totalSales": 3875,
+    "dateJoined": "2023-08-17T21:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "id": "s7",
+    "userId": "user16",
+    "storeName": "Wellness Center",
+    "storeDescription": "Quality products from Wellness Center",
+    "rating": "4.6",
+    "productCount": 80,
+    "totalSales": 999,
+    "dateJoined": "2023-09-24T21:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "id": "s8",
+    "userId": "user17",
+    "storeName": "Auto Accessories",
+    "storeDescription": "Quality products from Auto Accessories",
+    "rating": "3.7",
+    "productCount": 307,
+    "totalSales": 3089,
+    "dateJoined": "2023-03-18T21:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "id": "s9",
+    "userId": "user18",
+    "storeName": "Gourmet Delights",
+    "storeDescription": "Quality products from Gourmet Delights",
+    "rating": "3.7",
+    "productCount": 139,
+    "totalSales": 2338,
+    "dateJoined": "2023-09-04T21:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "id": "s10",
+    "userId": "user19",
+    "storeName": "Book Haven",
+    "storeDescription": "Quality products from Book Haven",
+    "rating": "4.6",
+    "productCount": 258,
+    "totalSales": 2479,
+    "dateJoined": "2023-11-07T21:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "id": "s11",
+    "userId": "user20",
+    "storeName": "Office Supplies Pro",
+    "storeDescription": "Quality products from Office Supplies Pro",
+    "rating": "3.8",
+    "productCount": 61,
+    "totalSales": 724,
+    "dateJoined": "2023-07-16T21:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "id": "s12",
+    "userId": "user21",
+    "storeName": "Pet Paradise",
+    "storeDescription": "Quality products from Pet Paradise",
+    "rating": "4.4",
+    "productCount": 187,
+    "totalSales": 2249,
+    "dateJoined": "2023-04-09T21:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "id": "s13",
+    "userId": "user22",
+    "storeName": "Jewelry Box",
+    "storeDescription": "Quality products from Jewelry Box",
+    "rating": "4.5",
+    "productCount": 90,
+    "totalSales": 4038,
+    "dateJoined": "2023-10-31T21:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "id": "s14",
+    "userId": "user23",
+    "storeName": "Scientific Solutions",
+    "storeDescription": "Quality products from Scientific Solutions",
+    "rating": "3.7",
+    "productCount": 68,
+    "totalSales": 956,
+    "dateJoined": "2023-12-18T21:00:00.000Z",
+    "status": "active"
+  },
+  {
+    "id": "s15",
+    "userId": "user24",
+    "storeName": "Travel Essentials",
+    "storeDescription": "Quality products from Travel Essentials",
+    "rating": "4.0",
+    "productCount": 50,
+    "totalSales": 3507,
+    "dateJoined": "2023-03-17T21:00:00.000Z",
+    "status": "active"
+  }
+]

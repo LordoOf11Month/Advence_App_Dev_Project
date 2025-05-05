@@ -1,0 +1,32 @@
+# Ignore nul files (error output files)
+nul
+
+# Dependencies
+node_modules
+.angular
+dist
+
+# Environment files
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Build artifacts
+*.zip
+
+# IDEs and editors
+.idea/
+.vscode/*
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+.project
+.classpath
+*.launch
+.settings/
+
+# System Files
+.DS_Store
+Thumbs.db 
