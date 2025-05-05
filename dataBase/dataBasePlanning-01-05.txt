@@ -1,0 +1,10 @@
+Cart table droped since it has strict one to one relation with user. cart item can be directly registered under user no need for cart.
+
+every purchase must have only one review this make strict one to one relationship between review and order item so review droped and its field given to the order item.
+
+order item had store id. useless. droped.
+ 
+shipment and order has stri... same story 
+shipment --> droped
+order --> updated
+
