@@ -1,0 +1,14 @@
+﻿🔹 Products Table
+Field Type Why It's Useful
+average_rating FLOAT For sorting/filtering by rating
+rating_count INT For display, filtering ("over 100 reviews")
+total_sales INT Total quantity sold, used for popularity or trending filters
+🔹 Stores Table
+Field Type Why It's Useful
+average_rating FLOAT Average of all product ratings or store-specific score
+total_sales INT For sorting top sellers or analytics
+is_banned BOOLEAN For moderation or filtering
+banned_date TIMESTAMP time of ban	
+ban_reason TEXT banning reason
+
+

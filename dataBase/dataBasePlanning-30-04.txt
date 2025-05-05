@@ -1,0 +1,1 @@
+products now has brand attribute for filtering because 

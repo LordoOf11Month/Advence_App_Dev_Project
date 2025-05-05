@@ -1,0 +1,98 @@
+USERS:
+	user_id (PK),
+    name,(VARCHAR(50))
+    surname, (VARCHAR(20)) 
+    email,(VARCHAR(70))
+    password_hash,(?)
+    role (ENUM: customer, seller, platform_admin),
+    created_at, (date)
+    isBanned,(boolean)
+    banned_at,(date)
+    Ban_reason (text)
+STORE:
+    store_id (PK),
+    seller_id (FK to User, where User.role = 'seller'),
+    store_name,(VARCHAR(20))
+    description,(text)
+    created_at(date)
+PRODUCT:	
+    product_id (PK),
+    store_id (FK to Store), 
+    category_id (FK to Category), 
+    name,(VARCHAR(80))
+    description,(text)
+    price,(number)
+    stock_quantity,(int)
+ORDER:	
+    order_id (PK),
+    user_id (FK to User),
+    order_date, (date)
+    total_amount, (number)(is it realy needed I can calculate this with sum?)
+    status (e.g., pending, shipped)?
+
+ORDER-ITEM:	
+    order_item_id (PK), 
+    order_id (FK to Order), 
+    product_id (FK to Product), 
+    store_id (FK to Store), 
+    quantity,(int) 
+    price_at_purchase(number)
+
+PAYMENT:	
+    payment_id (PK), 
+    order_id (FK to Order), 
+    amount,(number) 
+    payment_gateway,(???) 
+    transaction_id, (??)
+    status, (??)
+    created_at (date)
+ISSIUE:	
+    issue_id (PK), 
+    order_item_id (FK to OrderItem), 
+    user_id (FK to User), 
+    type, (ENUM but which but I am not sure what it should be)
+    description, (text)
+    status, (ENUM)
+    resolved_by (FK to User for seller/platform admin)
+CATEGORY:	
+    category_id (PK),
+    name,(VARCHAR(120))
+    parent_category_id (FK to Category for subcategories)
+Address:
+	address_id (PK), 
+	user_id (FK to User), 
+	street, 
+	city, 
+	state, 
+	zip_code, 
+	country, 
+	is_primary
+
+CART:	
+    cart_id (PK),
+    user_id (FK to User, unique)
+CART-ITEM:
+    cart_item_id (PK), 
+    cart_id (FK to Cart), 
+    product_id (FK to Product), 
+    quantity
+PRODUCT-IMAGE:	
+    image_id (PK), 
+    product_id (FK to Product), 
+    image_url, 
+    is_primary
+SHIPMENT:
+    shipment_id (PK), 
+    order_id (FK to Order, unique), 
+    tracking_number, 
+    carrier, 
+    status, 
+    estimated_delivery, 
+    actual_delivery_date
+REVİEW:	
+    review_id (PK), 
+    product_id (FK to Product), 
+    user_id (FK to User), 
+    rating (1-5), 
+    comment,
+    created_at
