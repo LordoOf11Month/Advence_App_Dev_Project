@@ -5,6 +5,8 @@ import lombok.Data;
 import lombok.EqualsAndHashCode;
 import com.example.DTO.UserDTO.UserResponse;
 
+import java.util.List;
+
 public class AuthDTO {
 
     @Data
@@ -46,6 +48,14 @@ public class AuthDTO {
     }
 
     @Data
+    public static class JwtResponse {
+        private String token;
+        private String type = "Bearer";
+        private Long id;
+        private String email;
+        private List<String> roles;
+    }
+        @Data
     public static class RefreshTokenRequest {
         @NotBlank
         private String refreshToken;

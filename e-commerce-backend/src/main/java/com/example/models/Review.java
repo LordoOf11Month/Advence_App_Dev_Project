@@ -15,9 +15,10 @@ import java.time.LocalDateTime;
 @Data
 @EntityListeners(AuditingEntityListener.class)
 public class Review {
+    @Embeddable
     public class ReviewId implements Serializable {
         private Long productId;
-        private Long userId;
+        private int userId;
 
         // Getters, setters, equals(), hashCode()
     }

@@ -1,5 +1,11 @@
 package com.example.controllers;
 
+import com.example.services.AuthService;
+import com.example.DTO.AuthDTO.*;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.*;
 import org.springframework.web.bind.annotation.*;
 
 // import com.example.models.LoginRequest;
@@ -7,23 +13,37 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    // @PostMapping("/login")
-    // public String login(@RequestBody LoginRequest loginRequest) {
-    //     // Implement login logic
-    //     return "Login successful";
-    // }
+    @Autowired
+    private AuthService authService;
 
-    // @PostMapping("/register")
-    // public String register(@RequestBody RegistrationRequest registrationRequest) {
-    //     // Implement registration logic
-    //     return "Registration successful";
-    // }
+    @PostMapping("/login")
+    public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest req, HttpServletResponse res) {
+        JwtResponse jwt = authService.authenticate(req);
+        ResponseCookie cookie = ResponseCookie.from("jwt", jwt.getToken())
+                .httpOnly(true)
+                .path("/")
+                .maxAge(7 * 24 * 60 * 60)
+                .build();
+        res.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        return ResponseEntity.ok(jwt);
+    }
 
-    // @PostMapping("/logout")
-    // public String logout() {
-    //     // Implement logout logic
-    //     return "Logout successful";
-    // }
+    @PostMapping("/register")
+    public ResponseEntity<String> register(@Valid @RequestBody RegisterRequest req) {
+        authService.register(req);
+        return ResponseEntity.ok("User registered successfully");
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<String> logout(HttpServletResponse res) {
+        ResponseCookie cookie = ResponseCookie.from("jwt", "")
+                .httpOnly(true)
+                .path("/")
+                .maxAge(0)
+                .build();
+        res.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        return ResponseEntity.ok("Logged out");
+    }
 
     // @PostMapping("/refresh-token")
     // public String refreshToken(@RequestBody String token) {
