@@ -1,9 +1,14 @@
 package com.example.services;
 
+import com.example.DTO.ProductDTO;
 import com.example.models.Product;
 import com.example.repositories.ProductRepository;
+import com.example.repositories.specifications.ProductSpecification;
 import org.springframework.stereotype.Service;
 import java.util.List;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 
 @Service
 public class ProductService {
@@ -16,6 +21,12 @@ public class ProductService {
 
     public List<Product> listAllProducts() {
         return productRepository.findAll();
+    }
+
+    // Browse and filter products
+    public Page<Product> browseProducts(ProductDTO.ProductFilterRequest filter, Pageable pageable) {
+        Specification<Product> spec = ProductSpecification.filterBy(filter);
+        return productRepository.findAll(spec, pageable); // Supports pagination
     }
 
     public Product getProductById(Long id) {
@@ -41,7 +52,7 @@ public class ProductService {
         return productRepository.save(existingProduct);
     }
 
-    public void deleteProduct(Long id) {
+    public void delete(Long id) {
         productRepository.deleteById(id);
     }
 }
