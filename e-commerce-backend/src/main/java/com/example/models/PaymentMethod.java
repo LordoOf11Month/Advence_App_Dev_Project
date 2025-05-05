@@ -20,8 +20,18 @@ public class PaymentMethod {
     @Column(name = "stripe_payment_method_id", length = 255, nullable = false)
     private String stripePaymentMethodId;
 
+    // Enum for card brands
+    public enum CardBrand {
+        VISA,
+        MASTERCARD,
+        AMERICAN_EXPRESS,
+        DISCOVER,
+        OTHER // Add more brands as needed
+    }
+
+    @Enumerated(EnumType.STRING)
     @Column(name = "brand", length = 50, nullable = false)
-    private String brand;
+    private CardBrand brand;
 
     @Column(name = "is_default", nullable = false)
     private Boolean isDefault = false;

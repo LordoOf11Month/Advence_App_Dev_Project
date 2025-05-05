@@ -29,11 +29,5 @@ public class OrderItem {
     @Column(name = "price_at_purchase", precision = 10, scale = 2, nullable = false)
     private BigDecimal priceAtPurchase;
 
-    @Column(name = "rating")
-    private Integer rating;
-
-    @Column(name = "comment", columnDefinition = "TEXT")
-    private String comment;
-
 }
 

@@ -10,7 +10,8 @@ import java.util.List;
 
 @Entity
 @Table(name = "users")
-@Getter @Setter
+@Getter
+@Setter
 public class User {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -25,6 +26,9 @@ public class User {
 
     @Column(name = "email", length = 70, nullable = false, unique = true)
     private String email;
+
+    @Column(name = "phone_number", length = 30, nullable = true) // Assuming phone number can be optional
+    private String phoneNumber;
 
     @Column(name = "password_hash", length = 128, nullable = false)
     private String passwordHash;
@@ -48,6 +52,9 @@ public class User {
     @Column(name = "ban_reason", columnDefinition = "TEXT")
     private String banReason;
 
+    @Column(name = "avatar_url" , columnDefinition = "TEXT")
+    private String avatarUrl;
+
     @OneToMany(mappedBy = "seller")
     private List<Store> stores;
 
@@ -62,6 +69,9 @@ public class User {
 
     @OneToMany(mappedBy = "user")
     private List<CartItem> cartItems;
+
+    @OneToMany(mappedBy = "user")
+    private List<Review> reviews;
 
     public enum Role {
         customer,

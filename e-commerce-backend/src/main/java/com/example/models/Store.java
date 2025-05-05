@@ -3,7 +3,6 @@ package com.example.models;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-
 import java.sql.Timestamp;
 import java.util.List;
 
@@ -29,7 +28,25 @@ public class Store {
     @Column(name = "created_at", nullable = false)
     private Timestamp createdAt;
 
-    // payment info
+    @Column(name = "average_rating")
+    private Float averageRating;
+
+    @Column(name = "total_sales")
+    private Integer totalSales;
+
+    @Column(name = "is_banned")
+    private Boolean isBanned;
+
+    @Column(name = "banned_date")
+    private Timestamp bannedDate;
+
+    @Column(name = "ban_reason", columnDefinition = "TEXT")
+    private String banReason;
+
+    @Column(name = "email", nullable = false, length = 70)
+    private String email;
+
+    // Payment info
     @Column(name = "bank_name", length = 100)
     private String bankName;
 

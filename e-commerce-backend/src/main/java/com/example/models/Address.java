@@ -26,8 +26,8 @@ public class Address {
     @Column(name = "state", length = 100)
     private String state;
 
-    @Column(name = "zip_code", length = 20)
-    private String zipCode;
+    @Column(name = "postal_code", length = 20)
+    private String postalCode;
 
     @Column(name = "country", length = 100, nullable = false)
     private String country;

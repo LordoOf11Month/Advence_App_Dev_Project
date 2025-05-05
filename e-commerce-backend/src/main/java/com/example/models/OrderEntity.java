@@ -8,6 +8,8 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.List;
 
+
+
 @Entity
 @Table(name = "orders")
 @Getter @Setter
@@ -38,8 +40,17 @@ public class OrderEntity {
     @JoinColumn(name = "shipping_address", nullable = false)
     private Address shippingAddress;
 
+    @Enumerated(EnumType.STRING)
     @Column(name = "status", length = 50)
-    private String status;
+    private Status status;
+
+    public  enum Status {
+        pending,
+        processing,
+        shipped,
+        delivered,
+        cancelled;
+    }
 
     @Column(name = "estimated_delivery")
     private LocalDate estimatedDelivery;
@@ -53,4 +64,5 @@ public class OrderEntity {
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private List<OrderItem> orderItems;
 }
+
 

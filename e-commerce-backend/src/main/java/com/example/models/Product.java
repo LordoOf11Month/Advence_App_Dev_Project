@@ -35,6 +35,21 @@ public class Product {
     @Column(name = "stock_quantity", nullable = false)
     private Integer stockQuantity;
 
+    // pre-calculated rating values for removing useless join queries
+    @Column(name = "average_rating")
+    private Float averageRating;
+
+    @Column(name = "rating_count")
+    private Integer ratingCount;
+
+    //used for computation of new average after new review
+    @Column(name = "total_rating")
+    private Integer totalRating;
+
+  //pre-calcuated total sales for dashboards
+    @Column(name = "total_sales")
+    private Integer totalSales;
+
     @OneToMany(mappedBy = "product")
     private List<ProductImage> images;
 
@@ -43,4 +58,7 @@ public class Product {
 
     @OneToMany(mappedBy = "product")
     private List<Discount> discounts;
+
+    @OneToMany(mappedBy = "product")
+    private List<Review> reviews;
 }
