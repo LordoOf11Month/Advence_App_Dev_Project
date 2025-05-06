@@ -16,15 +16,9 @@ import { Category } from '../../models/product.model';
       <div class="top-bar">
         <div class="container flex-between">
           <div class="top-links hidden-sm">
-            <a href="#">Download App</a>
-            <a routerLink="/seller/register">Sell on Trendyol</a>
-            <a href="#">Help & Support</a>
+            <a routerLink="/seller/register">Sell on Trendway</a>
           </div>
           <div class="top-links">
-            <a href="#">
-              <span class="material-symbols-outlined">notifications</span>
-              <span class="hidden-sm">Notifications</span>
-            </a>
             <a routerLink="/admin" *ngIf="isAdmin">
               <span class="material-symbols-outlined">admin_panel_settings</span>
               <span class="hidden-sm">Admin</span>
@@ -49,7 +43,7 @@ import { Category } from '../../models/product.model';
       <div class="main-header container">
         <div class="logo">
           <a routerLink="/">
-            <h1>Trendyol</h1>
+            <h1>Trendway</h1>
           </a>
         </div>
 
@@ -105,10 +99,10 @@ import { Category } from '../../models/product.model';
             <div class="suggestion-group">
               <h4>Popular Searches</h4>
               <ul>
-                <li><a href="#">summer dresses</a></li>
-                <li><a href="#">smartphones</a></li>
-                <li><a href="#">running shoes</a></li>
-                <li><a href="#">wireless headphones</a></li>
+                <li><a routerLink="/category/summer-dresses">summer dresses</a></li>
+                <li><a routerLink="/category/smartphones">smartphones</a></li>
+                <li><a routerLink="/category/running-shoes">running shoes</a></li>
+                <li><a routerLink="/category/wireless-headphones">wireless headphones</a></li>
               </ul>
             </div>
           </div>
@@ -182,6 +176,19 @@ import { Category } from '../../models/product.model';
     
     .top-links {
       display: flex;
+      align-items: center;
+    }
+    
+    .container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 var(--space-4);
+    }
+    
+    .flex-between {
+      display: flex;
+      justify-content: space-between;
       align-items: center;
     }
     
@@ -261,6 +268,8 @@ import { Category } from '../../models/product.model';
     
     .suggestion-group ul {
       list-style: none;
+      padding: 0;
+      margin: 0;
     }
     
     .suggestion-group li {
@@ -496,6 +505,10 @@ import { Category } from '../../models/product.model';
       
       .search-bar {
         margin: 0 var(--space-2);
+      }
+      
+      .hidden-sm {
+        display: none;
       }
     }
     

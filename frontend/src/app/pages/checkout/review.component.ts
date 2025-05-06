@@ -72,11 +72,11 @@ import { CartService } from '../../services/cart.service';
                   </div>
                 </div>
                 
-                <div *ngIf="paymentMethod.type === 'paypal'" class="payment-other">
-                  <span class="material-symbols-outlined">account_balance_wallet</span>
+                <div *ngIf="paymentMethod.type === 'stripe'" class="payment-other">
+                  <span class="material-symbols-outlined">credit_score</span>
                   <div class="payment-details">
-                    <p class="payment-type">PayPal</p>
-                    <p class="payment-note">You will be redirected to PayPal to complete payment</p>
+                    <p class="payment-type">Stripe</p>
+                    <p class="payment-note">You will be redirected to Stripe to complete payment</p>
                   </div>
                 </div>
                 

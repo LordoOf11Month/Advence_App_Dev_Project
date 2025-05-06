@@ -82,8 +82,8 @@ import { CheckoutProgressComponent } from './checkout-progress.component';
                 </p>
               </div>
               
-              <div *ngIf="order.paymentMethod.type === 'paypal'" class="payment-detail">
-                <p><span class="material-symbols-outlined">account_balance_wallet</span> PayPal</p>
+              <div *ngIf="order.paymentMethod.type === 'stripe'" class="payment-detail">
+                <p><span class="material-symbols-outlined">account_balance_wallet</span> Stripe</p>
               </div>
               
               <div *ngIf="order.paymentMethod.type === 'cash_on_delivery'" class="payment-detail">

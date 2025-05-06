@@ -1,13 +1,13 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, ActivatedRoute } from '@angular/router';
+import { Router, ActivatedRoute, RouterModule } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-login',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   template: `
     <div class="container">
       <div class="auth-container">
@@ -61,14 +61,24 @@ import { AuthService } from '../../services/auth.service';
         
         <div class="auth-links">
           <p>Don't have an account? <a routerLink="/register">Register</a></p>
-          <a href="#" class="forgot-password">Forgot Password?</a>
         </div>
       </div>
     </div>
   `,
   styles: [`
+    .container {
+      width: 100%;
+      padding-right: var(--space-4);
+      padding-left: var(--space-4);
+      margin-right: auto;
+      margin-left: auto;
+      max-width: 100%;
+      overflow-x: hidden;
+    }
+    
     .auth-container {
       max-width: 400px;
+      width: 100%;
       margin: var(--space-8) auto;
       padding: var(--space-6);
       background-color: var(--white);
@@ -105,6 +115,8 @@ import { AuthService } from '../../services/auth.service';
       border-radius: var(--radius-md);
       font-size: 1rem;
       transition: border-color var(--transition-fast);
+      width: 100%;
+      box-sizing: border-box;
     }
     
     .form-group input:focus {
@@ -144,16 +156,11 @@ import { AuthService } from '../../services/auth.service';
       font-size: 0.9375rem;
     }
     
-    .auth-links p {
-      margin-bottom: var(--space-2);
-    }
-    
-    .forgot-password {
-      color: var(--neutral-600);
-    }
-    
-    .forgot-password:hover {
-      color: var(--primary);
+    @media (max-width: 576px) {
+      .auth-container {
+        padding: var(--space-4);
+        margin: var(--space-4) auto;
+      }
     }
   `]
 })
