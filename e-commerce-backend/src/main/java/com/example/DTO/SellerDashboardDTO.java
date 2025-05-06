@@ -24,7 +24,7 @@ public class SellerDashboardDTO {
     }
 
     @Data
-    public static  class RecentOrderDTO {
+    public static class RecentOrderDTO {
         private String id;
         private int userId;
         private String userEmail;
@@ -42,7 +42,7 @@ public class SellerDashboardDTO {
     }
 
     @Data
-    public static  class LowStockItemDTO {
+    public static class LowStockItemDTO {
         private Long id;
         private String title;
         private double price;
@@ -59,7 +59,6 @@ public class SellerDashboardDTO {
 
         // Constructors, getters, and setters
     }
-
 
 
 }

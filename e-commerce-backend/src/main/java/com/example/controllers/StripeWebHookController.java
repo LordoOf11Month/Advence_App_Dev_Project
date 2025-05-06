@@ -1,28 +1,52 @@
 package com.example.controllers;
 
-//import org.springframework.beans.factory.annotation.Autowired;
-//import org.springframework.http.ResponseEntity;
+import com.stripe.model.Event;
+import com.stripe.model.PaymentIntent;
+import com.stripe.net.Webhook;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-
 @RestController
-@RequestMapping("/api/webhooks/stripe")
+@RequestMapping("/api/stripe")
 public class StripeWebHookController {
-//    @Autowired
-//    private StripeWebhookService webhookService;
 //
-//    @PostMapping
-//    public ResponseEntity<String> handleEvent(@RequestBody String payload,
-//                                              @RequestHeader("Stripe-Signature") String sigHeader) {
+//    @Value("${stripe.webhookSecret}")
+//    private String webhookSecret;
+//
+//    @PostMapping("/webhook")
+//    public ResponseEntity<String> handleWebhook(
+//            @RequestBody String payload,
+//            @RequestHeader("Stripe-Signature") String sigHeader) {
+//        Event event;
 //        try {
-//            webhookService.processEvent(payload, sigHeader);
-//            return ResponseEntity.ok("Webhook processed");
-//        } catch (com.stripe.exception.SignatureVerificationException e) {
-//            return ResponseEntity.status(org.springframework.http.HttpStatus.BAD_REQUEST)
-//                    .body("Invalid signature");
+//            // Verify signature and parse event
+//            event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
 //        } catch (Exception e) {
-//            return ResponseEntity.status(org.springframework.http.HttpStatus.INTERNAL_SERVER_ERROR)
-//                    .body("Error processing webhook");
+//            // Invalid signature or payload
+//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("");
 //        }
+//
+//        // Handle the event
+//        if ("payment_intent.succeeded".equals(event.getType())) {
+//            PaymentIntent intent = (PaymentIntent) event.getDataObjectDeserializer()
+//                    .getObject().orElse(null);
+//            if (intent != null) {
+//                String intentId = intent.getId();
+//                // TODO: lookup Order by intentId and mark payment as succeeded
+//                // e.g., order.setStripePaymentStatus(intent.getStatus()); save order...
+//            }
+//        }
+////        else if ("payment_intent.payment_failed".equals(event.getType())) {
+////            PaymentIntent intent = (PaymentIntent) event.getDataObjectDeserializer()
+////                    .getObject().orElse(null);
+////            if (intent != null) {
+////                // TODO: mark order/payment as failed
+////            }
+////        }
+//        // Handle other event types (e.g. refunds) as needed
+//
+//        return ResponseEntity.ok("");
 //    }
 }

@@ -10,4 +10,9 @@ public class PaymentDTO {
         private Long amount;
         private String currency = "usd";
     }
+
+    @Data
+    public class PaymentResponse {
+        private String cilentSecret;
+    }
 }
