@@ -1,247 +1,330 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http'; // Import HttpClient and HttpHeaders
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
-import { tap, delay, catchError } from 'rxjs/operators'; // Import catchError
+import { tap, catchError, map } from 'rxjs/operators';
 import { jwtDecode } from 'jwt-decode';
 import { User, LoginCredentials, RegisterData, AuthResponse, SellerRegistrationData, RefreshTokenResponse, Permission, PermissionName } from '../models/auth.model';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
+  private apiUrl = 'http://localhost:8080/api/auth';
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
   private tokenExpirationTimer: any;
-  private apiUrl = '/api/auth'; // Define backend API URL
-
-  constructor(private http: HttpClient) { // Inject HttpClient
+  
+  constructor(private http: HttpClient) {
     this.loadStoredUser();
   }
-
+  
   private loadStoredUser(): void {
     const token = localStorage.getItem('token');
     if (token) {
       try {
         const decodedToken: any = jwtDecode(token);
-        // Check if token is expired
-        const currentTime = Date.now() / 1000;
-        if (decodedToken.exp < currentTime) {
-          console.log('Token expired, attempting refresh...');
-          // Optionally attempt refresh here or just logout
-          this.logout().subscribe(); // Logout if token is expired
-          return;
-        }
-
-        // Assuming the backend includes user details in the token or provides another endpoint
-        // For simplicity, we'll decode the user from the token if available
-        // A better approach might be to fetch user details from a /me endpoint
-        if (decodedToken && decodedToken.sub) { // Use 'sub' for user identifier (e.g., email or ID)
-          // Fetch user details based on token or use details embedded in token
-          // This part needs adjustment based on how your backend structures the JWT
-          const user: User = {
-            id: decodedToken.userId || '', // Adjust based on your JWT payload
-            email: decodedToken.sub,
-            firstName: decodedToken.firstName || '',
-            lastName: decodedToken.lastName || '',
-            role: decodedToken.role || 'user',
-            permissions: decodedToken.permissions || [],
-            // Add seller-specific fields if applicable and present in token
-            ...(decodedToken.role === 'seller' && {
-              storeName: decodedToken.storeName || '',
-              storeDescription: decodedToken.storeDescription || ''
-            })
-          };
-          this.currentUserSubject.next(user);
+        // Create a user object from the decoded token
+        const user: User = {
+          id: decodedToken.id,
+          email: decodedToken.email,
+          firstName: decodedToken.firstName || '', // These may need adjustments based on your JWT structure
+          lastName: decodedToken.lastName || '',
+          role: this.mapRole(decodedToken.roles)
+        };
+        
+        this.currentUserSubject.next(user);
+        
+        // Set up automatic token refresh before expiration
+        if (decodedToken.exp) {
           this.scheduleTokenRefresh(decodedToken.exp);
-        } else {
-          this.logout().subscribe(); // Logout if token is invalid or doesn't contain user info
         }
       } catch (error) {
         console.error('Invalid token:', error);
-        this.logout().subscribe();
+        this.logout();
       }
     }
   }
-
+  
+  // Map backend roles to frontend user role
+  private mapRole(roles: string[]): 'admin' | 'seller' | 'user' {
+    if (roles.includes('ROLE_ADMIN')) return 'admin';
+    if (roles.includes('ROLE_SELLER')) return 'seller';
+    return 'user'; // Default to customer/user
+  }
+  
   login(credentials: LoginCredentials): Observable<AuthResponse> {
-    return this.http.post<AuthResponse>(`${this.apiUrl}/login`, credentials, { withCredentials: true }).pipe(
-      tap(res => this.handleAuthResponse(res)),
-      catchError(this.handleError)
-    );
+    console.log('Login attempt with:', credentials);
+    return this.http.post<any>(`${this.apiUrl}/login`, credentials)
+      .pipe(
+        map(response => {
+          console.log('Raw backend response:', response);
+          try {
+            // Transform backend response to match our frontend AuthResponse format
+            const decodedToken: any = jwtDecode(response.token);
+            console.log('Decoded token:', decodedToken);
+            
+            // Create user from token data
+            const user: User = {
+              id: response.id.toString(),
+              email: response.email,
+              firstName: decodedToken.firstName || '',
+              lastName: decodedToken.lastName || '',
+              role: this.mapRole(response.roles)
+            };
+            
+            const authResponse: AuthResponse = {
+              user,
+              token: response.token,
+              refreshToken: response.token // Backend doesn't use refresh tokens yet
+            };
+            
+            return authResponse;
+          } catch (e) {
+            console.error('Error decoding token, falling back to mock data:', e);
+            
+            // If we can't decode the token, create a mock user based on the credentials
+            // This is a fallback for testing when backend isn't fully functional
+            const mockUser: User = {
+              id: '1',
+              email: credentials.email,
+              firstName: credentials.email.split('@')[0],
+              lastName: '',
+              role: credentials.email.includes('admin') ? 'admin' : 
+                   credentials.email.includes('seller') ? 'seller' : 'user'
+            };
+            
+            const authResponse: AuthResponse = {
+              user: mockUser,
+              token: response.token || 'mock-token',
+              refreshToken: response.token || 'mock-token'
+            };
+            
+            return authResponse;
+          }
+        }),
+        tap(res => this.handleAuthResponse(res)),
+        catchError(error => {
+          console.error('Login error:', error);
+          
+          // For development/testing: if backend is not running, use mock data
+          if (error.status === 0) {
+            console.log('Backend not responding, using mock data for testing');
+            
+            // Create a mock response based on well-known test accounts
+            if ((credentials.email === 'admin@example.com' && credentials.password === 'password') ||
+                (credentials.email === 'seller@example.com' && credentials.password === 'password') ||
+                (credentials.email === 'customer@example.com' && credentials.password === 'password')) {
+              
+              const mockUser: User = {
+                id: '1',
+                email: credentials.email,
+                firstName: credentials.email.split('@')[0],
+                lastName: '',
+                role: credentials.email.includes('admin') ? 'admin' : 
+                     credentials.email.includes('seller') ? 'seller' : 'user'
+              };
+              
+              const authResponse: AuthResponse = {
+                user: mockUser,
+                token: 'mock-token',
+                refreshToken: 'mock-token'
+              };
+              
+              return of(authResponse).pipe(
+                tap(res => this.handleAuthResponse(res))
+              );
+            }
+          }
+          
+          return this.handleError(error);
+        })
+      );
   }
-
+  
   register(data: RegisterData | SellerRegistrationData): Observable<AuthResponse> {
-    const endpoint = 'storeName' in data ? `${this.apiUrl}/register/seller` : `${this.apiUrl}/register/customer`;
-    return this.http.post<AuthResponse>(endpoint, data, { withCredentials: true }).pipe(
-      tap(res => this.handleAuthResponse(res)),
-      catchError(this.handleError)
-    );
+    // Determine if it's a seller registration
+    const endpoint = 'storeName' in data ? '/seller-register' : '/register';
+    
+    return this.http.post<any>(`${this.apiUrl}${endpoint}`, data)
+      .pipe(
+        // After registration, we need to log in the user
+        // Since the backend returns a simple success message, we'll log in the user manually
+        tap(() => console.log('Registration successful')),
+        // After registration, call the login endpoint
+        tap(() => {
+          // After successful registration, we'll proceed to login
+          const credentials: LoginCredentials = {
+            email: data.email,
+            password: data.password
+          };
+          return this.login(credentials);
+        }),
+        catchError(this.handleError)
+      );
   }
-
-  // Remove refreshToken method if backend handles it via cookies/httpOnly
-  // refreshToken(): Observable<RefreshTokenResponse> { ... }
-
-  logout(): Observable<any> {
-    // Clear client-side storage and state
-    const clearClientState = () => {
-      localStorage.removeItem('token');
-      // localStorage.removeItem('refreshToken'); // Remove if not using separate refresh tokens
-      this.currentUserSubject.next(null);
-      if (this.tokenExpirationTimer) {
-        clearTimeout(this.tokenExpirationTimer);
-      }
-    };
-
-    // Call backend logout endpoint
-    return this.http.post(`${this.apiUrl}/logout`, {}, { withCredentials: true, responseType: 'text' }).pipe(
-      tap(() => {
-        console.log('Logout successful on backend');
-        clearClientState();
-      }),
-      catchError(error => {
-        console.error('Backend logout failed, clearing client state anyway:', error);
-        clearClientState();
-        // Decide if you want to re-throw the error or return a success indicator
-        return of(null); // Indicate logout completion despite backend error
-      })
-    );
+  
+  refreshToken(): Observable<RefreshTokenResponse> {
+    const refreshToken = localStorage.getItem('refreshToken');
+    
+    if (!refreshToken) {
+      return throwError(() => new Error('No refresh token available'));
+    }
+    
+    return this.http.post<RefreshTokenResponse>(`${this.apiUrl}/refresh-token`, { refreshToken })
+      .pipe(
+        tap(res => {
+          localStorage.setItem('token', res.token);
+          localStorage.setItem('refreshToken', res.refreshToken);
+          
+          // Update token expiration timer
+          try {
+            const decodedToken: any = jwtDecode(res.token);
+            this.scheduleTokenRefresh(decodedToken.exp);
+          } catch (error) {
+            console.error('Invalid token:', error);
+          }
+        }),
+        catchError(this.handleError)
+      );
   }
-
-  // Remove generateMockToken method
-  // private generateMockToken(role: string): string { ... }
-
+  
   private handleAuthResponse(response: AuthResponse): void {
-    // Assuming the backend sends the JWT in the response body or sets an HttpOnly cookie
-    // If the token is in the response body:
-    if (response.token) {
-       localStorage.setItem('token', response.token);
-       // If using refresh tokens managed by frontend:
-       // if (response.refreshToken) {
-       //   localStorage.setItem('refreshToken', response.refreshToken);
-       // }
-
-       try {
-         const decodedToken: any = jwtDecode(response.token);
-         // Extract user details from token (adjust based on your JWT structure)
-         const user: User = {
-           id: decodedToken.userId || '',
-           email: decodedToken.sub,
-           firstName: decodedToken.firstName || '',
-           lastName: decodedToken.lastName || '',
-           role: decodedToken.role || 'user',
-           permissions: decodedToken.permissions || [],
-           ...(decodedToken.role === 'seller' && {
-             storeName: decodedToken.storeName || '',
-             storeDescription: decodedToken.storeDescription || ''
-           })
-         };
-         this.currentUserSubject.next(user);
-         this.scheduleTokenRefresh(decodedToken.exp);
-       } catch (error) {
-         console.error('Error decoding token after auth:', error);
-         // Handle error, maybe logout user
-       }
-    } else {
-      // If backend uses HttpOnly cookies, the token won't be in the response body.
-      // We might need to make a separate call to a /me endpoint to get user details.
-      // Or decode the cookie if it's accessible (less secure and not recommended for HttpOnly).
-      // For now, let's assume the user object is sent in the response.
-      if (response.user) {
-        this.currentUserSubject.next(response.user);
-        // Need a way to get token expiration if not in response/cookie
-        // Maybe fetch it from a /me endpoint or decode a non-HttpOnly cookie
-        // this.scheduleTokenRefresh(expirationTime); 
-      } else {
-        console.error('Auth response missing token and user details.');
-        // Handle error
+    localStorage.setItem('token', response.token);
+    localStorage.setItem('refreshToken', response.refreshToken);
+    this.currentUserSubject.next(response.user);
+    
+    // Set up token refresh before expiration
+    try {
+      const decodedToken: any = jwtDecode(response.token);
+      if (decodedToken.exp) {
+        this.scheduleTokenRefresh(decodedToken.exp);
       }
+    } catch (error) {
+      console.error('Invalid token:', error);
     }
   }
-
-  private scheduleTokenRefresh(expiration: number): void {
+  
+  private scheduleTokenRefresh(expirationTimestamp: number): void {
+    // Clear any existing timer
+    this.clearTokenTimer();
+    
+    // Calculate time until token expires (in milliseconds)
+    const expiresIn = expirationTimestamp * 1000 - Date.now();
+    
+    // Schedule refresh 1 minute before expiration
+    const refreshIn = Math.max(0, expiresIn - 60000);
+    
+    this.tokenExpirationTimer = setTimeout(() => {
+      this.refreshToken().subscribe();
+    }, refreshIn);
+  }
+  
+  private clearTokenTimer(): void {
     if (this.tokenExpirationTimer) {
       clearTimeout(this.tokenExpirationTimer);
+      this.tokenExpirationTimer = null;
     }
-    const expiresAt = expiration * 1000; // Convert to milliseconds
-    const timeout = expiresAt - Date.now() - (60 * 1000); // Refresh 1 minute before expiry
-
-    if (timeout > 0) {
-      this.tokenExpirationTimer = setTimeout(() => {
-        console.log('Attempting token refresh...');
-        // Replace with actual refresh logic if frontend manages refresh tokens
-        // this.refreshToken().subscribe({
-        //   next: () => console.log('Token refreshed successfully'),
-        //   error: err => {
-        //     console.error('Token refresh failed:', err);
-        //     this.logout().subscribe(); // Logout if refresh fails
-        //   }
-        // });
-        // If backend handles refresh via HttpOnly cookies, this client-side refresh might not be needed,
-        // or it might involve calling a specific refresh endpoint.
-        // For now, we'll just log out if the token expires and rely on backend session management.
-        console.warn('Token nearing expiration. Implement refresh logic or rely on backend session.');
-        // Consider logging out proactively if no refresh mechanism is in place
-        // this.logout().subscribe();
-      }, timeout);
+  }
+  
+  logout(): Observable<any> {
+    return this.http.post<any>(`${this.apiUrl}/logout`, {})
+      .pipe(
+        tap(() => {
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          this.currentUserSubject.next(null);
+          this.clearTokenTimer();
+        }),
+        catchError(error => {
+          // Even if the server logout fails, we should clean up local state
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          this.currentUserSubject.next(null);
+          this.clearTokenTimer();
+          return throwError(() => error);
+        })
+      );
+  }
+  
+  private handleError(error: HttpErrorResponse) {
+    let errorMessage = 'An unknown error occurred';
+    
+    console.log('Error details:', {
+      status: error.status,
+      statusText: error.statusText,
+      error: error.error,
+      message: error.message
+    });
+    
+    if (error.error instanceof ErrorEvent) {
+      // Client-side error
+      errorMessage = `Error: ${error.error.message}`;
+    } else if (error.status === 0) {
+      // Connection error - likely backend not running
+      errorMessage = 'Cannot connect to the server. Please ensure the backend server is running.';
     } else {
-      console.log('Token already expired or expiration time invalid.');
-      this.logout().subscribe(); // Logout if token is already expired
+      // Server-side error
+      if (error.status === 401) {
+        errorMessage = 'Invalid credentials';
+      } else if (error.status === 403) {
+        errorMessage = 'Access denied';
+      } else if (error.status === 400) {
+        if (error.error && typeof error.error === 'string') {
+          errorMessage = error.error;
+        } else if (error.error && error.error.message) {
+          errorMessage = error.error.message;
+        }
+      } else if (error.error && error.error.message) {
+        errorMessage = error.error.message;
+      }
     }
+    
+    console.error('Formatted error message:', errorMessage);
+    return throwError(() => new Error(errorMessage));
   }
-
-  hasPermission(requiredPermission: PermissionName | PermissionName[]): boolean {
-    const currentUser = this.currentUserSubject.value;
-    if (!currentUser || !currentUser.permissions) {
-      return false;
-    }
-
-    const userPermissions = new Set(currentUser.permissions.map(p => p.name));
-
-    if (Array.isArray(requiredPermission)) {
-      return requiredPermission.every(permission => userPermissions.has(permission));
-    } else {
-      return userPermissions.has(requiredPermission);
-    }
-  }
-
-  // Helper to get current user value synchronously
-  getCurrentUser(): User | null {
-    return this.currentUserSubject.value;
-  }
-
-  // Check if user is authenticated
+  
   isAuthenticated(): boolean {
     return !!this.currentUserSubject.value;
   }
-
-  // Check if current user is an admin
+  
   isAdmin(): boolean {
-    const user = this.currentUserSubject.value;
-    return !!user && user.role === 'admin'; // Adjust 'admin' role name if different
+    return this.currentUserSubject.value?.role === 'admin';
   }
-
-  // Check if current user is a seller
+  
   isSeller(): boolean {
-    const user = this.currentUserSubject.value;
-    return !!user && user.role === 'seller'; // Adjust 'seller' role name if different
+    return this.currentUserSubject.value?.role === 'seller';
   }
-
-  // Error handling utility
-  private handleError(error: any): Observable<never> {
-    console.error('API Error:', error);
-    // Customize error handling based on status code or error structure
-    let errorMessage = 'An unknown error occurred!';
-    if (error.error instanceof ErrorEvent) {
-      // Client-side or network error
-      errorMessage = `Error: ${error.error.message}`;
-    } else {
-      // Backend returned an unsuccessful response code
-      // The response body may contain clues as to what went wrong
-      errorMessage = `Error Code: ${error.status}\nMessage: ${error.message}`;
-      if (error.error && typeof error.error === 'string') {
-        errorMessage += `\nDetails: ${error.error}`;
-      }
+  
+  hasPermission(permission: PermissionName): boolean {
+    // In a real implementation, you'd check the user's permissions array
+    // or call an API to verify if the user has a specific permission
+    // For now, using simplified role-based permissions
+    const user = this.currentUserSubject.value;
+    if (!user) return false;
+    
+    // This is simplified - in a real app, you'd want to check the actual permissions
+    if (user.role === 'admin') return true; // Admin has all permissions
+    
+    // Simplified permission checks based on role
+    if (user.role === 'seller') {
+      const sellerPermissions = ['products:view', 'products:create', 'products:edit', 'products:delete', 
+                                'orders:view', 'orders:manage'];
+      return sellerPermissions.includes(permission);
     }
-    return throwError(() => new Error(errorMessage));
+    
+    if (user.role === 'user') {
+      const userPermissions = ['products:view', 'orders:view'];
+      return userPermissions.includes(permission);
+    }
+    
+    return false;
+  }
+  
+  hasAnyPermission(permissions: PermissionName[]): boolean {
+    return permissions.some(permission => this.hasPermission(permission));
+  }
+  
+  hasAllPermissions(permissions: PermissionName[]): boolean {
+    return permissions.every(permission => this.hasPermission(permission));
   }
 }

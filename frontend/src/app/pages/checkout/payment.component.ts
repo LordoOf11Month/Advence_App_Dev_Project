@@ -44,87 +44,7 @@ import { OrderSummaryComponent } from './order-summary.component';
             </div>
           </div>
           
-          <form *ngIf="selectedPaymentMethod === 'credit_card'" [formGroup]="creditCardForm" (ngSubmit)="onSubmit()">
-            <div class="form-group">
-              <label for="cardNumber">Card Number *</label>
-              <input 
-                type="text" 
-                id="cardNumber" 
-                formControlName="cardNumber"
-                placeholder="1234 5678 9012 3456"
-                [class.error]="isFieldInvalid('cardNumber')"
-              >
-              <div class="error-message" *ngIf="isFieldInvalid('cardNumber')">
-                Please enter a valid card number
-              </div>
-            </div>
-            
-            <div class="form-group">
-              <label for="cardHolder">Cardholder Name *</label>
-              <input 
-                type="text" 
-                id="cardHolder" 
-                formControlName="cardHolder"
-                placeholder="John Doe"
-                [class.error]="isFieldInvalid('cardHolder')"
-              >
-              <div class="error-message" *ngIf="isFieldInvalid('cardHolder')">
-                Cardholder name is required
-              </div>
-            </div>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label for="expiryDate">Expiry Date *</label>
-                <input 
-                  type="text" 
-                  id="expiryDate" 
-                  formControlName="expiryDate"
-                  placeholder="MM/YY"
-                  [class.error]="isFieldInvalid('expiryDate')"
-                >
-                <div class="error-message" *ngIf="isFieldInvalid('expiryDate')">
-                  Please enter a valid expiry date
-                </div>
-              </div>
-              
-              <div class="form-group">
-                <label for="cvv">CVV *</label>
-                <input 
-                  type="text" 
-                  id="cvv" 
-                  formControlName="cvv"
-                  placeholder="123"
-                  [class.error]="isFieldInvalid('cvv')"
-                >
-                <div class="error-message" *ngIf="isFieldInvalid('cvv')">
-                  Please enter a valid CVV
-                </div>
-              </div>
-            </div>
-            
-            <div class="form-group checkbox">
-              <input 
-                type="checkbox" 
-                id="saveCard" 
-                formControlName="saveCard"
-              >
-              <label for="saveCard">Save this card for future purchases</label>
-            </div>
-            
-            <div class="form-actions">
-              <a routerLink="/checkout/shipping" class="back-button">Back to Shipping</a>
-              <button 
-                type="submit" 
-                class="continue-button"
-                [disabled]="creditCardForm.invalid"
-              >
-                Continue to Review
-              </button>
-            </div>
-          </form>
-          
-          <div *ngIf="selectedPaymentMethod !== 'credit_card'" class="alternative-payment">
+          <div class="alternative-payment">
             <p class="alternative-payment-note">
               You will be redirected to complete your payment after reviewing your order.
             </p>
@@ -246,66 +166,6 @@ import { OrderSummaryComponent } from './order-summary.component';
       color: var(--neutral-600);
     }
     
-    .form-row {
-      display: flex;
-      gap: var(--space-4);
-      margin-bottom: var(--space-4);
-    }
-    
-    .form-row .form-group {
-      flex: 1;
-    }
-    
-    .form-group {
-      margin-bottom: var(--space-4);
-    }
-    
-    label {
-      display: block;
-      font-size: 0.9375rem;
-      font-weight: 500;
-      margin-bottom: var(--space-2);
-      color: var(--neutral-700);
-    }
-    
-    input, select {
-      width: 100%;
-      padding: var(--space-3);
-      border: 1px solid var(--neutral-300);
-      border-radius: var(--radius-md);
-      font-size: 1rem;
-      transition: border-color var(--transition-fast);
-    }
-    
-    input:focus, select:focus {
-      outline: none;
-      border-color: var(--primary);
-    }
-    
-    input.error, select.error {
-      border-color: var(--error);
-    }
-    
-    .error-message {
-      color: var(--error);
-      font-size: 0.8125rem;
-      margin-top: var(--space-1);
-    }
-    
-    .checkbox {
-      display: flex;
-      align-items: center;
-    }
-    
-    .checkbox input {
-      width: auto;
-      margin-right: var(--space-2);
-    }
-    
-    .checkbox label {
-      margin-bottom: 0;
-    }
-    
     .alternative-payment {
       margin-top: var(--space-4);
     }
@@ -367,11 +227,6 @@ import { OrderSummaryComponent } from './order-summary.component';
     }
     
     @media (max-width: 576px) {
-      .form-row {
-        flex-direction: column;
-        gap: var(--space-3);
-      }
-      
       .payment-method {
         flex-direction: column;
         align-items: flex-start;
@@ -388,21 +243,14 @@ import { OrderSummaryComponent } from './order-summary.component';
   `]
 })
 export class PaymentComponent implements OnInit {
-  creditCardForm: FormGroup;
-  selectedPaymentMethod: string = 'credit_card';
+  selectedPaymentMethod: string = 'stripe';
   
   paymentMethods = [
     {
-      id: 'credit_card',
-      name: 'Credit or Debit Card',
-      description: 'Pay with Visa, Mastercard, or other major cards',
-      icon: 'credit_card'
-    },
-    {
-      id: 'paypal',
-      name: 'PayPal',
-      description: 'Pay with your PayPal account',
-      icon: 'account_balance_wallet'
+      id: 'stripe',
+      name: 'Stripe',
+      description: 'Secure online payment via Stripe',
+      icon: 'credit_score'
     },
     {
       id: 'cash_on_delivery',
@@ -413,18 +261,9 @@ export class PaymentComponent implements OnInit {
   ];
   
   constructor(
-    private fb: FormBuilder,
     private orderService: OrderService,
     private router: Router
-  ) {
-    this.creditCardForm = this.fb.group({
-      cardNumber: ['', [Validators.required, Validators.pattern(/^\d{16}$/)]],
-      cardHolder: ['', Validators.required],
-      expiryDate: ['', [Validators.required, Validators.pattern(/^(0[1-9]|1[0-2])\/\d{2}$/)]],
-      cvv: ['', [Validators.required, Validators.pattern(/^\d{3,4}$/)]],
-      saveCard: [false]
-    });
-  }
+  ) {}
   
   ngOnInit(): void {
     // Check if shipping address is set
@@ -437,13 +276,8 @@ export class PaymentComponent implements OnInit {
     // Load saved payment method if available
     const savedPaymentMethod = this.orderService.getSavedPaymentMethod();
     if (savedPaymentMethod && savedPaymentMethod.type) {
-      this.selectedPaymentMethod = savedPaymentMethod.type;
-      
-      if (savedPaymentMethod.type === 'credit_card' && savedPaymentMethod.cardHolder) {
-        this.creditCardForm.patchValue({
-          cardHolder: savedPaymentMethod.cardHolder,
-          expiryDate: savedPaymentMethod.expiryDate || ''
-        });
+      if (savedPaymentMethod.type === 'stripe' || savedPaymentMethod.type === 'cash_on_delivery') {
+        this.selectedPaymentMethod = savedPaymentMethod.type;
       }
     }
   }
@@ -452,35 +286,9 @@ export class PaymentComponent implements OnInit {
     this.selectedPaymentMethod = methodId;
   }
   
-  isFieldInvalid(field: string): boolean {
-    const formControl = this.creditCardForm.get(field);
-    return !!(formControl && formControl.invalid && (formControl.dirty || formControl.touched));
-  }
-  
-  onSubmit(): void {
-    if (this.creditCardForm.valid) {
-      const paymentData: PaymentMethod = {
-        type: 'credit_card',
-        cardNumber: this.creditCardForm.value.cardNumber,
-        cardHolder: this.creditCardForm.value.cardHolder,
-        expiryDate: this.creditCardForm.value.expiryDate,
-        cvv: this.creditCardForm.value.cvv,
-        saveCard: this.creditCardForm.value.saveCard
-      };
-      
-      this.orderService.setPaymentMethod(paymentData);
-      this.router.navigate(['/checkout/review']);
-    } else {
-      // Mark all fields as touched to display validation errors
-      Object.keys(this.creditCardForm.controls).forEach(key => {
-        this.creditCardForm.get(key)?.markAsTouched();
-      });
-    }
-  }
-  
   continueWithSelectedMethod(): void {
     const paymentData: PaymentMethod = {
-      type: this.selectedPaymentMethod as 'paypal' | 'cash_on_delivery'
+      type: this.selectedPaymentMethod as 'stripe' | 'cash_on_delivery'
     };
     
     this.orderService.setPaymentMethod(paymentData);

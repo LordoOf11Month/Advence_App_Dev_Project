@@ -1,7 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { RouterModule } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AdminService } from '../../services/admin.service';
 import { AuthService } from '../../services/auth.service';
 import { OrderTracking } from '../../models/admin.model';
@@ -22,8 +22,8 @@ import { User } from '../../models/auth.model';
               <span class="material-symbols-outlined">person</span>
             </div>
             <div class="user-details">
-              <h3 class="user-name">John Doe</h3>
-              <p class="user-email">john.doe&#64;example.com</p>
+              <h3 class="user-name">{{currentUser?.firstName}} {{currentUser?.lastName}}</h3>
+              <p class="user-email">{{currentUser?.email}}</p>
             </div>
           </div>
           
@@ -82,7 +82,7 @@ import { User } from '../../models/auth.model';
               <span>Seller Dashboard</span>
             </button>
             
-            <button class="nav-item logout">
+            <button class="nav-item logout" (click)="logout()">
               <span class="material-symbols-outlined">logout</span>
               <span>Logout</span>
             </button>
@@ -98,38 +98,38 @@ import { User } from '../../models/auth.model';
               <div class="form-row">
                 <div class="form-group">
                   <label for="firstName">First Name</label>
-                  <input type="text" id="firstName" value="John">
+                  <input type="text" id="firstName" value="{{currentUser?.firstName}}">
                 </div>
                 
                 <div class="form-group">
                   <label for="lastName">Last Name</label>
-                  <input type="text" id="lastName" value="Doe">
+                  <input type="text" id="lastName" value="{{currentUser?.lastName}}">
                 </div>
               </div>
               
               <div class="form-group">
                 <label for="email">Email</label>
-                <input type="email" id="email" value="john.doe&#64;example.com">
+                <input type="email" id="email" value="{{currentUser?.email}}">
               </div>
               
               <div class="form-group">
                 <label for="phone">Phone</label>
-                <input type="tel" id="phone" value="+90 555 123 4567">
+                <input type="tel" id="phone" value="{{currentUser?.phone}}">
               </div>
               
               <div class="form-row">
                 <div class="form-group">
                   <label for="birthDate">Birth Date</label>
-                  <input type="date" id="birthDate" value="1990-01-15">
+                  <input type="date" id="birthDate" value="{{currentUser?.birthDate | date:'yyyy-MM-dd'}}">
                 </div>
                 
                 <div class="form-group">
                   <label for="gender">Gender</label>
                   <select id="gender">
-                    <option value="male">Male</option>
-                    <option value="female">Female</option>
-                    <option value="other">Other</option>
-                    <option value="prefer-not-to-say">Prefer not to say</option>
+                    <option value="male" [selected]="currentUser?.gender === 'male'">Male</option>
+                    <option value="female" [selected]="currentUser?.gender === 'female'">Female</option>
+                    <option value="other" [selected]="currentUser?.gender === 'other'">Other</option>
+                    <option value="prefer-not-to-say" [selected]="currentUser?.gender === 'prefer-not-to-say'">Prefer not to say</option>
                   </select>
                 </div>
               </div>
@@ -868,36 +868,56 @@ import { User } from '../../models/auth.model';
     }
   `]
 })
-export class AccountComponent {
+export class AccountComponent implements OnInit {
   activeTab: string = 'profile';
   orderFilter: string = 'all';
   selectedOrder: any = null;
   showTracking: boolean = false;
   trackingInfo: OrderTracking | null = null;
   isSeller: boolean = false;
+  currentUser: User | null = null;
   
   constructor(
     private adminService: AdminService,
-    private authService: AuthService
+    private authService: AuthService,
+    private router: Router
   ) {
-    this.authService.currentUser$.subscribe((user: User | null) => {
-      this.isSeller = user?.role === 'seller';
+    this.isSeller = this.authService.isSeller();
+  }
+  
+  ngOnInit(): void {
+    // Load current user data
+    this.authService.currentUser$.subscribe(user => {
+      this.currentUser = user;
     });
   }
-
+  
   setActiveTab(tab: string): void {
     this.activeTab = tab;
   }
-
+  
   trackOrder(orderId: string): void {
-    this.adminService.getOrderTracking(orderId).subscribe((tracking: OrderTracking) => {
-      this.trackingInfo = tracking;
+    this.adminService.getOrderTracking(orderId).subscribe(data => {
+      this.trackingInfo = data;
       this.showTracking = true;
     });
   }
-
+  
   closeTracking(): void {
     this.showTracking = false;
     this.trackingInfo = null;
+  }
+  
+  logout(): void {
+    this.authService.logout().subscribe({
+      next: () => {
+        this.router.navigate(['/login']);
+      },
+      error: (error) => {
+        console.error('Logout error:', error);
+        // Still navigate to login even if there's an error
+        this.router.navigate(['/login']);
+      }
+    });
   }
 }

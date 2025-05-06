@@ -7,6 +7,10 @@ export interface User {
   storeName?: string;
   storeDescription?: string;
   permissions?: Permission[];
+  phone?: string;
+  birthDate?: string;
+  gender?: 'male' | 'female' | 'other' | 'prefer-not-to-say';
+  avatar_url?: string;
 }
 
 export interface LoginCredentials {

@@ -15,7 +15,7 @@ export interface ShippingAddress {
 }
 
 export interface PaymentMethod {
-  type: 'credit_card' | 'paypal' | 'cash_on_delivery';
+  type: 'credit_card' | 'stripe' | 'cash_on_delivery';
   cardNumber?: string;
   cardHolder?: string;
   expiryDate?: string;

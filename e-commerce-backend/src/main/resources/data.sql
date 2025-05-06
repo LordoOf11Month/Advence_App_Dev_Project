@@ -1,47 +1,119 @@
 -- Sample Data for E-commerce Application
 
 -- Users
--- Note: Passwords should be properly hashed in a real application.
+-- Note: Passwords are hashed using BCrypt - these are just for testing purposes
 INSERT INTO users (user_id, first_name, last_name, email, phone_number, password_hash, role, created_at, stripe_customer_id, is_banned, banned_at, ban_reason, avatar_url)
 VALUES
-(1, 'John', 'Doe', 'john.doe@admin.com', '1234567890', '$2a$10$placeholderhashadmin', 'admin', NOW(), 'cus_admin123', false, NULL, NULL, NULL),
-(2, 'Jane', 'Smith', 'jane.smith@seller.com', '0987654321', '$2a$10$placeholderhashseller1', 'seller', NOW(), 'cus_seller123', false, NULL, NULL, NULL),
-(3, 'Alice', 'Brown', 'alice.brown@customer.com', '1122334455', '$2a$10$placeholderhashcust1', 'customer', NOW(), 'cus_cust123', false, NULL, NULL, NULL),
-(4, 'Bob', 'White', 'bob.white@seller.com', '5544332211', '$2a$10$placeholderhashseller2', 'seller', NOW(), 'cus_seller456', true, NOW(), 'Violated terms of service', NULL),
-(5, 'Charlie', 'Green', 'charlie.green@customer.com', '6677889900', '$2a$10$placeholderhashcust2', 'customer', NOW(), 'cus_cust456', false, NULL, NULL, NULL);
+(1, 'John', 'Admin', 'admin@example.com', '1234567890', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'admin', NOW(), 'cus_admin123', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/1.jpg'),
+(2, 'Jane', 'Seller', 'seller@example.com', '0987654321', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'seller', NOW(), 'cus_seller123', false, NULL, NULL, 'https://randomuser.me/api/portraits/women/1.jpg'),
+(3, 'Alice', 'Customer', 'customer@example.com', '1122334455', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'customer', NOW(), 'cus_cust123', false, NULL, NULL, 'https://randomuser.me/api/portraits/women/2.jpg'),
+(4, 'Bob', 'Seller', 'seller2@example.com', '5544332211', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'seller', NOW(), 'cus_seller456', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/2.jpg'),
+(5, 'Charlie', 'Customer', 'customer2@example.com', '6677889900', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'customer', NOW(), 'cus_cust456', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/3.jpg');
 
--- Categories
+-- Categories with parent-child relationships
 INSERT INTO categories (category_id, name, parent_category_id)
 VALUES
 (1, 'Electronics', NULL),
 (2, 'Clothing', NULL),
-(3, 'Laptops', 1),
-(4, 'Smartphones', 1),
-(5, 'T-Shirts', 2);
+(3, 'Home & Kitchen', NULL),
+(4, 'Books', NULL),
+(5, 'Laptops', 1),
+(6, 'Smartphones', 1),
+(7, 'Audio', 1),
+(8, 'Men''s Clothing', 2),
+(9, 'Women''s Clothing', 2),
+(10, 'Kitchen Appliances', 3),
+(11, 'Bedding', 3),
+(12, 'Fiction', 4),
+(13, 'Non-Fiction', 4);
 
--- Stores (Link to seller users)
--- Assuming user_id 2 (Jane Smith) and user_id 4 (Bob White) are sellers
+-- Stores
 INSERT INTO stores (store_id, seller_id, store_name, description, created_at, average_rating, total_sales, is_banned, banned_date, ban_reason, email, bank_name, account_holder, account_number, street, city, state, postal_code, country)
 VALUES
-(1, 2, 'Janes Gadgets', 'Latest electronic gadgets and accessories', NOW(), 4.5, 150, false, NULL, NULL, 'jane.store@example.com', 'Example Bank', 'Jane Smith Store', '111222333', '123 Tech Ave', 'Gadget City', 'CA', '90210', 'USA'),
-(2, 4, 'Bobs Apparel', 'Trendy and classic clothing items', NOW(), 3.8, 85, true, NOW(), 'Account suspended due to policy violation', 'bob.store@example.com', 'Another Bank', 'Bob White Store', '444555666', '456 Fashion St', 'Style Town', 'NY', '10001', 'USA');
+(1, 2, 'Tech Haven', 'Your one-stop shop for the latest electronics and gadgets', NOW(), 4.7, 250, false, NULL, NULL, 'techhaven@example.com', 'Global Bank', 'Jane Seller', '1234567890', '123 Tech Street', 'Silicon Valley', 'CA', '94043', 'USA'),
+(2, 4, 'Fashion Forward', 'Trendy clothes for all seasons', NOW(), 4.3, 180, false, NULL, NULL, 'fashionforward@example.com', 'City Bank', 'Bob Seller', '0987654321', '456 Fashion Avenue', 'New York', 'NY', '10001', 'USA');
 
--- Products (Link to stores and categories)
+-- Products
 INSERT INTO products (product_id, store_id, category_id, name, description, price, stock_quantity, average_rating, rating_count, total_rating, total_sales)
 VALUES
-(1, 1, 3, 'Gaming Laptop X', 'High-performance gaming laptop with RTX 4090', 2499.99, 15, 4.8, 25, 120, 50),
-(2, 1, 4, 'Smartphone Pro', 'Latest generation smartphone with advanced camera', 1099.00, 50, 4.6, 110, 506, 100),
-(3, 2, 5, 'Graphic T-Shirt - Cool Design', 'Comfortable cotton t-shirt with a unique graphic print', 29.95, 100, 4.2, 30, 126, 60),
-(4, 2, 5, 'Basic Plain T-Shirt - Black', 'Simple and versatile black cotton t-shirt', 15.50, 200, 4.0, 15, 60, 25);
+(1, 1, 5, 'Ultra Slim Laptop Pro', 'Powerful and lightweight laptop with 16GB RAM and 512GB SSD', 1299.99, 50, 4.8, 24, 115, 35),
+(2, 1, 6, 'SmartPhone X', 'Latest generation smartphone with advanced camera and long battery life', 899.99, 100, 4.6, 42, 193, 75),
+(3, 1, 7, 'Wireless Earbuds Pro', 'Noise-canceling earbuds with crystal clear sound', 159.99, 200, 4.5, 31, 140, 120),
+(4, 2, 8, 'Classic Men''s Suit', 'Elegant suit for business and formal occasions', 299.99, 25, 4.7, 15, 71, 18),
+(5, 2, 9, 'Summer Dress Collection', 'Light and colorful dresses for the summer', 79.99, 150, 4.4, 28, 123, 95),
+(6, 2, 9, 'Designer Handbag', 'Stylish and spacious handbag for everyday use', 129.99, 75, 4.6, 19, 87, 42);
 
--- You can add more INSERT statements for other tables like:
--- addresses, payment_methods, orders, order_items, reviews, cart_items, etc.
--- Remember to respect foreign key constraints.
+-- Product Images
+INSERT INTO product_images (id, product_id, image_url, is_primary)
+VALUES
+(1, 1, 'https://placehold.co/600x400?text=Laptop+Pro', true),
+(2, 1, 'https://placehold.co/600x400?text=Laptop+Pro+Side', false),
+(3, 2, 'https://placehold.co/600x400?text=Smartphone+X', true),
+(4, 2, 'https://placehold.co/600x400?text=Smartphone+X+Back', false),
+(5, 3, 'https://placehold.co/600x400?text=Wireless+Earbuds', true),
+(6, 4, 'https://placehold.co/600x400?text=Classic+Suit', true),
+(7, 5, 'https://placehold.co/600x400?text=Summer+Dress', true),
+(8, 6, 'https://placehold.co/600x400?text=Designer+Handbag', true);
 
--- Example Address for User 3 (Alice Brown)
--- INSERT INTO addresses (address_id, user_id, street, city, state, postal_code, country, is_default)
--- VALUES (1, 3, '789 Home Ln', 'Resident Town', 'TX', '75001', 'USA', true);
+-- Addresses for users
+INSERT INTO addresses (id, user_id, street, city, state, postal_code, country, is_default)
+VALUES
+(1, 3, '789 Maple Street', 'Springfield', 'IL', '62704', 'USA', true),
+(2, 3, '101 Pine Avenue', 'Springfield', 'IL', '62704', 'USA', false),
+(3, 5, '456 Oak Boulevard', 'Rivertown', 'CA', '90210', 'USA', true);
 
--- Example Payment Method for User 5 (Charlie Green)
--- INSERT INTO payment_methods (id, user_id, stripe_payment_method_id, brand, is_default, last_4_digits, exp_month, exp_year)
--- VALUES (1, 5, 'pm_123abcDEF456', 'VISA', true, '4242', 12, 2025);
+-- Payment Methods
+INSERT INTO payment_methods (id, user_id, stripe_payment_method_id, brand, is_default, last_4_digits, exp_month, exp_year)
+VALUES
+(1, 3, 'pm_123456789', 'VISA', true, '4242', 12, 2025),
+(2, 3, 'pm_987654321', 'MASTERCARD', false, '5678', 6, 2024),
+(3, 5, 'pm_456789123', 'AMEX', true, '9876', 9, 2026);
+
+-- Orders
+INSERT INTO orders (order_id, user_id, total_amount, status, created_at, shipping_address_id, payment_method_id, tracking_number)
+VALUES
+(1, 3, 1459.98, 'DELIVERED', NOW() - INTERVAL 30 DAY, 1, 1, 'TRK123456789'),
+(2, 3, 159.99, 'SHIPPED', NOW() - INTERVAL 7 DAY, 1, 1, 'TRK987654321'),
+(3, 5, 409.98, 'PROCESSING', NOW(), 3, 3, NULL);
+
+-- Order Items
+INSERT INTO order_items (id, order_id, product_id, quantity, price_at_time, discount_amount)
+VALUES
+(1, 1, 1, 1, 1299.99, 0),
+(2, 1, 3, 1, 159.99, 0),
+(3, 2, 3, 1, 159.99, 0),
+(4, 3, 4, 1, 299.99, 0),
+(5, 3, 5, 1, 79.99, 0);
+
+-- Reviews
+INSERT INTO reviews (user_id, product_id, rating, comment, created_at)
+VALUES
+(3, 1, 5, 'Excellent laptop! Fast and reliable.', NOW() - INTERVAL 20 DAY),
+(3, 3, 4, 'Good sound quality, but battery life could be better.', NOW() - INTERVAL 5 DAY),
+(5, 4, 5, 'Perfect fit and very comfortable material.', NOW() - INTERVAL 15 DAY),
+(5, 5, 4, 'Lovely design, but sizing runs a bit small.', NOW() - INTERVAL 10 DAY);
+
+-- Cart Items
+INSERT INTO cart_items (id, user_id, product_id, quantity, added_at)
+VALUES
+(1, 3, 2, 1, NOW() - INTERVAL 1 DAY),
+(2, 5, 6, 1, NOW() - INTERVAL 2 DAY);
+
+-- Promo Codes
+INSERT INTO promo_codes (id, code, discount_percent, valid_until)
+VALUES
+(1, 'SUMMER2023', 15, NOW() + INTERVAL 30 DAY),
+(2, 'WELCOME10', 10, NOW() + INTERVAL 60 DAY);
+
+-- Discounts
+INSERT INTO discounts (product_id, start_date, end_date, discount_percent)
+VALUES
+(2, NOW(), NOW() + INTERVAL 7 DAY, 10),
+(5, NOW(), NOW() + INTERVAL 14 DAY, 20);
+
+-- Banners for homepage
+INSERT INTO banners (id, image_url, target_url, title, position, is_active)
+VALUES
+(1, 'https://placehold.co/1200x300?text=Summer+Sale', '/category/2', 'Summer Sale - Up to 50% Off', 1, true),
+(2, 'https://placehold.co/1200x300?text=New+Tech+Arrivals', '/category/1', 'New Tech Arrivals', 2, true),
+(3, 'https://placehold.co/1200x300?text=Gift+Ideas', '/category/3', 'Gift Ideas for Everyone', 3, true);
