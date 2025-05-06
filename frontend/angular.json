@@ -71,7 +71,10 @@
               "buildTarget": "demo:build:production"
             }
           },
-          "defaultConfiguration": "development"
+          "defaultConfiguration": "development",
+          "options": {
+            "proxyConfig": "proxy.conf.json"
+          }
         }
       },
       "prefix": "app",

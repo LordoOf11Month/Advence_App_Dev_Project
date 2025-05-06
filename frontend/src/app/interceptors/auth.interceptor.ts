@@ -52,17 +52,19 @@ function handle401Error(request: HttpRequest<unknown>, next: HttpHandlerFn, auth
   }
 
   isRefreshing = true;
+  // Temporarily comment out refresh token logic as it's not implemented/causing issues
+  /*
   refreshTokenPromise = new Promise<string>((resolve, reject) => {
     authService.refreshToken().subscribe({
-      next: (response) => {
+      next: (response: any) => { // Added explicit type
         isRefreshing = false;
         resolve(response.token);
       },
-      error: (err) => {
+      error: (err: any) => { // Added explicit type
         isRefreshing = false;
         refreshTokenPromise = null;
         // If refresh token fails, log out the user
-        authService.logout();
+        authService.logout().subscribe(); // Changed from authService.logout()
         reject(err);
       }
     });
@@ -75,4 +77,26 @@ function handle401Error(request: HttpRequest<unknown>, next: HttpHandlerFn, auth
       observer.error(err);
     });
   });
+  */
+
+  // If refresh token logic is removed/handled differently, just logout on 401
+  console.error('Unauthorized (401) or refresh token logic disabled, logging out.');
+  isRefreshing = false; // Ensure flag is reset
+  refreshTokenPromise = null; // Ensure promise is cleared
+  authService.logout().subscribe();
+  return throwError(() => new HttpErrorResponse({ error: 'Unauthorized or refresh failed', status: 401 })); // Return an error observable
 }
+
+/* Original problematic code in interceptor for reference:
+if (error.status === 401) {
+  return authService.refreshToken().subscribe({
+    next: (response) => {
+      // Handle successful refresh
+    },
+    error: (err) => {
+      // Handle refresh error, e.g., logout
+      authService.logout().subscribe();
+    }
+  });
+}
+*/
