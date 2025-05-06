@@ -1,5 +1,19 @@
 package com.example.services;
 
+import java.sql.Timestamp;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
+
 import com.example.DTO.AuthDTO.JwtResponse;
 import com.example.DTO.AuthDTO.LoginRequest;
 import com.example.DTO.AuthDTO.RegisterRequest;
@@ -10,30 +24,21 @@ import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.Customer;
 import com.stripe.param.CustomerCreateParams;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-
-import java.sql.Timestamp;
-import java.util.stream.Collectors;
 
 @Service
 public class AuthService {
+    private static final Logger logger = Logger.getLogger(AuthService.class.getName());
 
     private final AuthenticationManager authManager;
     private final JwtUtils jwtUtils;
     private final UserRepository userRepo;
     private final PasswordEncoder encoder;
 
-    @Value("${stripe.api.key}")
+    @Value("${stripe.secret.key}")
     private String stripeApiKey;
 
-
+    @Value("${stripe.test.mode:false}")
+    private boolean stripeTestMode;
 
     public AuthService(AuthenticationManager authManager, JwtUtils jwtUtils, UserRepository userRepo, PasswordEncoder encoder) {
         this.authManager = authManager;
@@ -71,6 +76,9 @@ public class AuthService {
         if (userRepo.findByEmail(req.getEmail()).isPresent()) {
             throw new IllegalArgumentException("Email already taken");
         }
+        
+        logger.info("Registering new user with email: " + req.getEmail());
+        
         User user = new User();
         // Set fields on user entity; map RegisterRequest fields properly
         user.setEmail(req.getEmail());
@@ -80,23 +88,37 @@ public class AuthService {
         user.setLastName(req.getLastName());
         user.setCreatedAt(new Timestamp(System.currentTimeMillis()));
 
-        // Create a Stripe customer and get the ID
-        try {
-            Stripe.apiKey =this.stripeApiKey; // Set your Stripe API key
-            CustomerCreateParams params = CustomerCreateParams.builder()
-                    .setEmail(req.getEmail())
-                    .setName(req.getFirstName() + " " + req.getLastName())
-                    .build();
+        // Skip Stripe integration if test mode is enabled
+        if (stripeTestMode) {
+            logger.info("Stripe test mode enabled. Using dummy customer ID.");
+            user.setStripeCustomerId("test_" + System.currentTimeMillis());
+        } 
+        // Create a Stripe customer only if the API key is properly set and not in test mode
+        else if (StringUtils.hasText(stripeApiKey) && !stripeApiKey.equals("YOUR_STRIPE_API_KEY")) {
+            try {
+                logger.info("Attempting to create Stripe customer with API key");
+                Stripe.apiKey = this.stripeApiKey;
+                CustomerCreateParams params = CustomerCreateParams.builder()
+                        .setEmail(req.getEmail())
+                        .setName(req.getFirstName() + " " + req.getLastName())
+                        .build();
 
-            Customer customer = Customer.create(params);
-            user.setStripeCustomerId(customer.getId()); // Set the Stripe customer ID
-        } catch (StripeException e) {
-            // Handle Stripe API errors
-            // You might want to log the error and potentially throw a custom exception
-            throw new RuntimeException("Error creating Stripe customer: " + e.getMessage(), e);
+                Customer customer = Customer.create(params);
+                user.setStripeCustomerId(customer.getId());
+                logger.info("Created Stripe customer with ID: " + customer.getId());
+            } catch (StripeException e) {
+                logger.warning("Stripe error: " + e.getMessage());
+                // Use a temporary ID for development
+                user.setStripeCustomerId("dev_" + System.currentTimeMillis());
+            }
+        } else {
+            logger.warning("Stripe API key not configured properly. Using temporary ID for development.");
+            // Use a temporary ID for development
+            user.setStripeCustomerId("dev_" + System.currentTimeMillis());
         }
 
         // Save the user to the database
         userRepo.save(user);
+        logger.info("User successfully registered: " + req.getEmail());
     }
 }

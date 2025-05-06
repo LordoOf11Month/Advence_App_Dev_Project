@@ -9,7 +9,8 @@ import { HttpClient, HttpErrorResponse } from '@angular/common/http';
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:8080/api/auth';
+  // Use relative URL path to avoid CORS issues with different ports/domains
+  private apiUrl = '/api/auth';
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
   private tokenExpirationTimer: any;
@@ -145,22 +146,29 @@ export class AuthService {
     // Determine if it's a seller registration
     const endpoint = 'storeName' in data ? '/seller-register' : '/register';
     
-    return this.http.post<any>(`${this.apiUrl}${endpoint}`, data)
-      .pipe(
-        // After registration, we need to log in the user
-        // Since the backend returns a simple success message, we'll log in the user manually
-        tap(() => console.log('Registration successful')),
-        // After registration, call the login endpoint
-        tap(() => {
-          // After successful registration, we'll proceed to login
-          const credentials: LoginCredentials = {
-            email: data.email,
-            password: data.password
-          };
-          return this.login(credentials);
-        }),
-        catchError(this.handleError)
-      );
+    console.log('Attempting to register at:', `${this.apiUrl}${endpoint}`);
+    console.log('Registration data:', data);
+    
+    return this.http.post<any>(`${this.apiUrl}${endpoint}`, data, {
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      }
+    })
+    .pipe(
+      // After registration, we need to log in the user
+      tap(response => console.log('Registration successful, response:', response)),
+      // After registration, call the login endpoint
+      tap(() => {
+        // After successful registration, we'll proceed to login
+        const credentials: LoginCredentials = {
+          email: data.email,
+          password: data.password
+        };
+        this.login(credentials).subscribe();
+      }),
+      catchError(this.handleError)
+    );
   }
   
   refreshToken(): Observable<RefreshTokenResponse> {
@@ -227,60 +235,45 @@ export class AuthService {
   }
   
   logout(): Observable<any> {
+    console.log('Logging out user and clearing local storage tokens');
+    
+    // Perform client-side logout first to ensure we always clean up local state
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    this.currentUserSubject.next(null);
+    this.clearTokenTimer();
+    
+    // Then try to notify the server (but don't wait for it)
     return this.http.post<any>(`${this.apiUrl}/logout`, {})
       .pipe(
-        tap(() => {
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
-          this.currentUserSubject.next(null);
-          this.clearTokenTimer();
-        }),
         catchError(error => {
-          // Even if the server logout fails, we should clean up local state
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
-          this.currentUserSubject.next(null);
-          this.clearTokenTimer();
-          return throwError(() => error);
+          console.error('Error during server logout:', error);
+          // We've already logged out on the client side, so just return success
+          return of({ success: true });
         })
       );
   }
   
   private handleError(error: HttpErrorResponse) {
+    console.error('API Error:', error);
+    
     let errorMessage = 'An unknown error occurred';
     
-    console.log('Error details:', {
-      status: error.status,
-      statusText: error.statusText,
-      error: error.error,
-      message: error.message
-    });
-    
-    if (error.error instanceof ErrorEvent) {
-      // Client-side error
-      errorMessage = `Error: ${error.error.message}`;
-    } else if (error.status === 0) {
-      // Connection error - likely backend not running
+    if (error.status === 0) {
+      // A client-side or network error occurred
       errorMessage = 'Cannot connect to the server. Please ensure the backend server is running.';
-    } else {
-      // Server-side error
-      if (error.status === 401) {
-        errorMessage = 'Invalid credentials';
-      } else if (error.status === 403) {
-        errorMessage = 'Access denied';
-      } else if (error.status === 400) {
-        if (error.error && typeof error.error === 'string') {
-          errorMessage = error.error;
-        } else if (error.error && error.error.message) {
-          errorMessage = error.error.message;
-        }
-      } else if (error.error && error.error.message) {
+    } else if (error.status === 403 || error.status === 401) {
+      errorMessage = 'Access denied. Please check your credentials.';
+    } else if (error.error && typeof error.error === 'object') {
+      // The backend returned an unsuccessful response code
+      if (error.error.message) {
         errorMessage = error.error.message;
+      } else if (error.statusText) {
+        errorMessage = `${error.status}: ${error.statusText}`;
       }
     }
     
-    console.error('Formatted error message:', errorMessage);
-    return throwError(() => new Error(errorMessage));
+    return throwError(() => ({ message: errorMessage, originalError: error }));
   }
   
   isAuthenticated(): boolean {
@@ -326,5 +319,23 @@ export class AuthService {
   
   hasAllPermissions(permissions: PermissionName[]): boolean {
     return permissions.every(permission => this.hasPermission(permission));
+  }
+  
+  // Add this method to check if user is logged in
+  isLoggedIn(): boolean {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return false;
+    }
+    
+    try {
+      const decodedToken: any = jwtDecode(token);
+      // Check if token is expired
+      const isExpired = decodedToken.exp * 1000 < Date.now();
+      return !isExpired;
+    } catch (error) {
+      console.error('Error checking token validity:', error);
+      return false;
+    }
   }
 }

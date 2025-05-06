@@ -496,29 +496,19 @@ export class CartComponent implements OnInit {
     this.cartService.cart$.subscribe(items => {
       this.cartItems = items;
     });
-    
-    // Check if there's an active discount
-    this.orderService.orderSummary$.subscribe(summary => {
-      if (summary) {
-        this.discount = summary.discount;
-      }
-    });
   }
   
   getItemCount(): number {
-    return this.cartItems.reduce((count, item) => count + item.quantity, 0);
+    return this.cartService.getCartCount();
   }
   
   getSubtotal(): number {
-    return this.cartItems.reduce((total, item) => {
-      return total + (item.product.price * item.quantity);
-    }, 0);
+    return this.cartService.getCartTotal();
   }
   
   getShippingCost(): number {
-    const subtotal = this.getSubtotal();
-    // Free shipping for orders over TRY 300
-    return subtotal > 300 ? 0 : 19.99;
+    // Simplified shipping logic
+    return this.getSubtotal() > 100 ? 0 : 15;
   }
   
   getTotal(): number {
@@ -526,42 +516,48 @@ export class CartComponent implements OnInit {
   }
   
   removeItem(index: number): void {
-    this.cartService.removeFromCart(index);
+    const cartItem = this.cartItems[index];
+    if (cartItem && cartItem.id) {
+      this.cartService.removeFromCart(cartItem.id).subscribe();
+    }
   }
   
   updateQuantity(index: number, quantity: number): void {
-    this.cartService.updateQuantity(index, quantity);
+    const cartItem = this.cartItems[index];
+    if (cartItem && cartItem.id) {
+      this.cartService.updateQuantity(cartItem.id, quantity).subscribe();
+    }
   }
   
   increaseQuantity(index: number, quantity: number): void {
     if (quantity < 10) {
-      this.cartService.updateQuantity(index, quantity + 1);
+      const cartItem = this.cartItems[index];
+      if (cartItem && cartItem.id) {
+        this.cartService.updateQuantity(cartItem.id, quantity + 1).subscribe();
+      }
     }
   }
   
   decreaseQuantity(index: number): void {
-    const currentQuantity = this.cartItems[index].quantity;
-    if (currentQuantity > 1) {
-      this.cartService.updateQuantity(index, currentQuantity - 1);
+    const cartItem = this.cartItems[index];
+    if (cartItem && cartItem.id && cartItem.quantity > 1) {
+      this.cartService.updateQuantity(cartItem.id, cartItem.quantity - 1).subscribe();
     }
   }
   
   applyPromoCode(): void {
-    if (this.promoCode) {
-      this.orderService.applyDiscountCode(this.promoCode).subscribe(result => {
-        if (result.success) {
-          this.promoCode = '';
-          // Success notification would go here
-        } else {
-          // Error notification would go here
-        }
-      });
+    // Example promo code logic
+    if (this.promoCode.toUpperCase() === 'SAVE10') {
+      this.discount = this.getSubtotal() * 0.1;
+    } else if (this.promoCode.toUpperCase() === 'SAVE20') {
+      this.discount = this.getSubtotal() * 0.2;
+    } else {
+      this.discount = 0;
+      // Show error message
     }
   }
   
   proceedToCheckout(): void {
-    if (this.cartItems.length > 0) {
-      this.router.navigate(['/checkout/shipping']);
-    }
+    this.router.navigate(['/checkout']);
   }
 }

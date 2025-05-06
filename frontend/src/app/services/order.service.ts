@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
+import { BehaviorSubject, Observable, of, throwError, switchMap, map } from 'rxjs';
 import { delay, tap } from 'rxjs/operators';
 import { Order, OrderSummary, PaymentMethod, ShippingAddress } from '../models/order.model';
 import { CartService } from './cart.service';
@@ -120,56 +120,59 @@ export class OrderService {
   }
   
   createOrder(): Observable<Order> {
-    const cartItems = this.cartService.getCartItems();
     const shippingAddress = this.shippingAddressSubject.value;
     const paymentMethod = this.paymentMethodSubject.value;
     const orderSummary = this.orderSummarySubject.value;
     
-    if (!cartItems.length || !shippingAddress || !paymentMethod || !orderSummary) {
-      return throwError(() => new Error('Checkout information is incomplete'));
-    }
-    
-    // In a real app, this would be a POST request to a backend API
-    const order: Order = {
-      id: 'ORD-' + Math.random().toString(36).substring(2, 10).toUpperCase(),
-      userId: this.currentUser?.id || 'guest',
-      items: [...cartItems],
-      shippingAddress,
-      paymentMethod: {
-        ...paymentMethod,
-        // Remove sensitive data before storing
-        cvv: undefined
-      },
-      subtotal: orderSummary.subtotal,
-      shipping: orderSummary.shipping,
-      discount: orderSummary.discount,
-      tax: orderSummary.tax,
-      total: orderSummary.total,
-      status: 'pending',
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
-    };
-    
-    // Save the new order
-    this.currentOrderId = order.id;
-    
-    // Add to orders list
-    const currentOrders = this.ordersSubject.value;
-    const updatedOrders = [order, ...currentOrders];
-    this.ordersSubject.next(updatedOrders);
-    
-    // Save to localStorage
-    localStorage.setItem('orders', JSON.stringify(updatedOrders));
-    
-    // Simulate API delay
-    return of(order).pipe(
-      delay(1000),
-      tap(() => {
-        // Clear cart after successful order
-        this.cartService.clearCart();
-        // Clear stored discount code
-        localStorage.removeItem('discountCode');
+    // Get cart items from the observable instead of direct access
+    return this.cartService.cart$.pipe(
+      tap(cartItems => {
+        if (!cartItems.length || !shippingAddress || !paymentMethod || !orderSummary) {
+          throw new Error('Checkout information is incomplete');
+        }
+      }),
+      switchMap(cartItems => {
+        // In a real app, this would be a POST request to a backend API
+        const order: Order = {
+          id: 'ORD-' + Math.random().toString(36).substring(2, 10).toUpperCase(),
+          userId: this.currentUser?.id || 'guest',
+          items: [...cartItems],
+          shippingAddress: shippingAddress!,
+          paymentMethod: {
+            ...paymentMethod!,
+            // Remove sensitive data before storing
+            cvv: undefined
+          },
+          subtotal: orderSummary!.subtotal,
+          shipping: orderSummary!.shipping,
+          discount: orderSummary!.discount,
+          tax: orderSummary!.tax,
+          total: orderSummary!.total,
+          status: 'pending',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+          estimatedDelivery: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days from now
+        };
+        
+        // Save the new order
+        this.currentOrderId = order.id;
+        
+        // Add to orders list
+        const currentOrders = this.ordersSubject.value;
+        const updatedOrders = [order, ...currentOrders];
+        this.ordersSubject.next(updatedOrders);
+        
+        // Save to localStorage
+        localStorage.setItem('orders', JSON.stringify(updatedOrders));
+        
+        // Clear cart after successful order and return the order
+        return this.cartService.clearCart().pipe(
+          map(() => order),
+          tap(() => {
+            // Clear stored discount code
+            localStorage.removeItem('discountCode');
+          })
+        );
       })
     );
   }

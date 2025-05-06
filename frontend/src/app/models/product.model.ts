@@ -47,6 +47,7 @@ export interface Banner {
 }
 
 export interface CartItem {
+  id?: number;
   product: Product;
   quantity: number;
   size?: string;

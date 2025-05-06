@@ -1,6 +1,7 @@
 package com.example.security;
 
 import java.io.IOException;
+import java.util.logging.Logger;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -19,6 +20,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Component
 public class JwtFilter extends OncePerRequestFilter {
+    private static final Logger logger = Logger.getLogger(JwtFilter.class.getName());
 
     private final JwtUtils jwtUtils;
     private final CustomUserDetailsService userDetailsService;
@@ -32,25 +34,48 @@ public class JwtFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws IOException, ServletException {
         
+        String requestURI = request.getRequestURI();
+        logger.info("Processing request: " + requestURI);
+        
+        // Skip token validation for auth endpoints
+        if (requestURI.startsWith("/api/auth/")) {
+            logger.info("Skipping JWT validation for auth endpoint: " + requestURI);
+            chain.doFilter(request, response);
+            return;
+        }
+        
         // Try to get token from cookie first
         String token = jwtUtils.getJwtFromCookies(request);
+        logger.info("Token from cookie: " + (token != null ? "present" : "not present"));
         
         // If not in cookie, check Authorization header
         if (token == null) {
             token = getJwtFromAuthHeader(request);
+            logger.info("Token from header: " + (token != null ? "present" : "not present"));
         }
 
         try {
             if (token != null && jwtUtils.validateJwtToken(token)) {
                 String email = jwtUtils.getUserNameFromJwtToken(token);
+                logger.info("Valid JWT token for user: " + email);
+                
                 var userDetails = userDetailsService.loadUserByUsername(email); // load by email as username
                 var auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 auth.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(auth);
+                
+                logger.info("Authentication set in SecurityContext");
+            } else {
+                if (token == null) {
+                    logger.warning("No JWT token found in request");
+                } else {
+                    logger.warning("Invalid JWT token");
+                }
             }
         } catch (ExpiredJwtException e) {
-            // Token expired, security context not set
-            // optionally log or handle
+            logger.warning("JWT token expired: " + e.getMessage());
+        } catch (Exception e) {
+            logger.severe("Could not authenticate: " + e.getMessage());
         }
 
         chain.doFilter(request, response);

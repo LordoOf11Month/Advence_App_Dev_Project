@@ -226,17 +226,26 @@ export class RegisterComponent {
     this.loading = true;
     this.error = '';
     
+    console.log('Submitting registration form with data:', {
+      firstName: this.firstName,
+      lastName: this.lastName,
+      email: this.email,
+      password: this.password.length + ' characters'
+    });
+    
     this.authService.register({
       firstName: this.firstName,
       lastName: this.lastName,
       email: this.email,
       password: this.password
     }).subscribe({
-      next: () => {
+      next: (response) => {
+        console.log('Registration successful, response:', response);
         this.router.navigate(['/']);
       },
       error: (error) => {
-        this.error = error.message;
+        console.error('Registration error:', error);
+        this.error = error.message || 'Registration failed. Please try again.';
         this.loading = false;
       },
       complete: () => {

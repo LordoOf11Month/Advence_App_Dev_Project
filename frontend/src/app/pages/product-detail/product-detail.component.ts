@@ -7,6 +7,8 @@ import { CartService } from '../../services/cart.service';
 import { Product } from '../../models/product.model';
 import { ProductCarouselComponent } from '../../components/product-carousel/product-carousel.component';
 import { ProductReviewsComponent } from '../../components/reviews/product-reviews.component';
+import { AuthService } from '../../services/auth.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-product-detail',
@@ -607,7 +609,9 @@ export class ProductDetailComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private productService: ProductService,
-    private cartService: CartService
+    private cartService: CartService,
+    private authService: AuthService,
+    private router: Router
   ) {}
   
   ngOnInit(): void {
@@ -673,12 +677,85 @@ export class ProductDetailComponent implements OnInit {
   
   addToCart(): void {
     if (this.product) {
+      // Check if user is logged in
+      if (!this.authService.isLoggedIn()) {
+        console.log('User not logged in. Redirecting to login page...');
+        // Save current page to redirect back after login
+        this.router.navigate(['/login'], { 
+          queryParams: { 
+            returnUrl: `/product/${this.product.id}`
+          }
+        });
+        return;
+      }
+      
+      // Validate product has valid options selected if required
+      if (this.product.sizes?.length && !this.selectedSize) {
+        alert('Please select a size');
+        return;
+      }
+      
+      if (this.product.colors?.length && !this.selectedColor) {
+        alert('Please select a color');
+        return;
+      }
+      
+      // Show loading indicator or disable button
+      const addToCartBtn = document.querySelector('.add-to-cart-btn') as HTMLButtonElement;
+      let originalText = 'Add to Cart';
+      if (addToCartBtn) {
+        originalText = addToCartBtn.textContent || 'Add to Cart';
+        addToCartBtn.disabled = true;
+        addToCartBtn.textContent = 'Adding...';
+      }
+      
+      // Add the token check message to debug authentication
+      const token = localStorage.getItem('token');
+      console.log('Adding to cart with auth token:', token ? 'Present' : 'Missing');
+      
       this.cartService.addToCart(
         this.product, 
         this.quantity, 
         this.selectedSize, 
         this.selectedColor
-      );
+      ).subscribe({
+        next: (response) => {
+          // Success feedback
+          console.log('Successfully added to cart:', response);
+          alert('Product added to cart successfully');
+          
+          // Reset button state
+          if (addToCartBtn) {
+            addToCartBtn.disabled = false;
+            addToCartBtn.textContent = originalText;
+          }
+        },
+        error: (err) => {
+          console.error('Error adding product to cart:', err);
+          
+          // User feedback based on error type
+          if (err.status === 401 || err.status === 403) {
+            console.log('Authentication error when adding to cart');
+            alert('Please log in to add items to your cart');
+            // Navigate to login page
+            if (this.product) {
+              this.router.navigate(['/login'], {
+                queryParams: { returnUrl: `/product/${this.product.id}` }
+              });
+            } else {
+              this.router.navigate(['/login']);
+            }
+          } else {
+            alert('Could not add to cart. Please try again later.');
+          }
+          
+          // Reset button state
+          if (addToCartBtn) {
+            addToCartBtn.disabled = false;
+            addToCartBtn.textContent = originalText;
+          }
+        }
+      });
     }
   }
   

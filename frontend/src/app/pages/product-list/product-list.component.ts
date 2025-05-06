@@ -466,7 +466,15 @@ export class ProductListComponent implements OnInit {
   }
   
   onAddToCart(product: Product): void {
-    this.cartService.addToCart(product);
+    this.cartService.addToCart(product).subscribe({
+      next: () => {
+        // Success notification could be shown here
+        console.log('Product added to cart successfully');
+      },
+      error: (err) => {
+        console.error('Error adding product to cart', err);
+      }
+    });
   }
   
   onToggleFavorite(productId: number): void {
