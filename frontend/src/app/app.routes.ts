@@ -26,7 +26,7 @@ export const routes: Routes = [
   { path: 'product/:productId', component: ProductDetailComponent },
   { path: 'store/:sellerId', component: StorePageComponent },
   { path: 'cart', component: CartComponent },
-  { 
+  {
     path: 'checkout',
     children: [
       { path: 'shipping', component: ShippingComponent },
@@ -45,7 +45,12 @@ export const routes: Routes = [
   { path: 'register', component: RegisterComponent },
   { 
     path: 'seller/register', 
-    loadComponent: () => import('./pages/seller/seller-register.component').then(m => m.SellerRegisterComponent) 
+    component: SellerRegisterComponent 
+  },
+  {
+    path: 'compare',
+    loadComponent: () => import('./pages/product-compare/product-compare.component')
+      .then(c => c.ProductCompareComponent)
   },
   {
     path: 'admin',
@@ -70,11 +75,6 @@ export const routes: Routes = [
       { path: 'orders', component: SellerDashboardComponent },
       { path: 'profile', component: SellerDashboardComponent }
     ]
-  },
-  {
-    path: 'seller/dashboard',
-    loadComponent: () => import('./pages/seller/seller-dashboard.component').then(m => m.SellerDashboardComponent),
-    canActivate: [AuthGuard]
   },
   { path: '**', redirectTo: '' }
 ];

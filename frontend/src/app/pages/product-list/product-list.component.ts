@@ -4,6 +4,7 @@ import { ActivatedRoute } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../services/product.service';
 import { CartService } from '../../services/cart.service';
+import { CompareService } from '../../services/compare.service';
 import { Product } from '../../models/product.model';
 import { ProductCardComponent } from '../../components/product-card/product-card.component';
 
@@ -94,6 +95,7 @@ import { ProductCardComponent } from '../../components/product-card/product-card
                 [product]="product"
                 (addToCart)="onAddToCart($event)"
                 (toggleFavorite)="onToggleFavorite($event)"
+                (toggleCompare)="onToggleCompare($event)"
               ></app-product-card>
             </div>
             
@@ -335,7 +337,8 @@ export class ProductListComponent implements OnInit {
   constructor(
     private route: ActivatedRoute,
     private productService: ProductService,
-    private cartService: CartService
+    private cartService: CartService,
+    private compareService: CompareService
   ) {}
   
   ngOnInit(): void {
@@ -466,16 +469,25 @@ export class ProductListComponent implements OnInit {
   }
   
   onAddToCart(product: Product): void {
-    this.cartService.addToCart(product);
+    this.cartService.addToCart(product, 1);
+    // Show toast or notification
   }
   
   onToggleFavorite(productId: number): void {
-    this.productService.toggleFavorite(productId).subscribe(isFavorite => {
-      // Update the product in the list
-      const product = this.products.find(p => p.id === productId);
-      if (product) {
-        product.isFavorite = isFavorite;
-      }
-    });
+    // Update the UI immediately
+    const productIndex = this.products.findIndex(p => p.id === productId);
+    if (productIndex !== -1) {
+      this.products[productIndex].isFavorite = !this.products[productIndex].isFavorite;
+      this.filteredProducts = [...this.products];
+    }
+    
+    // Call API to update favorite status
+    this.productService.toggleFavorite(productId).subscribe();
+  }
+  
+  onToggleCompare(product: Product): void {
+    // UI is updated by the product-card component directly
+    // This method is primarily for handling parent component logic if needed
+    console.log('Product toggled for comparison:', product.id);
   }
 }

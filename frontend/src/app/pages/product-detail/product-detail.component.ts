@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../services/product.service';
 import { CartService } from '../../services/cart.service';
+import { CompareService } from '../../services/compare.service';
 import { Product } from '../../models/product.model';
 import { ProductCarouselComponent } from '../../components/product-carousel/product-carousel.component';
 import { ProductReviewsComponent } from '../../components/reviews/product-reviews.component';
@@ -108,34 +109,6 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
             <span class="tag fast-delivery" *ngIf="product.fastDelivery">Fast Delivery</span>
           </div>
           
-          <div class="product-variants" *ngIf="product.colors?.length">
-            <h3 class="variant-title">Colors</h3>
-            <div class="color-options">
-              <div 
-                *ngFor="let color of product.colors" 
-                class="color-option"
-                [class.selected]="selectedColor === color"
-                (click)="selectedColor = color"
-              >
-                {{color}}
-              </div>
-            </div>
-          </div>
-          
-          <div class="product-variants" *ngIf="product.sizes?.length">
-            <h3 class="variant-title">Sizes</h3>
-            <div class="size-options">
-              <div 
-                *ngFor="let size of product.sizes" 
-                class="size-option"
-                [class.selected]="selectedSize === size"
-                (click)="selectedSize = size"
-              >
-                {{size}}
-              </div>
-            </div>
-          </div>
-          
           <div class="quantity-selector">
             <h3 class="variant-title">Quantity</h3>
             <div class="quantity-controls">
@@ -153,6 +126,15 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
             >
               <span class="material-symbols-outlined">shopping_cart</span>
               Add to Cart
+            </button>
+            
+            <button 
+              class="compare-btn" 
+              (click)="toggleCompare()"
+              [class.is-comparing]="isInCompare"
+            >
+              <span class="material-symbols-outlined">{{isInCompare ? 'compare_check' : 'compare'}}</span>
+              {{isInCompare ? 'Remove from Compare' : 'Add to Compare'}}
             </button>
             
             <button class="buy-now-btn" [disabled]="!product.inStock">
@@ -386,46 +368,6 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
       color: var(--white);
     }
     
-    .product-variants {
-      margin-bottom: var(--space-4);
-    }
-    
-    .variant-title {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--neutral-700);
-      margin-bottom: var(--space-2);
-    }
-    
-    .color-options,
-    .size-options {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-2);
-    }
-    
-    .color-option,
-    .size-option {
-      padding: var(--space-1) var(--space-3);
-      border: 1px solid var(--neutral-300);
-      border-radius: var(--radius-md);
-      font-size: 0.875rem;
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-    
-    .color-option:hover,
-    .size-option:hover {
-      border-color: var(--primary);
-    }
-    
-    .color-option.selected,
-    .size-option.selected {
-      background-color: var(--primary);
-      border-color: var(--primary);
-      color: var(--white);
-    }
-    
     .quantity-selector {
       margin-bottom: var(--space-4);
     }
@@ -475,7 +417,8 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
     }
     
     .add-to-cart-btn,
-    .buy-now-btn {
+    .buy-now-btn,
+    .compare-btn {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -494,6 +437,18 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
       border: 1px solid var(--primary);
     }
     
+    .compare-btn {
+      background-color: var(--white);
+      color: var(--neutral-700);
+      border: 1px solid var(--neutral-300);
+    }
+    
+    .compare-btn.is-comparing {
+      background-color: var(--primary-light);
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+    
     .buy-now-btn {
       background-color: var(--primary);
       color: var(--white);
@@ -505,11 +460,16 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
       color: var(--white);
     }
     
+    .compare-btn:hover:not(:disabled) {
+      background-color: var(--neutral-100);
+    }
+    
     .buy-now-btn:hover:not(:disabled) {
       background-color: var(--primary-dark);
     }
     
-    .add-to-cart-btn:disabled, .buy-now-btn:disabled {
+    .add-to-cart-btn:disabled, 
+    .buy-now-btn:disabled {
       background-color: var(--neutral-200);
       border-color: var(--neutral-300);
       color: var(--neutral-500);
@@ -598,23 +558,23 @@ export class ProductDetailComponent implements OnInit {
   product: Product | undefined;
   relatedProducts: Product[] = [];
   selectedImage: string = '';
-  selectedColor: string = '';
-  selectedSize: string = '';
   quantity: number = 1;
   categoryName: string = '';
   Math = Math;
+  isInCompare: boolean = false;
   
   constructor(
     private route: ActivatedRoute,
     private productService: ProductService,
-    private cartService: CartService
+    private cartService: CartService,
+    private compareService: CompareService
   ) {}
   
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
-      const id = params.get('productId');
-      if (id) {
-        this.productId = +id;
+      const idParam = params.get('productId') || params.get('id');
+      if (idParam) {
+        this.productId = +idParam;
         this.loadProduct();
       }
     });
@@ -626,16 +586,10 @@ export class ProductDetailComponent implements OnInit {
         this.product = product;
         this.selectedImage = product.images[0];
         
-        if (product.colors && product.colors.length > 0) {
-          this.selectedColor = product.colors[0];
-        }
-        
-        if (product.sizes && product.sizes.length > 0) {
-          this.selectedSize = product.sizes[0];
-        }
-        
         this.setCategoryName();
         this.loadRelatedProducts();
+        
+        this.isInCompare = this.compareService.isInCompare(product.id);
       }
     });
   }
@@ -675,9 +629,7 @@ export class ProductDetailComponent implements OnInit {
     if (this.product) {
       this.cartService.addToCart(
         this.product, 
-        this.quantity, 
-        this.selectedSize, 
-        this.selectedColor
+        this.quantity
       );
     }
   }
@@ -689,6 +641,20 @@ export class ProductDetailComponent implements OnInit {
           this.product.isFavorite = isFavorite;
         }
       });
+    }
+  }
+  
+  toggleCompare(): void {
+    if (!this.product) return;
+    
+    if (this.isInCompare) {
+      this.compareService.removeFromCompare(this.product?.id || 0);
+      this.isInCompare = false;
+    } else {
+      if (this.product) {
+        const added = this.compareService.addToCompare(this.product);
+        this.isInCompare = added;
+      }
     }
   }
 }
