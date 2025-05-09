@@ -1,22 +1,24 @@
 package com.example.repositories;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import com.example.models.Product;
+import com.example.repositories.generic.GenericRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
-
-import com.example.models.Product;
 
 import java.util.List;
 
 @Repository
-public interface ProductRepository extends JpaRepository<Product, Long> , JpaSpecificationExecutor<Product>{
+public interface ProductRepository extends GenericRepository<Product, Long> {
     List<Product> findByStore_Id(Long storeId);
 
     @Query("SELECT p FROM Product p JOIN p.store s WHERE s.seller.id = :sellerId")
     List<Product> findLowStockProductsBySellerId(int sellerId);
 
-    @Query()
-    List<Product> findByCategory_Id(int categoryId);
-
+    // Updated to support pagination and Long parameter
+    Page<Product> findByCategory_Id(Long categoryId, Pageable pageable);
+    
+    // Added method for text search with pagination
+    Page<Product> findByNameContainingOrDescriptionContaining(String name, String description, Pageable pageable);
 }

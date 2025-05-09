@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -46,9 +47,15 @@ public class Product {
     @Column(name = "total_rating")
     private Integer totalRating;
 
-  //pre-calcuated total sales for dashboards
+    //pre-calcuated total sales for dashboards
     @Column(name = "total_sales")
     private Integer totalSales;
+    
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+    
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "product")
     private List<ProductImage> images;
@@ -61,4 +68,15 @@ public class Product {
 
     @OneToMany(mappedBy = "product")
     private List<Review> reviews;
+    
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }
