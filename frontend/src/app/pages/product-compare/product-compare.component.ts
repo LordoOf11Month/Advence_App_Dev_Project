@@ -106,26 +106,6 @@ import { Product } from '../../models/product.model';
               </td>
             </tr>
             
-            <tr *ngIf="hasColors()">
-              <td class="attribute-name">Colors</td>
-              <td *ngFor="let product of products">
-                <div class="color-list" *ngIf="product.colors?.length">
-                  <span *ngFor="let color of product.colors">{{color}}</span>
-                </div>
-                <span *ngIf="!product.colors?.length">-</span>
-              </td>
-            </tr>
-            
-            <tr *ngIf="hasSizes()">
-              <td class="attribute-name">Sizes</td>
-              <td *ngFor="let product of products">
-                <div class="size-list" *ngIf="product.sizes?.length">
-                  <span *ngFor="let size of product.sizes">{{size}}</span>
-                </div>
-                <span *ngIf="!product.sizes?.length">-</span>
-              </td>
-            </tr>
-            
             <tr>
               <td class="attribute-name">Shipping</td>
               <td *ngFor="let product of products">
@@ -312,19 +292,6 @@ import { Product } from '../../models/product.model';
       text-decoration: underline;
     }
     
-    .color-list, .size-list {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-1);
-    }
-    
-    .color-list span, .size-list span {
-      font-size: 0.75rem;
-      padding: var(--space-1) var(--space-2);
-      background-color: var(--neutral-100);
-      border-radius: var(--radius-sm);
-    }
-    
     .shipping-info {
       display: flex;
       flex-direction: column;
@@ -412,14 +379,5 @@ export class ProductCompareComponent implements OnInit {
     // This should be implemented to add the product to cart
     // You would need to inject the CartService and use it here
     console.log('Add to cart:', product);
-  }
-  
-  // Helper methods to check if any products have colors or sizes
-  hasColors(): boolean {
-    return this.products.some(p => p.colors && p.colors.length > 0);
-  }
-  
-  hasSizes(): boolean {
-    return this.products.some(p => p.sizes && p.sizes.length > 0);
   }
 } 

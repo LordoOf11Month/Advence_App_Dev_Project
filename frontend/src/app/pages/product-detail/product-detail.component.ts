@@ -109,34 +109,6 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
             <span class="tag fast-delivery" *ngIf="product.fastDelivery">Fast Delivery</span>
           </div>
           
-          <div class="product-variants" *ngIf="product.colors?.length">
-            <h3 class="variant-title">Colors</h3>
-            <div class="color-options">
-              <div 
-                *ngFor="let color of product.colors" 
-                class="color-option"
-                [class.selected]="selectedColor === color"
-                (click)="selectedColor = color"
-              >
-                {{color}}
-              </div>
-            </div>
-          </div>
-          
-          <div class="product-variants" *ngIf="product.sizes?.length">
-            <h3 class="variant-title">Sizes</h3>
-            <div class="size-options">
-              <div 
-                *ngFor="let size of product.sizes" 
-                class="size-option"
-                [class.selected]="selectedSize === size"
-                (click)="selectedSize = size"
-              >
-                {{size}}
-              </div>
-            </div>
-          </div>
-          
           <div class="quantity-selector">
             <h3 class="variant-title">Quantity</h3>
             <div class="quantity-controls">
@@ -396,46 +368,6 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
       color: var(--white);
     }
     
-    .product-variants {
-      margin-bottom: var(--space-4);
-    }
-    
-    .variant-title {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--neutral-700);
-      margin-bottom: var(--space-2);
-    }
-    
-    .color-options,
-    .size-options {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-2);
-    }
-    
-    .color-option,
-    .size-option {
-      padding: var(--space-1) var(--space-3);
-      border: 1px solid var(--neutral-300);
-      border-radius: var(--radius-md);
-      font-size: 0.875rem;
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-    
-    .color-option:hover,
-    .size-option:hover {
-      border-color: var(--primary);
-    }
-    
-    .color-option.selected,
-    .size-option.selected {
-      background-color: var(--primary);
-      border-color: var(--primary);
-      color: var(--white);
-    }
-    
     .quantity-selector {
       margin-bottom: var(--space-4);
     }
@@ -626,8 +558,6 @@ export class ProductDetailComponent implements OnInit {
   product: Product | undefined;
   relatedProducts: Product[] = [];
   selectedImage: string = '';
-  selectedColor: string = '';
-  selectedSize: string = '';
   quantity: number = 1;
   categoryName: string = '';
   Math = Math;
@@ -642,26 +572,10 @@ export class ProductDetailComponent implements OnInit {
   
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
-      const id = params.get('productId');
-      if (id) {
-        this.productId = +id;
+      const idParam = params.get('productId') || params.get('id');
+      if (idParam) {
+        this.productId = +idParam;
         this.loadProduct();
-      }
-    });
-    
-    this.route.paramMap.subscribe(params => {
-      const productId = Number(params.get('id'));
-      
-      if (productId) {
-        this.productService.getProductById(productId).subscribe(product => {
-          if (product) {
-            this.product = product;
-            this.selectedImage = product.images[0];
-            this.loadRelatedProducts();
-            // Check if product is in compare list
-            this.isInCompare = this.compareService.isInCompare(product.id);
-          }
-        });
       }
     });
   }
@@ -672,16 +586,10 @@ export class ProductDetailComponent implements OnInit {
         this.product = product;
         this.selectedImage = product.images[0];
         
-        if (product.colors && product.colors.length > 0) {
-          this.selectedColor = product.colors[0];
-        }
-        
-        if (product.sizes && product.sizes.length > 0) {
-          this.selectedSize = product.sizes[0];
-        }
-        
         this.setCategoryName();
         this.loadRelatedProducts();
+        
+        this.isInCompare = this.compareService.isInCompare(product.id);
       }
     });
   }
@@ -721,9 +629,7 @@ export class ProductDetailComponent implements OnInit {
     if (this.product) {
       this.cartService.addToCart(
         this.product, 
-        this.quantity, 
-        this.selectedSize, 
-        this.selectedColor
+        this.quantity
       );
     }
   }
