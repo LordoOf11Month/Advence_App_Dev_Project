@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../services/product.service';
 import { CartService } from '../../services/cart.service';
+import { CompareService } from '../../services/compare.service';
 import { Product } from '../../models/product.model';
 import { ProductCarouselComponent } from '../../components/product-carousel/product-carousel.component';
 import { ProductReviewsComponent } from '../../components/reviews/product-reviews.component';
@@ -153,6 +154,15 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
             >
               <span class="material-symbols-outlined">shopping_cart</span>
               Add to Cart
+            </button>
+            
+            <button 
+              class="compare-btn" 
+              (click)="toggleCompare()"
+              [class.is-comparing]="isInCompare"
+            >
+              <span class="material-symbols-outlined">{{isInCompare ? 'compare_check' : 'compare'}}</span>
+              {{isInCompare ? 'Remove from Compare' : 'Add to Compare'}}
             </button>
             
             <button class="buy-now-btn" [disabled]="!product.inStock">
@@ -475,7 +485,8 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
     }
     
     .add-to-cart-btn,
-    .buy-now-btn {
+    .buy-now-btn,
+    .compare-btn {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -494,6 +505,18 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
       border: 1px solid var(--primary);
     }
     
+    .compare-btn {
+      background-color: var(--white);
+      color: var(--neutral-700);
+      border: 1px solid var(--neutral-300);
+    }
+    
+    .compare-btn.is-comparing {
+      background-color: var(--primary-light);
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+    
     .buy-now-btn {
       background-color: var(--primary);
       color: var(--white);
@@ -505,11 +528,16 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
       color: var(--white);
     }
     
+    .compare-btn:hover:not(:disabled) {
+      background-color: var(--neutral-100);
+    }
+    
     .buy-now-btn:hover:not(:disabled) {
       background-color: var(--primary-dark);
     }
     
-    .add-to-cart-btn:disabled, .buy-now-btn:disabled {
+    .add-to-cart-btn:disabled, 
+    .buy-now-btn:disabled {
       background-color: var(--neutral-200);
       border-color: var(--neutral-300);
       color: var(--neutral-500);
@@ -603,11 +631,13 @@ export class ProductDetailComponent implements OnInit {
   quantity: number = 1;
   categoryName: string = '';
   Math = Math;
+  isInCompare: boolean = false;
   
   constructor(
     private route: ActivatedRoute,
     private productService: ProductService,
-    private cartService: CartService
+    private cartService: CartService,
+    private compareService: CompareService
   ) {}
   
   ngOnInit(): void {
@@ -616,6 +646,22 @@ export class ProductDetailComponent implements OnInit {
       if (id) {
         this.productId = +id;
         this.loadProduct();
+      }
+    });
+    
+    this.route.paramMap.subscribe(params => {
+      const productId = Number(params.get('id'));
+      
+      if (productId) {
+        this.productService.getProductById(productId).subscribe(product => {
+          if (product) {
+            this.product = product;
+            this.selectedImage = product.images[0];
+            this.loadRelatedProducts();
+            // Check if product is in compare list
+            this.isInCompare = this.compareService.isInCompare(product.id);
+          }
+        });
       }
     });
   }
@@ -689,6 +735,20 @@ export class ProductDetailComponent implements OnInit {
           this.product.isFavorite = isFavorite;
         }
       });
+    }
+  }
+  
+  toggleCompare(): void {
+    if (!this.product) return;
+    
+    if (this.isInCompare) {
+      this.compareService.removeFromCompare(this.product?.id || 0);
+      this.isInCompare = false;
+    } else {
+      if (this.product) {
+        const added = this.compareService.addToCompare(this.product);
+        this.isInCompare = added;
+      }
     }
   }
 }

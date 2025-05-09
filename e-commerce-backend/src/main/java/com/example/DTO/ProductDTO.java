@@ -31,9 +31,10 @@ public class ProductDTO {
         private BigDecimal price;
         @NotBlank
         private String category;
+        private Integer stockQuantity;
     }
 
-    @Data // From Lombok, generates getters, setters, etc.
+    @Data
     public static class ProductFilterRequest {
         private String search; // Search string for product name or description
         private Double minPrice; // Minimum price
@@ -41,6 +42,4 @@ public class ProductDTO {
         private Double minRating; // Minimum rating
         private List<String> categories; // List of categories
     }
-
-
 }

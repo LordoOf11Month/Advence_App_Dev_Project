@@ -2,6 +2,7 @@ import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Product } from '../../models/product.model';
+import { CompareService } from '../../services/compare.service';
 
 @Component({
   selector: 'app-product-card',
@@ -12,6 +13,12 @@ import { Product } from '../../models/product.model';
       <div class="favorite-button" (click)="onFavoriteClick($event)">
         <span class="material-symbols-outlined" [class.is-favorite]="product.isFavorite">
           {{product.isFavorite ? 'favorite' : 'favorite_border'}}
+        </span>
+      </div>
+      
+      <div class="compare-button" (click)="onCompareClick($event)" [class.is-comparing]="isInCompare">
+        <span class="material-symbols-outlined">
+          {{isInCompare ? 'compare_check' : 'compare'}}
         </span>
       </div>
       
@@ -57,10 +64,17 @@ import { Product } from '../../models/product.model';
         </div>
       </a>
       
-      <button class="add-to-cart-btn" (click)="onAddToCart($event)">
-        <span class="material-symbols-outlined">shopping_cart</span>
-        Add to Cart
-      </button>
+      <div class="card-actions">
+        <button class="add-to-cart-btn" (click)="onAddToCart($event)">
+          <span class="material-symbols-outlined">shopping_cart</span>
+          Add to Cart
+        </button>
+        
+        <button class="add-to-compare-btn" (click)="onCompareClick($event)" [class.is-comparing]="isInCompare">
+          <span class="material-symbols-outlined">{{isInCompare ? 'compare_check' : 'compare'}}</span>
+          {{isInCompare ? 'Remove' : 'Compare'}}
+        </button>
+      </div>
     </div>
   `,
   styles: [`
@@ -81,10 +95,8 @@ import { Product } from '../../models/product.model';
       box-shadow: var(--shadow-md);
     }
     
-    .favorite-button {
+    .favorite-button, .compare-button {
       position: absolute;
-      top: var(--space-2);
-      right: var(--space-2);
       z-index: 2;
       background-color: var(--white);
       border-radius: 50%;
@@ -98,17 +110,32 @@ import { Product } from '../../models/product.model';
       transition: all var(--transition-fast);
     }
     
-    .favorite-button:hover {
+    .favorite-button {
+      top: var(--space-2);
+      right: var(--space-2);
+    }
+    
+    .compare-button {
+      top: var(--space-2);
+      left: var(--space-2);
+    }
+    
+    .favorite-button:hover, .compare-button:hover {
       transform: scale(1.1);
     }
     
-    .favorite-button .material-symbols-outlined {
+    .favorite-button .material-symbols-outlined,
+    .compare-button .material-symbols-outlined {
       color: var(--neutral-500);
       transition: color var(--transition-fast);
     }
     
     .favorite-button .is-favorite {
       color: var(--error);
+    }
+    
+    .compare-button.is-comparing .material-symbols-outlined {
+      color: var(--primary);
     }
     
     .product-link {
@@ -250,23 +277,50 @@ import { Product } from '../../models/product.model';
       color: var(--secondary);
     }
     
-    .add-to-cart-btn {
+    .card-actions {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      padding: 0 var(--space-3) var(--space-3);
+    }
+    
+    .add-to-cart-btn, .add-to-compare-btn {
       width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: var(--space-2);
-      background-color: var(--primary);
-      color: var(--white);
-      border: none;
       padding: var(--space-2);
       font-weight: 500;
       transition: background-color var(--transition-fast);
-      border-radius: 0;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    
+    .add-to-cart-btn {
+      background-color: var(--primary);
+      color: var(--white);
+      border: none;
     }
     
     .add-to-cart-btn:hover {
       background-color: var(--primary-dark);
+    }
+    
+    .add-to-compare-btn {
+      background-color: var(--white);
+      color: var(--neutral-700);
+      border: 1px solid var(--neutral-300);
+    }
+    
+    .add-to-compare-btn:hover {
+      background-color: var(--neutral-100);
+    }
+    
+    .add-to-compare-btn.is-comparing {
+      background-color: var(--primary-light);
+      color: var(--primary);
+      border-color: var(--primary);
     }
   `]
 })
@@ -274,6 +328,15 @@ export class ProductCardComponent {
   @Input() product!: Product;
   @Output() addToCart = new EventEmitter<Product>();
   @Output() toggleFavorite = new EventEmitter<number>();
+  @Output() toggleCompare = new EventEmitter<Product>();
+  
+  isInCompare = false;
+  
+  constructor(private compareService: CompareService) {}
+  
+  ngOnInit(): void {
+    this.isInCompare = this.compareService.isInCompare(this.product.id);
+  }
   
   onAddToCart(event: Event): void {
     event.preventDefault();
@@ -285,5 +348,20 @@ export class ProductCardComponent {
     event.preventDefault();
     event.stopPropagation();
     this.toggleFavorite.emit(this.product.id);
+  }
+  
+  onCompareClick(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    if (this.isInCompare) {
+      this.compareService.removeFromCompare(this.product.id);
+      this.isInCompare = false;
+    } else {
+      const added = this.compareService.addToCompare(this.product);
+      this.isInCompare = added;
+    }
+    
+    this.toggleCompare.emit(this.product);
   }
 }

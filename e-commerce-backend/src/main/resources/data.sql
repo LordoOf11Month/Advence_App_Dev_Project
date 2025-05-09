@@ -1,14 +1,14 @@
 -- Sample Data for E-commerce Application
 
 -- Users
--- Note: Passwords are hashed using BCrypt - these are just for testing purposes
+-- Note: Passwords are now stored as plaintext for development purposes ONLY - NOT SECURE FOR PRODUCTION
 INSERT INTO users (user_id, first_name, last_name, email, phone_number, password_hash, role, created_at, stripe_customer_id, is_banned, banned_at, ban_reason, avatar_url)
 VALUES
-(1, 'John', 'Admin', 'admin@example.com', '1234567890', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'admin', NOW(), 'cus_admin123', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/1.jpg'),
-(2, 'Jane', 'Seller', 'seller@example.com', '0987654321', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'seller', NOW(), 'cus_seller123', false, NULL, NULL, 'https://randomuser.me/api/portraits/women/1.jpg'),
-(3, 'Alice', 'Customer', 'customer@example.com', '1122334455', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'customer', NOW(), 'cus_cust123', false, NULL, NULL, 'https://randomuser.me/api/portraits/women/2.jpg'),
-(4, 'Bob', 'Seller', 'seller2@example.com', '5544332211', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'seller', NOW(), 'cus_seller456', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/2.jpg'),
-(5, 'Charlie', 'Customer', 'customer2@example.com', '6677889900', '$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy', 'customer', NOW(), 'cus_cust456', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/3.jpg');
+(1, 'John', 'Admin', 'admin@example.com', '1234567890', 'password', 'admin', NOW(), 'cus_admin123', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/1.jpg'),
+(2, 'Jane', 'Seller', 'seller@example.com', '0987654321', 'password', 'seller', NOW(), 'cus_seller123', false, NULL, NULL, 'https://randomuser.me/api/portraits/women/1.jpg'),
+(3, 'Alice', 'Customer', 'customer@example.com', '1122334455', 'password', 'customer', NOW(), 'cus_cust123', false, NULL, NULL, 'https://randomuser.me/api/portraits/women/2.jpg'),
+(4, 'Bob', 'Seller', 'seller2@example.com', '5544332211', 'password', 'seller', NOW(), 'cus_seller456', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/2.jpg'),
+(5, 'Charlie', 'Customer', 'customer2@example.com', '6677889900', 'password', 'customer', NOW(), 'cus_cust456', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/3.jpg');
 
 -- Categories with parent-child relationships
 INSERT INTO categories (category_id, name, parent_category_id)
@@ -44,7 +44,7 @@ VALUES
 (6, 2, 9, 'Designer Handbag', 'Stylish and spacious handbag for everyday use', 129.99, 75, 4.6, 19, 87, 42);
 
 -- Product Images
-INSERT INTO product_images (id, product_id, image_url, is_primary)
+INSERT INTO product_images (image_id, product_id, image_url, is_primary)
 VALUES
 (1, 1, 'https://placehold.co/600x400?text=Laptop+Pro', true),
 (2, 1, 'https://placehold.co/600x400?text=Laptop+Pro+Side', false),
@@ -56,7 +56,7 @@ VALUES
 (8, 6, 'https://placehold.co/600x400?text=Designer+Handbag', true);
 
 -- Addresses for users
-INSERT INTO addresses (id, user_id, street, city, state, postal_code, country, is_default)
+INSERT INTO addresses (address_id, user_id, street, city, state, postal_code, country, is_default)
 VALUES
 (1, 3, '789 Maple Street', 'Springfield', 'IL', '62704', 'USA', true),
 (2, 3, '101 Pine Avenue', 'Springfield', 'IL', '62704', 'USA', false),
@@ -67,17 +67,17 @@ INSERT INTO payment_methods (id, user_id, stripe_payment_method_id, brand, is_de
 VALUES
 (1, 3, 'pm_123456789', 'VISA', true, '4242', 12, 2025),
 (2, 3, 'pm_987654321', 'MASTERCARD', false, '5678', 6, 2024),
-(3, 5, 'pm_456789123', 'AMEX', true, '9876', 9, 2026);
+(3, 5, 'pm_456789123', 'AMERICAN_EXPRESS', true, '9876', 9, 2026);
 
 -- Orders
-INSERT INTO orders (order_id, user_id, total_amount, status, created_at, shipping_address_id, payment_method_id, tracking_number)
+INSERT INTO orders (order_id, user_id, total_amount, status, created_at, shipping_address, payment_method_id, tracking_number)
 VALUES
 (1, 3, 1459.98, 'DELIVERED', NOW() - INTERVAL 30 DAY, 1, 1, 'TRK123456789'),
 (2, 3, 159.99, 'SHIPPED', NOW() - INTERVAL 7 DAY, 1, 1, 'TRK987654321'),
 (3, 5, 409.98, 'PROCESSING', NOW(), 3, 3, NULL);
 
 -- Order Items
-INSERT INTO order_items (id, order_id, product_id, quantity, price_at_time, discount_amount)
+INSERT INTO order_items (order_item_id, order_id, product_id, quantity, price_at_purchase, discount_amount)
 VALUES
 (1, 1, 1, 1, 1299.99, 0),
 (2, 1, 3, 1, 159.99, 0),

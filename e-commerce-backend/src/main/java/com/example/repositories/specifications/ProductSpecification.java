@@ -1,5 +1,6 @@
 package com.example.repositories.specifications;
-import com.example.DTO.ProductDTO.ProductFilterRequest;
+
+import com.example.DTO.ProductDTO;
 import com.example.models.Product;
 import org.springframework.data.jpa.domain.Specification;
 import jakarta.persistence.criteria.*;
@@ -8,7 +9,7 @@ import java.util.List;
 
 public class ProductSpecification {
 
-    public static Specification<Product> filterBy(ProductFilterRequest filter) {
+    public static Specification<Product> filterBy(ProductDTO.ProductFilterRequest filter) {
         return (root, query, criteriaBuilder) -> {
             Predicate predicate = criteriaBuilder.conjunction(); // Default predicate: `true`
 

@@ -1,6 +1,6 @@
 package com.example.controllers;
 
-import com.example.models.Product;
+
 import com.example.services.ProductService;
 import com.example.DTO.ProductDTO.*;
 import org.springframework.http.ResponseEntity;
@@ -26,7 +26,7 @@ public class ProductController {
      * Supports dynamic filtering for search, pricing, and categories.
      */
     @GetMapping
-    public Page<Product> browseProducts(ProductFilterRequest filter, Pageable pageable) {
+    public Page<ProductResponse> browseProducts(ProductFilterRequest filter, Pageable pageable) {
         // Delegates to ProductService for dynamic filtering & pagination
         return productService.browseProducts(filter, pageable);
     }
@@ -46,7 +46,9 @@ public class ProductController {
     @GetMapping("/{id}")
     public ResponseEntity<ProductResponse> getById(@PathVariable Long id) {
         // Fetches a product by its unique ID
-        return ResponseEntity.ok(productService.findById(id));
+        return productService.findById(id)
+            .map(ResponseEntity::ok)
+            .orElse(ResponseEntity.notFound().build());
     }
 
     /**
@@ -66,7 +68,7 @@ public class ProductController {
     @PostMapping
     public ResponseEntity<ProductResponse> create(@Valid @RequestBody CreateProductRequest dto) {
         // Create a new product and return the created ProductResponse
-        return ResponseEntity.ok(productService.create(dto));
+        return ResponseEntity.ok(productService.save(dto));
     }
 
     /**

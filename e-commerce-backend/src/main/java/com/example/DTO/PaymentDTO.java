@@ -5,7 +5,7 @@ import lombok.Data;
 
 public class PaymentDTO {
     @Data
-    public class PaymentRequest {
+    public static class PaymentRequest {
         private Long orderId;
         private Long amount;
         private String currency = "usd";

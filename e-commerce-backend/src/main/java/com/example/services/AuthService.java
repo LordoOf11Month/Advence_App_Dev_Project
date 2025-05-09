@@ -74,7 +74,11 @@ public class AuthService {
         User user = new User();
         // Set fields on user entity; map RegisterRequest fields properly
         user.setEmail(req.getEmail());
-        user.setPasswordHash(encoder.encode(req.getPassword()));
+        
+        // WARNING: For development only - DO NOT use in production
+        // Store password as plaintext without hashing
+        user.setPasswordHash(req.getPassword());
+        
         user.setRole(User.Role.customer);
         user.setFirstName(req.getFirstName());
         user.setLastName(req.getLastName());
