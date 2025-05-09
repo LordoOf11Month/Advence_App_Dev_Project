@@ -12,6 +12,7 @@ import java.util.List;
 @Repository
 public interface ProductRepository extends GenericRepository<Product, Long> {
     List<Product> findByStore_Id(Long storeId);
+    Page<Product> findByStore_Id(Long storeId, Pageable pageable);
 
     @Query("SELECT p FROM Product p JOIN p.store s WHERE s.seller.id = :sellerId")
     List<Product> findLowStockProductsBySellerId(int sellerId);

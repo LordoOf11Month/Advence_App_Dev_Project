@@ -1,4 +1,4 @@
-package com.example.controllers;
+package com.example.controllers.weebhook;
 
 //import org.springframework.beans.factory.annotation.Autowired;
 //import org.springframework.http.ResponseEntity;

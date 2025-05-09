@@ -7,7 +7,7 @@ import java.time.LocalDate;
 import java.util.List;
 import jakarta.validation.constraints.Future;
 import jakarta.validation.constraints.NotBlank;
-
+import java.sql.Timestamp;
 
 
 @Entity
@@ -19,11 +19,15 @@ public class Banner {
     @Column(name = "id")
     private Long id;
 
-    @Column(nullable = false)
+    @Column(name="start_date", nullable = false)
+    private Timestamp startDate;
+
+
+    @Column(name="finish_date", nullable = false)
     @Future(message = "Finish date must be in the future")
     private LocalDate finishDate;
 
-    @Column(nullable = false, length = 255)
+    @Column(name="title", nullable = false, length = 255)
     @NotBlank(message = "Title is required")
     private String title;
 
