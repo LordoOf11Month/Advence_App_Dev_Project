@@ -1,7 +1,7 @@
 package com.example.DTO;
 
 import lombok.Data;
-
+import java.math.BigDecimal;
 import java.util.Date;
 import java.util.List;
 
@@ -10,12 +10,12 @@ public class SellerDashboardDTO {
     @Data
     public static class DashboardSummaryDTO {
         private int todayOrders;
-        private double todayRevenue; // Use double for currency
+        private BigDecimal todayRevenue;
         private int orderChange;
         private int revenueChange;
         private int activeProducts;
         private int lowStockProducts;
-        private double rating; // Use double for rating
+        private double rating; // Keep as double since it's a rating, not currency
         private int totalReviews;
         private int totalRevenue;
         private int totalProducts;
@@ -30,8 +30,8 @@ public class SellerDashboardDTO {
         private String userEmail;
         private String customerName;
         private List<OrderDTO.OrderItemDTO> items;
-        private double totalAmount;
-        private double total;
+        private BigDecimal totalAmount;
+        private BigDecimal total;
         private String status;
         private String sellerId;
         private String sellerName;
@@ -45,7 +45,7 @@ public class SellerDashboardDTO {
     public static  class LowStockItemDTO {
         private Long id;
         private String title;
-        private double price;
+        private BigDecimal price;
         private String image; // only primary image's URL
         private int stock;
         // Constructors, getters, and setters

@@ -115,7 +115,7 @@ public class DashboardService {
                 .map(item -> item.getPriceAtPurchase().multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        dto.setTotalAmount(totalAmount.doubleValue());
+        dto.setTotalAmount(totalAmount);
         dto.setStatus(orderEntity.getStatus() != null ? orderEntity.getStatus().name() : null);
         dto.setSellerName("Seller Store Name");
         dto.setDateUpdated(orderEntity.getUpdatedAt() != null ? new java.util.Date(orderEntity.getUpdatedAt().getTime()) : null);
@@ -137,7 +137,7 @@ public class DashboardService {
         OrderItemDTO dto = new OrderItemDTO();
         dto.setProduct(mapToCreateProductDTO(orderItem.getProduct()));
         dto.setQuantity(orderItem.getQuantity() != null ? orderItem.getQuantity() : 0);
-        dto.setPriceAtPurchase(orderItem.getPriceAtPurchase() != null ? orderItem.getPriceAtPurchase().doubleValue() : 0.0);
+        dto.setPriceAtPurchase(orderItem.getPriceAtPurchase() != null ? orderItem.getPriceAtPurchase() : BigDecimal.ZERO);
         return dto;
     }
 

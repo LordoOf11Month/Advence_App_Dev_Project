@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import lombok.Data;
+import com.example.models.Address;
 
 public class OrderDTO {
 
@@ -18,6 +19,8 @@ public class OrderDTO {
         private BigDecimal subtotal;
         private BigDecimal shipping;
         private BigDecimal total;
+        private CustomerDTO customer;
+        private Address shippingAddress;
     }
 
     @Data
@@ -32,32 +35,21 @@ public class OrderDTO {
         @Min(value = 1, message = "Quantity must be at least 1")
         private int quantity;
 
-        private double priceAtPurchase;
+        private BigDecimal priceAtPurchase;
+        private String stripePaymentIntentId;
+        private String stripeChargeId;
     }
 
     @Data
     public static class CreateOrderRequest {
         @NotEmpty
         private List<OrderItemDTO> items;
+        
         @NotNull
-        private ShippingAddressDTO shippingAddress;
+        private Address shippingAddress;
+        
         @NotBlank
-        private String stripePaymentChargeId;
-    }
-
-    @Data
-    public static class ShippingAddressDTO {
-        @NotBlank
-        private String address1;
-        private String address2;
-        @NotBlank
-        private String city;
-        @NotBlank
-        private String state;
-        @NotBlank
-        private String postalCode;
-        @NotBlank
-        private String country;
+        private String paymentMethodId; // Stripe payment method ID
     }
 
     @Data
@@ -67,6 +59,8 @@ public class OrderDTO {
         
         @NotBlank
         private String reason;
+        
+        private BigDecimal amount; // Optional: if not provided, refunds full amount
     }
 
     @Data
@@ -100,5 +94,23 @@ public class OrderDTO {
         
         @NotBlank
         private String rejectionReason;
+    }
+
+    @Data
+    public static class AdminOrderFilterRequest {
+        private String status;
+        private String search;
+
+        public AdminOrderFilterRequest(String status, String search) {
+            this.status = status;
+            this.search = search;
+        }
+    }
+
+    @Data
+    public static class UpdateOrderStatusRequest {
+        @NotBlank
+        private String newStatus;
+        private String reason;
     }
 }

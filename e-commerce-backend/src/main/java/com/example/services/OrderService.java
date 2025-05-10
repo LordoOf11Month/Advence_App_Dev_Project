@@ -18,6 +18,7 @@ import com.stripe.exception.StripeException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -27,13 +28,17 @@ import jakarta.persistence.criteria.JoinType;
 import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.HashMap;
 
 import com.example.models.Refund;
+import com.example.models.Address;
+import com.example.models.PaymentMethod;
 
 @Service
 public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.OrderResponse, OrderDTO.CreateOrderRequest, Long> {
@@ -73,7 +78,9 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
         order.setUser(user);
         order.setStatus(OrderEntity.Status.pending);
         order.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
-
+        order.setEstimatedDelivery(LocalDate.now().plusDays(7));
+        order.setTrackingNumber(generateTrackingNumber());
+        order.setShippingAddress(createDto.getShippingAddress());
         // Process each order item and create payment intents
         List<OrderItem> orderItems = new ArrayList<>();
         for (OrderDTO.OrderItemDTO itemDto : createDto.getItems()) {
@@ -114,14 +121,27 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
             String chargeId = stripeService.confirmPaymentIntent(paymentIntentId);
             orderItem.setStripeChargeId(chargeId);
             
+            // Get payment method details from Stripe
+            com.stripe.model.PaymentIntent paymentIntent = stripeService.getPaymentIntent(paymentIntentId);
+            String paymentMethodId = paymentIntent.getPaymentMethod();
+            
             // Check if all items in the order are paid
             OrderEntity order = orderItem.getOrder();
             boolean allItemsPaid = order.getOrderItems().stream()
                     .allMatch(item -> item.getStripeChargeId() != null);
 
-            // If all items are paid, update order status
+            // If all items are paid, update order status and set payment method
             if (allItemsPaid) {
                 order.setStatus(OrderEntity.Status.processing);
+                order.setStripeChargeId(chargeId);
+                
+                // Set payment method if not already set
+                if (order.getPaymentMethod() == null && paymentMethodId != null) {
+                    PaymentMethod paymentMethod = new PaymentMethod();
+                    paymentMethod.setStripePaymentMethodId(paymentMethodId);
+                    paymentMethod.setUser(order.getUser());
+                    order.setPaymentMethod(paymentMethod);
+                }
             }
 
             orderRepository.save(order);
@@ -356,18 +376,15 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
         if (item == null) return null;
         OrderDTO.OrderItemDTO dto = new OrderDTO.OrderItemDTO();
         dto.setQuantity(item.getQuantity());
-        dto.setPriceAtPurchase(item.getPriceAtPurchase() != null ? item.getPriceAtPurchase().doubleValue() : 0.0);
+        dto.setPriceAtPurchase(item.getPriceAtPurchase());
         
         // Product mapping: OrderItemDTO expects ProductDTO.CreateProductRequest
-        // This is unusual for a response. Ideally, it should be a ProductResponseDTO.
-        // For now, creating a CreateProductRequest from Product entity.
         if (item.getProduct() != null) {
             ProductDTO.CreateProductRequest productDto = new ProductDTO.CreateProductRequest();
             productDto.setTitle(item.getProduct().getName());
             productDto.setDescription(item.getProduct().getDescription());
             productDto.setPrice(item.getProduct().getPrice());
             productDto.setCategory(item.getProduct().getCategory() != null ? item.getProduct().getCategory().getName() : null);
-            // productDto.setStockQuantity(...); // CreateProductRequest has stockQuantity
             dto.setProduct(productDto);
         }
         return dto;
@@ -384,5 +401,261 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
         // This needs careful consideration of what fields an admin can update.
         // throw new UnsupportedOperationException("Order update via admin is complex and not fully implemented yet.");
         return existingOrder; // Basic, needs full implementation if used
+    }
+
+    public List<OrderDTO.OrderResponse> getOrdersForCurrentUser() {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        return orderRepository.findByUser_Id(user.getId()).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    public OrderDTO.OrderResponse getOrderForCurrentUser(Long orderId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        
+        if (order.getUser().getId() != user.getId()) {
+            throw new RuntimeException("Order does not belong to user");
+        }
+        
+        return convertToDto(order);
+    }
+
+    @Transactional
+    public OrderDTO.OrderResponse create(OrderDTO.CreateOrderRequest createDto) throws StripeException {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        OrderEntity order = new OrderEntity();
+        order.setUser(user);
+        order.setStatus(OrderEntity.Status.pending);
+        order.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+        order.setShippingAddress(createDto.getShippingAddress());
+        order.setEstimatedDelivery(LocalDate.now().plusDays(7));
+        order.setTrackingNumber(generateTrackingNumber());
+
+        List<OrderItem> orderItems = new ArrayList<>();
+        for (OrderDTO.OrderItemDTO itemDto : createDto.getItems()) {
+            Product product = productRepository.findById(itemDto.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found: " + itemDto.getProductId()));
+
+            OrderItem orderItem = new OrderItem();
+            orderItem.setOrder(order);
+            orderItem.setProduct(product);
+            orderItem.setQuantity(itemDto.getQuantity());
+            orderItem.setPriceAtPurchase(product.getPrice());
+
+            // Create payment intent for this item
+            Map<String, String> paymentIntent = stripeService.createPaymentIntent(
+                user.getStripeCustomerId(),
+                product.getPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity())).longValue(),
+                "usd"
+            );
+            orderItem.setStripePaymentIntentId(paymentIntent.get("paymentIntentId"));
+
+            orderItems.add(orderItem);
+        }
+        order.setOrderItems(orderItems);
+
+        return convertToDto(orderRepository.save(order));
+    }
+
+    @Transactional
+    public void cancelOrder(Long orderId) {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        
+        if (order.getUser().getId() != user.getId()) {
+            throw new RuntimeException("Order does not belong to user");
+        }
+        
+        if (order.getStatus() != OrderEntity.Status.pending) {
+            throw new RuntimeException("Only pending orders can be cancelled");
+        }
+        
+        order.setStatus(OrderEntity.Status.cancelled);
+        orderRepository.save(order);
+    }
+
+    @Transactional
+    public OrderDTO.RefundResponseDTO processRefund(Long orderId, Long itemId, OrderDTO.RefundRequestDTO refundRequest) throws StripeException {
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        OrderEntity order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new RuntimeException("Order not found"));
+        
+        if (order.getUser().getId() != user.getId()) {
+            throw new RuntimeException("Order does not belong to user");
+        }
+        
+        OrderItem orderItem = order.getOrderItems().stream()
+                .filter(item -> item.getOrderItemId().equals(itemId))
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Order item not found"));
+        
+        if (orderItem.getStripeChargeId() == null) {
+            throw new RuntimeException("Order item has not been charged");
+        }
+        
+        // Process refund through Stripe
+        String refundId = stripeService.processRefund(
+            orderItem.getStripeChargeId(),
+            refundRequest.getAmount() != null ? refundRequest.getAmount().longValue() : null,
+            refundRequest.getReason()
+        );
+        
+        // Create refund record
+        Refund refund = new Refund();
+        refund.setOrderItem(orderItem);
+        refund.setAmount(refundRequest.getAmount() != null ? refundRequest.getAmount() : 
+            orderItem.getPriceAtPurchase().multiply(BigDecimal.valueOf(orderItem.getQuantity())));
+        refund.setReason(refundRequest.getReason());
+        refund.setStatus(Refund.RefundStatus.PENDING);
+        refund.setRequestedAt(LocalDateTime.now());
+        
+        refundRepository.save(refund);
+        
+        // Convert to response DTO
+        OrderDTO.RefundResponseDTO response = new OrderDTO.RefundResponseDTO();
+        response.setOrderItemId(itemId);
+        response.setStatus(refund.getStatus().name());
+        response.setReason(refund.getReason());
+        response.setRefundAmount(refund.getAmount());
+        response.setRequestedAt(refund.getRequestedAt());
+        
+        return response;
+    }
+
+    public Map<String, Object> findAllAdminOrders(AdminOrderDTO.AdminOrderFilterRequest filter, int page, int size) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<OrderEntity> ordersPage = orderRepository.findAll((root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
+            
+            if (filter.getOrderId() != null) {
+                predicates.add(cb.equal(root.get("id"), filter.getOrderId()));
+            }
+            if (filter.getCustomerId() != null) {
+                predicates.add(cb.equal(root.get("user").get("id"), filter.getCustomerId()));
+            }
+            if (filter.getOrderStatus() != null) {
+                predicates.add(cb.equal(root.get("status"), OrderEntity.Status.valueOf(filter.getOrderStatus())));
+            }
+            if (filter.getMinOrderDate() != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("createdAt"), filter.getMinOrderDate()));
+            }
+            if (filter.getMaxOrderDate() != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("createdAt"), filter.getMaxOrderDate()));
+            }
+            
+            return cb.and(predicates.toArray(new Predicate[0]));
+        }, pageable);
+
+        List<OrderDTO.OrderResponse> orders = ordersPage.getContent().stream()
+            .map(this::convertToDto)
+            .collect(Collectors.toList());
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("orders", orders);
+        response.put("currentPage", ordersPage.getNumber());
+        response.put("totalItems", ordersPage.getTotalElements());
+        response.put("totalPages", ordersPage.getTotalPages());
+        
+        return response;
+    }
+
+    public List<OrderDTO.OrderResponse> getOrdersByUserId(Integer userId) {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+        
+        return orderRepository.findByUser_Id(user.getId()).stream()
+            .map(this::convertToDto)
+            .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public Map<String, String> createOrderForUser(Integer userId, OrderDTO.CreateOrderRequest createDto) throws StripeException {
+        User user = userRepository.findById(userId)
+            .orElseThrow(() -> new RuntimeException("User not found"));
+
+        OrderEntity order = new OrderEntity();
+        order.setUser(user);
+        order.setStatus(OrderEntity.Status.pending);
+        order.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+        order.setShippingAddress(createDto.getShippingAddress());
+        order.setEstimatedDelivery(LocalDate.now().plusDays(7));
+        order.setTrackingNumber(generateTrackingNumber());
+
+        List<OrderItem> orderItems = new ArrayList<>();
+        for (OrderDTO.OrderItemDTO itemDto : createDto.getItems()) {
+            Product product = productRepository.findById(itemDto.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found: " + itemDto.getProductId()));
+
+            OrderItem orderItem = new OrderItem();
+            orderItem.setOrder(order);
+            orderItem.setProduct(product);
+            orderItem.setQuantity(itemDto.getQuantity());
+            orderItem.setPriceAtPurchase(product.getPrice());
+
+            // Create payment intent for this item
+            Map<String, String> paymentIntent = stripeService.createPaymentIntent(
+                user.getStripeCustomerId(),
+                product.getPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity())).longValue(),
+                "usd"
+            );
+            orderItem.setStripePaymentIntentId(paymentIntent.get("paymentIntentId"));
+
+            orderItems.add(orderItem);
+        }
+        order.setOrderItems(orderItems);
+
+        OrderEntity savedOrder = orderRepository.save(order);
+        return Map.of(
+            "orderId", savedOrder.getId().toString(),
+            "paymentIntentId", orderItems.get(0).getStripePaymentIntentId()
+        );
+    }
+
+    @Transactional
+    public void deleteOrder(Long orderId) {
+        OrderEntity order = orderRepository.findById(orderId)
+            .orElseThrow(() -> new RuntimeException("Order not found"));
+        
+        // Check if order can be deleted (e.g., not in certain statuses)
+        if (order.getStatus() == OrderEntity.Status.delivered || 
+            order.getStatus() == OrderEntity.Status.shipped) {
+            throw new RuntimeException("Cannot delete delivered or shipped orders");
+        }
+        
+        orderRepository.delete(order);
+    }
+
+    private String generateTrackingNumber() {
+        // Generate a random tracking number in format: TRK-XXXX-XXXX-XXXX
+        // where X is a random alphanumeric character
+        String chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        StringBuilder sb = new StringBuilder("TRK-");
+        java.util.Random random = new java.util.Random();
+        
+        for (int i = 0; i < 3; i++) {
+            for (int j = 0; j < 4; j++) {
+                sb.append(chars.charAt(random.nextInt(chars.length())));
+            }
+            if (i < 2) sb.append("-");
+        }
+        return sb.toString();
     }
 } 
