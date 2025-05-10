@@ -12,19 +12,28 @@ import com.example.repositories.OrderRepository;
 import com.example.repositories.ProductRepository;
 import com.example.repositories.StoreRepository;
 import com.example.repositories.UserRepository;
+import com.example.repositories.RefundRepository;
 import com.example.services.generic.GenericServiceImpl;
+import com.stripe.exception.StripeException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.criteria.Predicate;
 import jakarta.persistence.criteria.Join;
 import jakarta.persistence.criteria.JoinType;
+import org.springframework.security.core.context.SecurityContextHolder;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
+
+import com.example.models.Refund;
 
 @Service
 public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.OrderResponse, OrderDTO.CreateOrderRequest, Long> {
@@ -33,17 +42,199 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
     private final ProductRepository productRepository; // For filtering by product name/id
     private final StoreRepository storeRepository;   // For filtering by store name/id
     private final UserRepository userRepository;     // For filtering by customer email/id
+    private final StripeService stripeService;
+    private final RefundRepository refundRepository;
 
     @Autowired
     public OrderService(OrderRepository orderRepository,
                         ProductRepository productRepository,
                         StoreRepository storeRepository,
-                        UserRepository userRepository) {
+                        UserRepository userRepository,
+                        StripeService stripeService,
+                        RefundRepository refundRepository) {
         super(orderRepository);
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.storeRepository = storeRepository;
         this.userRepository = userRepository;
+        this.stripeService = stripeService;
+        this.refundRepository = refundRepository;
+    }
+
+    @Override
+    @Transactional
+    protected OrderEntity convertToEntity(OrderDTO.CreateOrderRequest createDto) {
+        // Get the current user
+        User user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Create the order entity
+        OrderEntity order = new OrderEntity();
+        order.setUser(user);
+        order.setStatus(OrderEntity.Status.pending);
+        order.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+
+        // Process each order item and create payment intents
+        List<OrderItem> orderItems = new ArrayList<>();
+        for (OrderDTO.OrderItemDTO itemDto : createDto.getItems()) {
+            Product product = productRepository.findById(itemDto.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found"));
+
+            OrderItem orderItem = new OrderItem();
+            orderItem.setOrder(order);
+            orderItem.setProduct(product);
+            orderItem.setQuantity(itemDto.getQuantity());
+            orderItem.setPriceAtPurchase(product.getPrice());
+
+            try {
+                // Create a payment intent for this item
+                Map<String, String> paymentIntent = stripeService.createPaymentIntent(
+                    user.getStripeCustomerId(),
+                    product.getPrice().multiply(new java.math.BigDecimal(itemDto.getQuantity())).longValue(),
+                    "usd"
+                );
+
+                orderItem.setStripePaymentIntentId(paymentIntent.get("paymentIntentId"));
+                orderItems.add(orderItem);
+            } catch (StripeException e) {
+                throw new RuntimeException("Failed to create payment intent: " + e.getMessage());
+            }
+        }
+
+        order.setOrderItems(orderItems);
+        return order;
+    }
+
+    @Transactional
+    public OrderDTO.OrderResponse confirmPayment(String paymentIntentId) {
+        OrderItem orderItem = orderRepository.findByStripePaymentIntentId(paymentIntentId)
+                .orElseThrow(() -> new RuntimeException("Order item not found for payment intent: " + paymentIntentId));
+
+        try {
+            String chargeId = stripeService.confirmPaymentIntent(paymentIntentId);
+            orderItem.setStripeChargeId(chargeId);
+            
+            // Check if all items in the order are paid
+            OrderEntity order = orderItem.getOrder();
+            boolean allItemsPaid = order.getOrderItems().stream()
+                    .allMatch(item -> item.getStripeChargeId() != null);
+
+            // If all items are paid, update order status
+            if (allItemsPaid) {
+                order.setStatus(OrderEntity.Status.processing);
+            }
+
+            orderRepository.save(order);
+            return convertToDto(order);
+        } catch (StripeException e) {
+            throw new RuntimeException("Failed to confirm payment: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public OrderDTO.OrderResponse handlePaymentFailure(String paymentIntentId) {
+        OrderItem orderItem = orderRepository.findByStripePaymentIntentId(paymentIntentId)
+                .orElseThrow(() -> new RuntimeException("Order item not found for payment intent: " + paymentIntentId));
+
+        OrderEntity order = orderItem.getOrder();
+        
+        // You might want to implement retry logic or notify the user
+        // For now, we'll just mark the order as cancelled
+        order.setStatus(OrderEntity.Status.cancelled);
+        
+        orderRepository.save(order);
+        return convertToDto(order);
+    }
+
+    @Transactional
+    public OrderDTO.RefundResponseDTO requestRefund(OrderDTO.RefundRequestDTO request) {
+        OrderItem orderItem = orderRepository.findOrderItemById(request.getOrderItemId())
+                .orElseThrow(() -> new RuntimeException("Order item not found"));
+
+        if (refundRepository.findByOrderItem_OrderItemId(request.getOrderItemId()).isPresent()) {
+            throw new RuntimeException("Order item already has a refund request");
+        }
+
+        if (orderItem.getStripeChargeId() == null) {
+            throw new RuntimeException("Cannot refund: No charge ID found for this order item");
+        }
+
+        Refund refund = new Refund();
+        refund.setOrderItem(orderItem);
+        refund.setStatus(Refund.RefundStatus.PENDING);
+        refund.setReason(request.getReason());
+        // Default to 100% refund amount
+        refund.setAmount(orderItem.getPriceAtPurchase().multiply(new java.math.BigDecimal(orderItem.getQuantity())));
+        refund.setRequestedAt(LocalDateTime.now());
+        
+        refundRepository.save(refund);
+        return convertToRefundResponse(refund);
+    }
+
+    @Transactional
+    public OrderDTO.RefundResponseDTO processRefund(OrderDTO.ProcessRefundDTO request) {
+        Refund refund = refundRepository.findPendingRefundByOrderItemId(request.getOrderItemId())
+                .orElseThrow(() -> new RuntimeException("No pending refund found for this order item"));
+
+        OrderItem orderItem = refund.getOrderItem();
+        if (orderItem.getStripeChargeId() == null) {
+            throw new RuntimeException("Cannot refund: No charge ID found for this order item");
+        }
+
+        // Validate refund amount
+        BigDecimal maxRefundAmount = orderItem.getPriceAtPurchase().multiply(new java.math.BigDecimal(orderItem.getQuantity()));
+        if (request.getRefundAmount().compareTo(maxRefundAmount) > 0) {
+            throw new RuntimeException("Refund amount cannot exceed the original payment amount");
+        }
+
+        try {
+            // Convert amount to cents for Stripe
+            long refundAmountCents = request.getRefundAmount().multiply(new java.math.BigDecimal("100")).longValue();
+            
+            String refundId = stripeService.processRefund(
+                orderItem.getStripeChargeId(),
+                refundAmountCents,
+                request.getReason()
+            );
+
+            refund.setStripeRefundId(refundId);
+            refund.setStatus(Refund.RefundStatus.COMPLETED);
+            refund.setAmount(request.getRefundAmount());
+            refund.setProcessedAt(LocalDateTime.now());
+            refundRepository.save(refund);
+
+            return convertToRefundResponse(refund);
+        } catch (StripeException e) {
+            refund.setStatus(Refund.RefundStatus.FAILED);
+            refund.setProcessedAt(LocalDateTime.now());
+            refundRepository.save(refund);
+            throw new RuntimeException("Failed to process refund: " + e.getMessage());
+        }
+    }
+
+    @Transactional
+    public OrderDTO.RefundResponseDTO rejectRefund(OrderDTO.RejectRefundDTO request) {
+        Refund refund = refundRepository.findPendingRefundByOrderItemId(request.getOrderItemId())
+                .orElseThrow(() -> new RuntimeException("No pending refund found for this order item"));
+
+        refund.setStatus(Refund.RefundStatus.REJECTED);
+        refund.setRejectionReason(request.getRejectionReason());
+        refund.setProcessedAt(LocalDateTime.now());
+        refundRepository.save(refund);
+
+        return convertToRefundResponse(refund);
+    }
+
+    private OrderDTO.RefundResponseDTO convertToRefundResponse(Refund refund) {
+        OrderDTO.RefundResponseDTO response = new OrderDTO.RefundResponseDTO();
+        response.setOrderItemId(refund.getOrderItem().getOrderItemId());
+        response.setStatus(refund.getStatus().name());
+        response.setReason(refund.getReason());
+        response.setRefundAmount(refund.getAmount());
+        response.setRejectionReason(refund.getRejectionReason());
+        response.setRequestedAt(refund.getRequestedAt());
+        response.setProcessedAt(refund.getProcessedAt());
+        return response;
     }
 
     public Page<OrderDTO.OrderResponse> findAllAdminOrders(AdminOrderDTO.AdminOrderFilterRequest filter, Pageable pageable) {
@@ -180,23 +371,6 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
             dto.setProduct(productDto);
         }
         return dto;
-    }
-
-    @Override
-    protected OrderEntity convertToEntity(OrderDTO.CreateOrderRequest createDto) {
-        // Admin context might not create orders often, but implemented for completeness
-        // This would involve mapping DTOs to entities, fetching related entities (User, Products)
-        // and setting up OrderItems. This is a complex operation usually handled elsewhere.
-        // For now, a basic placeholder.
-        if (createDto == null) return null;
-        OrderEntity entity = new OrderEntity();
-        // entity.setUser(...); // Requires fetching User based on context or DTO field
-        // entity.setShippingAddress(...); // Requires mapping ShippingAddressDTO to Address entity
-        // entity.setStripeChargeId(createDto.getStripePaymentChargeId());
-        // entity.setStatus(OrderEntity.Status.pending); // Default status
-        // entity.setOrderItems(...); // Requires mapping List<OrderItemDTO> to List<OrderItem>
-        // throw new UnsupportedOperationException("Order creation via admin is complex and not fully implemented yet.");
-         return entity; // Basic, needs full implementation if used
     }
 
     @Override

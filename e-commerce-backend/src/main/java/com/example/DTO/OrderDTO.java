@@ -22,11 +22,14 @@ public class OrderDTO {
 
     @Data
     public static class OrderItemDTO {
-         @NotNull// Based on OrderItem.product relationship constraint
+        @NotNull
+        private Long productId;
+
+        @NotNull
         private ProductDTO.CreateProductRequest product;
 
-        @NotNull // Added for consistency, although primitive int cannot be null
-        @Min(value = 1, message = "Quantity must be at least 1") // Based on OrderItem.quantity non-null constraint and logic
+        @NotNull
+        @Min(value = 1, message = "Quantity must be at least 1")
         private int quantity;
 
         private double priceAtPurchase;
@@ -55,5 +58,47 @@ public class OrderDTO {
         private String postalCode;
         @NotBlank
         private String country;
+    }
+
+    @Data
+    public static class RefundRequestDTO {
+        @NotNull
+        private Long orderItemId;
+        
+        @NotBlank
+        private String reason;
+    }
+
+    @Data
+    public static class RefundResponseDTO {
+        private Long orderItemId;
+        private String status;
+        private String reason;
+        private BigDecimal refundAmount;
+        private String rejectionReason;
+        private LocalDateTime requestedAt;
+        private LocalDateTime processedAt;
+    }
+
+    @Data
+    public static class ProcessRefundDTO {
+        @NotNull
+        private Long orderItemId;
+        
+        @NotNull
+        @DecimalMin(value = "0.01")
+        private BigDecimal refundAmount;
+        
+        @NotBlank
+        private String reason;
+    }
+
+    @Data
+    public static class RejectRefundDTO {
+        @NotNull
+        private Long orderItemId;
+        
+        @NotBlank
+        private String rejectionReason;
     }
 }
