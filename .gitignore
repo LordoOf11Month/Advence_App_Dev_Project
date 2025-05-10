@@ -29,4 +29,9 @@ dist
 
 # System Files
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# Spring Boot properties
+**/application.properties
+**/application-*.properties
+!**/application.properties.template 

@@ -1,0 +1,36 @@
+spring.application.name=e-commerce-backend
+
+# MariaDB Connection
+spring.datasource.url=jdbc:mariadb://127.0.0.1:3306/ecommerce_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+spring.datasource.username=YOUR_DB_USERNAME
+spring.datasource.password=YOUR_DB_PASSWORD
+
+# SQL Initialization
+spring.sql.init.mode=always
+spring.jpa.defer-datasource-initialization=true
+spring.sql.init.platform=mariadb
+spring.sql.init.continue-on-error=true
+
+# Hibernate Settings
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.properties.hibernate.dialect=org.hibernate.dialect.MariaDBDialect
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+spring.jpa.properties.hibernate.cache.use_second_level_cache=false
+spring.jpa.open-in-view=false
+
+# JWT Settings
+jwt.secret=YOUR_JWT_SECRET
+jwt.expirationMs=86400000
+jwt.cookieName=jwt_token
+
+# Stripe Settings
+stripe.api.key=YOUR_STRIPE_API_KEY
+
+# Enable the OpenAPI documentation endpoints
+springdoc.api-docs.enabled=true
+springdoc.swagger-ui.enabled=true
+
+# (Optional) Set a custom path for API docs or Swagger UI, if needed
+springdoc.api-docs.path=/v3/api-docs
+springdoc.swagger-ui.path=/swagger-ui 
