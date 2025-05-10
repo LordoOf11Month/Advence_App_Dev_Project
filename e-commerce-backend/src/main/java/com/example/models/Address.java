@@ -6,32 +6,32 @@ import lombok.Setter;
 
 @Entity
 @Table(name = "addresses")
-@Getter @Setter
+@Getter
+@Setter
 public class Address {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "address_id")
-    private Long id;
+    private Integer id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(name = "street", length = 255, nullable = false)
+    @Column(nullable = false)
     private String street;
 
-    @Column(name = "city", length = 100, nullable = false)
+    @Column(nullable = false)
     private String city;
 
-    @Column(name = "state", length = 100)
+    @Column(nullable = false)
     private String state;
 
-    @Column(name = "postal_code", length = 20)
-    private String postalCode;
-
-    @Column(name = "country", length = 100, nullable = false)
+    @Column(nullable = false)
     private String country;
 
-    @Column(name = "is_primary", nullable = false)
-    private Boolean isPrimary = false;
+    @Column(name = "zip_code", nullable = false)
+    private String zipCode;
+
+    @Column(name = "is_default", nullable = false)
+    private boolean isDefault;
 }

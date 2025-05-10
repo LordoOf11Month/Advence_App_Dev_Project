@@ -5,7 +5,6 @@ import com.example.DTO.admin.AdminOrderDTO;
 import com.example.services.OrderService;
 import com.example.services.RefundService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +18,7 @@ public class SellerOrderController {
     private final OrderService orderService;
     private final RefundService refundService;
 
-    @Autowired
+    
     public SellerOrderController(OrderService orderService, RefundService refundService) {
         this.orderService = orderService;
         this.refundService = refundService;

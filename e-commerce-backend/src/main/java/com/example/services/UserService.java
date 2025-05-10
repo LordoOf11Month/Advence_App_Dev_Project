@@ -10,7 +10,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -20,6 +22,9 @@ public class UserService {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     public List<UserResponse> getAllUsers() {
         return userRepository.findAll()
@@ -42,17 +47,15 @@ public class UserService {
         return mapToDTO(user);
     }
 
-
     public UserResponse getUserById(int userId) {
         User user = userRepository.findById(userId).orElseThrow();
         return mapToDTO(user);
     }
 
     public UserResponse updateCurrentUser(UpdateUserRequest request) {
-
-        String email=SecurityContextHolder.getContext().getAuthentication().getName();
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(email).orElseThrow(()
-        -> new UsernameNotFoundException("User not found with email: " + email));
+                -> new UsernameNotFoundException("User not found with email: " + email));
         applyUpdates(user, request);
         userRepository.save(user);
         return mapToDTO(user);
@@ -96,13 +99,38 @@ public class UserService {
         return mapToDTO(user);
     }
 
+    @Transactional
+    public void updatePassword(String currentPassword, String newPassword) {
+        String email = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("User not found"));
+
+        // Verify current password
+        if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {
+            throw new RuntimeException("Current password is incorrect");
+        }
+
+        // Update password
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
+    }
+
     private void applyUpdates(User user, UpdateUserRequest request) {
-        if (request.getFirstName() != null) user.setFirstName(request.getFirstName());
-        if (request.getLastName() != null) user.setLastName(request.getLastName());
-        if (request.getPhoneNumber() != null) user.setPhoneNumber(request.getPhoneNumber());
-        if (request.getRole() != null) user.setRole(Role.valueOf(request.getRole()));
-        if (request.getAvatarUrl() != null) user.setAvatarUrl(request.getAvatarUrl());
-        // Note: isBanned and banReason are handled elsewhere (ban/unban methods)
+        if (request.getFirstName() != null) {
+            user.setFirstName(request.getFirstName());
+        }
+        if (request.getLastName() != null) {
+            user.setLastName(request.getLastName());
+        }
+        if (request.getPhoneNumber() != null) {
+            user.setPhoneNumber(request.getPhoneNumber());
+        }
+        if (request.getRole() != null) {
+            user.setRole(Role.valueOf(request.getRole().toUpperCase()));
+        }
+        if (request.getAvatarUrl() != null) {
+            user.setAvatarUrl(request.getAvatarUrl());
+        }
     }
 
     private UserResponse mapToDTO(User user) {
@@ -112,7 +140,7 @@ public class UserService {
         dto.setLastName(user.getLastName());
         dto.setEmail(user.getEmail());
         dto.setPhoneNumber(user.getPhoneNumber());
-        dto.setRole(user.getRole().name());
+        dto.setRole(user.getRole().name().toLowerCase());
         dto.setCreatedAt(user.getCreatedAt());
         dto.setStripeCustomerId(user.getStripeCustomerId());
         dto.setIsBanned(user.getIsBanned());

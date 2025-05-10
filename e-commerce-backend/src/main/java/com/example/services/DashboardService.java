@@ -107,9 +107,9 @@ public class DashboardService {
                 : null;
         dto.setCustomerName(customerName);
 
-        dto.setItems(orderEntity.getOrderItems().stream()
-                .map(this::mapToOrderItemDTO)
-                .collect(Collectors.toList()));
+        // dto.setItems(orderEntity.getOrderItems().stream()
+        //         .map(this::mapToOrderItemDTO)
+        //         .collect(Collectors.toList()));
 
         BigDecimal totalAmount = orderEntity.getOrderItems().stream()
                 .map(item -> item.getPriceAtPurchase().multiply(BigDecimal.valueOf(item.getQuantity())))
@@ -133,13 +133,13 @@ public class DashboardService {
         return dto;
     }
 
-    private OrderItemDTO mapToOrderItemDTO(OrderItem orderItem) {
-        OrderItemDTO dto = new OrderItemDTO();
-        dto.setProduct(mapToCreateProductDTO(orderItem.getProduct()));
-        dto.setQuantity(orderItem.getQuantity() != null ? orderItem.getQuantity() : 0);
-        dto.setPriceAtPurchase(orderItem.getPriceAtPurchase() != null ? orderItem.getPriceAtPurchase() : BigDecimal.ZERO);
-        return dto;
-    }
+    // private OrderItemDTO mapToOrderItemDTO(OrderItem orderItem) {
+    //     OrderItemDTO dto = new OrderItemDTO();
+    //     dto.setProduct(mapToCreateProductDTO(orderItem.getProduct()));
+    //     dto.setQuantity(orderItem.getQuantity() != null ? orderItem.getQuantity() : 0);
+    //     dto.setPriceAtPurchase(orderItem.getPriceAtPurchase() != null ? orderItem.getPriceAtPurchase() : BigDecimal.ZERO);
+    //     return dto;
+    // }
 
     private CreateProductRequest mapToCreateProductDTO(Product product) {
         CreateProductRequest dto = new CreateProductRequest();

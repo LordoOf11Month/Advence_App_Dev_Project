@@ -17,8 +17,11 @@ public class ProductDTO {
         private String category;
         private List<String> images;
         private boolean inStock;
+        private Integer stockQuantity;
         private LocalDateTime createdAt;
         private LocalDateTime updatedAt;
+        private boolean freeShipping;
+        private boolean fastDelivery;
     }
 
     @Data
@@ -34,6 +37,8 @@ public class ProductDTO {
         private Integer stockQuantity;
         @NotEmpty
         private List<String> imageUrls; // List of image URLs to be stored
+        private boolean freeShipping;
+        private boolean fastDelivery;
     }
 
     @Data
@@ -43,5 +48,7 @@ public class ProductDTO {
         private Double maxPrice; // Maximum price
         private Double minRating; // Minimum rating
         private List<String> categories; // List of categories
+        private Boolean freeShipping; // Filter for free shipping products
+        private Boolean fastDelivery; // Filter for fast delivery products
     }
 }

@@ -107,6 +107,8 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
         response.setInStock(product.getStockQuantity() > 0);
         response.setCreatedAt(product.getCreatedAt());
         response.setUpdatedAt(product.getUpdatedAt());
+        response.setFreeShipping(product.isFreeShipping());
+        response.setFastDelivery(product.isFastDelivery());
         
         // Add image URLs to response
         if (product.getImages() != null) {
@@ -222,5 +224,43 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
             throw new AccessDeniedException("Seller does not have permission to delete this product.");
         }
         productRepository.deleteById(productId);
+    }
+
+    @Transactional
+    public ProductResponse approveProduct(Long id, boolean approved) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+        
+        product.setApproved(approved);
+        Product savedProduct = productRepository.save(product);
+        return convertToDto(savedProduct);
+    }
+
+    @Transactional
+    public ProductResponse toggleFreeShipping(Long id, boolean freeShipping) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+        
+        product.setFreeShipping(freeShipping);
+        Product savedProduct = productRepository.save(product);
+        return convertToDto(savedProduct);
+    }
+
+    @Transactional
+    public ProductResponse toggleFastDelivery(Long id, boolean fastDelivery) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+        
+        product.setFastDelivery(fastDelivery);
+        Product savedProduct = productRepository.save(product);
+        return convertToDto(savedProduct);
+    }
+
+    @Transactional
+    public void deleteProduct(Long id) {
+        Product product = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+        
+        productRepository.delete(product);
     }
 }

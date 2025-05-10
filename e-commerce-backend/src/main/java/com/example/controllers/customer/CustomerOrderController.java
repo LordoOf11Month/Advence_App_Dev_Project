@@ -14,7 +14,6 @@ import com.example.services.ProductService;
 import com.example.services.RefundService;
 import com.example.services.StripeService;
 import com.stripe.exception.StripeException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -36,7 +35,7 @@ public class CustomerOrderController {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final ProductService productService;
-        @Autowired
+        
         public CustomerOrderController(OrderService orderService, StripeService stripeService, RefundService refundService, OrderRepository orderRepository, UserRepository userRepository, ProductService productService) {
             this.orderService = orderService;
             this.stripeService = stripeService;
