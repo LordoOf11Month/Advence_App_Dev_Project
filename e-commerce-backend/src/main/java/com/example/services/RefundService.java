@@ -175,6 +175,12 @@ public class RefundService {
                 .collect(Collectors.toList());
     }
 
+    public OrderDTO.RefundResponseDTO getRefundForOrderItem(Long orderItemId) {
+        Refund refund = refundRepository.findByOrderItem_OrderItemId(orderItemId)
+                .orElseThrow(() -> new RuntimeException("No refund found for this order item"));
+        return convertToRefundResponse(refund);
+    }
+
     private OrderDTO.RefundResponseDTO convertToRefundResponse(Refund refund) {
         OrderDTO.RefundResponseDTO response = new OrderDTO.RefundResponseDTO();
         response.setOrderItemId(refund.getOrderItem().getOrderItemId());

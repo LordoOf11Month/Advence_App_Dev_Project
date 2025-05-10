@@ -29,15 +29,10 @@ public class OrderDTO {
         private Long productId;
 
         @NotNull
-        private ProductDTO.CreateProductRequest product;
-
-        @NotNull
         @Min(value = 1, message = "Quantity must be at least 1")
         private int quantity;
 
         private BigDecimal priceAtPurchase;
-        private String stripePaymentIntentId;
-        private String stripeChargeId;
     }
 
     @Data
@@ -46,10 +41,10 @@ public class OrderDTO {
         private List<OrderItemDTO> items;
         
         @NotNull
-        private Address shippingAddress;
+        private int shippingAddressId;
         
-        @NotBlank
-        private String paymentMethodId; // Stripe payment method ID
+        // @NotBlank
+        // private String paymentMethodId; // Stripe payment method ID
     }
 
     @Data
