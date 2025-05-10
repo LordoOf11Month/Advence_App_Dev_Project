@@ -36,6 +36,15 @@ public class Product {
     @Column(name = "stock_quantity", nullable = false)
     private Integer stockQuantity;
 
+    @Column(name = "approved", nullable = false)
+    private boolean approved = false;
+
+    @Column(name = "free_shipping", nullable = false)
+    private boolean freeShipping = false;
+
+    @Column(name = "fast_delivery", nullable = false)
+    private boolean fastDelivery = false;
+
     // pre-calculated rating values for removing useless join queries
     @Column(name = "average_rating")
     private Float averageRating;

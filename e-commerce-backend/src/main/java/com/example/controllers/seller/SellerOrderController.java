@@ -5,7 +5,6 @@ import com.example.DTO.admin.AdminOrderDTO;
 import com.example.services.OrderService;
 import com.example.services.RefundService;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
@@ -19,7 +18,7 @@ public class SellerOrderController {
     private final OrderService orderService;
     private final RefundService refundService;
 
-    @Autowired
+    
     public SellerOrderController(OrderService orderService, RefundService refundService) {
         this.orderService = orderService;
         this.refundService = refundService;
@@ -49,26 +48,36 @@ public class SellerOrderController {
     }
 
     // Refund handling endpoints
-    @GetMapping("/{orderId}/refunds")
-    public ResponseEntity<Map<String, Object>> getOrderRefunds(@PathVariable Long orderId) {
+    @GetMapping("/{orderId}/items/{itemId}/refund")
+    public ResponseEntity<Map<String, Object>> getOrderItemRefund(
+            @PathVariable Long orderId,
+            @PathVariable Long itemId) {
         return ResponseEntity.ok(Map.of(
-            "refunds", refundService.getRefundsForOrder(orderId)
+            "refund", refundService.getRefundForOrderItem(itemId)
         ));
     }
 
-    @PostMapping("/{orderId}/refunds/{itemId}/process")
+    @PostMapping("/{orderId}/items/{itemId}/refund/process")
     public ResponseEntity<OrderDTO.RefundResponseDTO> processRefund(
             @PathVariable Long orderId,
             @PathVariable Long itemId,
             @Valid @RequestBody OrderDTO.ProcessRefundDTO request) {
+        // Validate that the itemId matches the orderId
+        if (!orderService.validateOrderItemBelongsToOrder(itemId, orderId)) {
+            throw new RuntimeException("Order item does not belong to the specified order");
+        }
         return ResponseEntity.ok(refundService.processRefund(request));
     }
 
-    @PostMapping("/{orderId}/refunds/{itemId}/reject")
+    @PostMapping("/{orderId}/items/{itemId}/refund/reject")
     public ResponseEntity<OrderDTO.RefundResponseDTO> rejectRefund(
             @PathVariable Long orderId,
             @PathVariable Long itemId,
             @Valid @RequestBody OrderDTO.RejectRefundDTO request) {
+        // Validate that the itemId matches the orderId
+        if (!orderService.validateOrderItemBelongsToOrder(itemId, orderId)) {
+            throw new RuntimeException("Order item does not belong to the specified order");
+        }
         return ResponseEntity.ok(refundService.rejectRefund(request));
     }
 } 

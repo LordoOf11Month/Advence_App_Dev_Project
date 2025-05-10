@@ -52,6 +52,18 @@ public class ProductSpecification {
                     root.join("category").get("name").in(filter.getCategories()));
             }
 
+            // Free Shipping filter
+            if (filter.getFreeShipping() != null) {
+                predicate = criteriaBuilder.and(predicate,
+                    criteriaBuilder.equal(root.get("freeShipping"), filter.getFreeShipping()));
+            }
+
+            // Fast Delivery filter
+            if (filter.getFastDelivery() != null) {
+                predicate = criteriaBuilder.and(predicate,
+                    criteriaBuilder.equal(root.get("fastDelivery"), filter.getFastDelivery()));
+            }
+
             return predicate;
         };
     }

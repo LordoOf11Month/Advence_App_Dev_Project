@@ -1,15 +1,12 @@
 package com.example.controllers.seller;
 
-import com.example.controllers.generic.GenericController;
 import com.example.DTO.ProductDTO.ProductResponse;
 import com.example.DTO.ProductDTO.CreateProductRequest;
-import com.example.models.Product;
 import com.example.models.Store;
 import com.example.models.User;
 import com.example.repositories.UserRepository;
 import com.example.security.CustomUserDetails;
 import com.example.services.ProductService;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -23,6 +20,9 @@ import jakarta.validation.Valid;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/seller/products")
@@ -32,7 +32,7 @@ public class SellerProductController {
     private final ProductService productService;
     private final UserRepository userRepository;
     
-    @Autowired
+
     public SellerProductController(ProductService productService, UserRepository userRepository) {
         this.productService = productService;
         this.userRepository = userRepository;
@@ -117,23 +117,69 @@ public class SellerProductController {
     @GetMapping("/stats")
     public ResponseEntity<?> getProductStats() {
         Long storeId = getCurrentSellerStoreId();
-        // TODO: Implement productService.getProductStatsForStore(storeId);
-        return ResponseEntity.ok("Stats for store " + storeId + " - to be implemented");
+        try {
+            // Get total products
+            long totalProducts = productService.findAllByStoreId(storeId, Pageable.unpaged()).getTotalElements();
+            
+            // Get low stock products (less than 10 items)
+            List<ProductResponse> lowStockProducts = productService.findAllByStoreId(storeId, Pageable.unpaged())
+                .getContent()
+                .stream()
+                .filter(p -> p.getStockQuantity() != null && p.getStockQuantity() < 10)
+                .collect(Collectors.toList());
+            
+            // Create stats response
+            Map<String, Object> stats = new HashMap<>();
+            stats.put("totalProducts", totalProducts);
+            stats.put("lowStockProducts", lowStockProducts.size());
+            stats.put("lowStockProductsList", lowStockProducts);
+            
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error fetching product statistics: " + e.getMessage());
+        }
     }
     
     @GetMapping("/low-stock")
-    public ResponseEntity<List<?>> getLowStockProducts() {
+    public ResponseEntity<List<ProductResponse>> getLowStockProducts() {
         Long storeId = getCurrentSellerStoreId();
-        // TODO: Implement productService.getLowStockProductsForStore(storeId);
-        // return ResponseEntity.ok("Low stock products for store " + storeId + " - to be implemented");
-        return ResponseEntity.ok(java.util.Collections.emptyList()); // Return empty list for now
+        try {
+            List<ProductResponse> lowStockProducts = productService.findAllByStoreId(storeId, Pageable.unpaged())
+                .getContent()
+                .stream()
+                .filter(p -> p.getStockQuantity() != null && p.getStockQuantity() < 10)
+                .collect(Collectors.toList());
+            
+            return ResponseEntity.ok(lowStockProducts);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error fetching low stock products: " + e.getMessage());
+        }
     }
     
     @PutMapping("/{id}/stock")
-    public ResponseEntity<?> updateStock(@PathVariable Long id, @RequestParam Integer quantity) {
+    public ResponseEntity<ProductResponse> updateStock(@PathVariable Long id, @RequestParam Integer quantity) {
         Long storeId = getCurrentSellerStoreId();
-        // TODO: Implement productService.updateStockForStoreProduct(id, quantity, storeId);
-        // This needs to verify product 'id' belongs to 'storeId'.
-        return ResponseEntity.ok("Stock updated for product " + id + " in store " + storeId + " - to be implemented");
+        try {
+            // Verify product belongs to store
+            ProductResponse product = productService.findByIdAndStoreId(id, storeId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Product not found in your store"));
+            
+            // Create update request with new stock quantity
+            CreateProductRequest updateRequest = new CreateProductRequest();
+            updateRequest.setTitle(product.getTitle());
+            updateRequest.setDescription(product.getDescription());
+            updateRequest.setPrice(product.getPrice());
+            updateRequest.setCategory(product.getCategory());
+            updateRequest.setStockQuantity(quantity);
+            updateRequest.setImageUrls(product.getImages());
+            
+            // Update product
+            ProductResponse updatedProduct = productService.updateForSeller(id, updateRequest, storeId);
+            return ResponseEntity.ok(updatedProduct);
+        } catch (ResponseStatusException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error updating stock: " + e.getMessage());
+        }
     }
 } 

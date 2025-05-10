@@ -499,7 +499,6 @@ public class AdminEntityNameController extends GenericController<EntityName, Ent
     - GET / - Kullanıcıları yönet
     - GET /{id} - Kullanıcı detayı
     - PUT /{id}/role - Rol güncelle
-    - PUT /{id}/status - Durum güncelle
     - DELETE /{id} - Kullanıcı sil
 
 14. **Payment Method Controller** (`/api/payment-methods`)

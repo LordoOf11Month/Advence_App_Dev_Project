@@ -1,18 +1,13 @@
 package com.example.services;
 
-import com.example.DTO.OrderDTO;
-import com.example.DTO.ProductDTO; // For OrderItemDTO.product conversion
+import com.example.DTO.OrderDTO; // For OrderItemDTO.product conversion
 import com.example.DTO.admin.AdminOrderDTO;
 import com.example.models.OrderEntity;
 import com.example.models.OrderItem;
 import com.example.models.Product; // For looking up product by name
 import com.example.models.Store; // For looking up store by name
-import com.example.models.User; // For looking up user by email
-import com.example.repositories.OrderRepository;
-import com.example.repositories.ProductRepository;
-import com.example.repositories.StoreRepository;
-import com.example.repositories.UserRepository;
-import com.example.repositories.RefundRepository;
+import com.example.models.User;
+import com.example.repositories.*;
 import com.example.services.generic.GenericServiceImpl;
 import com.stripe.exception.StripeException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -29,19 +24,19 @@ import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.HashMap;
 
-import com.example.models.Refund;
-import com.example.models.Address;
+
 import com.example.models.PaymentMethod;
 
 @Service
 public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.OrderResponse, OrderDTO.CreateOrderRequest, Long> {
+
+    private final AddressRepository addressRepository;
 
     private final OrderRepository orderRepository;
     private final ProductRepository productRepository; // For filtering by product name/id
@@ -55,13 +50,14 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
                         StoreRepository storeRepository,
                         UserRepository userRepository,
                         StripeService stripeService,
-                        RefundRepository refundRepository) {
+                        RefundRepository refundRepository, AddressRepository addressRepository) {
         super(orderRepository);
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
         this.storeRepository = storeRepository;
         this.userRepository = userRepository;
         this.stripeService = stripeService;
+        this.addressRepository = addressRepository;
     }
 
     @Override
@@ -78,7 +74,8 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
         order.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
         order.setEstimatedDelivery(LocalDate.now().plusDays(7));
         order.setTrackingNumber(generateTrackingNumber());
-        order.setShippingAddress(createDto.getShippingAddress());
+        order.setShippingAddress(addressRepository.findById(createDto.getShippingAddressId())
+            .orElseThrow(() -> new RuntimeException("Shipping address not found")));
         // Process each order item and create payment intents
         List<OrderItem> orderItems = new ArrayList<>();
         for (OrderDTO.OrderItemDTO itemDto : createDto.getItems()) {
@@ -286,18 +283,9 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
     private OrderDTO.OrderItemDTO convertOrderItemToDto(OrderItem item) {
         if (item == null) return null;
         OrderDTO.OrderItemDTO dto = new OrderDTO.OrderItemDTO();
+        dto.setProductId(item.getProduct().getId());
         dto.setQuantity(item.getQuantity());
         dto.setPriceAtPurchase(item.getPriceAtPurchase());
-        
-        // Product mapping: OrderItemDTO expects ProductDTO.CreateProductRequest
-        if (item.getProduct() != null) {
-            ProductDTO.CreateProductRequest productDto = new ProductDTO.CreateProductRequest();
-            productDto.setTitle(item.getProduct().getName());
-            productDto.setDescription(item.getProduct().getDescription());
-            productDto.setPrice(item.getProduct().getPrice());
-            productDto.setCategory(item.getProduct().getCategory() != null ? item.getProduct().getCategory().getName() : null);
-            dto.setProduct(productDto);
-        }
         return dto;
     }
 
@@ -349,7 +337,8 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
         order.setUser(user);
         order.setStatus(OrderEntity.Status.pending);
         order.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
-        order.setShippingAddress(createDto.getShippingAddress());
+        order.setShippingAddress(addressRepository.findById(createDto.getShippingAddressId())
+            .orElseThrow(() -> new RuntimeException("Shipping address not found")));
         order.setEstimatedDelivery(LocalDate.now().plusDays(7));
         order.setTrackingNumber(generateTrackingNumber());
 
@@ -455,7 +444,8 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
         order.setUser(user);
         order.setStatus(OrderEntity.Status.pending);
         order.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
-        order.setShippingAddress(createDto.getShippingAddress());
+        order.setShippingAddress(addressRepository.findById(createDto.getShippingAddressId())
+            .orElseThrow(() -> new RuntimeException("Shipping address not found")));
         order.setEstimatedDelivery(LocalDate.now().plusDays(7));
         order.setTrackingNumber(generateTrackingNumber());
 
@@ -517,5 +507,11 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
             if (i < 2) sb.append("-");
         }
         return sb.toString();
+    }
+
+    public boolean validateOrderItemBelongsToOrder(Long orderItemId, Long orderId) {
+        OrderItem orderItem = orderRepository.findOrderItemById(orderItemId)
+                .orElseThrow(() -> new RuntimeException("Order item not found"));
+        return orderItem.getOrder().getId().equals(orderId);
     }
 } 

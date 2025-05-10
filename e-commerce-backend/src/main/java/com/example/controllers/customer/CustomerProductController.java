@@ -1,9 +1,8 @@
 package com.example.controllers.customer;
 
-import com.example.services.ProductService;
-import com.example.DTO.ProductDTO.ProductResponse; // Assuming this might be used for future methods
+// import com.example.services.ProductService; // Assuming this might be used for future methods
 // Import other DTOs as needed, e.g., for reviews or favorites
-import org.springframework.http.ResponseEntity;
+// import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 // Import Page, Pageable, List if list-returning methods are added
@@ -13,11 +12,11 @@ import org.springframework.web.bind.annotation.*;
 @PreAuthorize("isAuthenticated()")
 public class CustomerProductController {
 
-    private final ProductService productService; // Or a more specific CustomerProductService if created
+    // private final ProductService productService; // Or a more specific CustomerProductService if created
 
-    public CustomerProductController(ProductService productService) {
-        this.productService = productService;
-    }
+    // public CustomerProductController(ProductService productService) {
+    //     this.productService = productService;
+    // }
 
     // Methods from the template for a customer/user interacting with products:
     // GET /favorites - Kullanıcının favori ürünlerini getir
