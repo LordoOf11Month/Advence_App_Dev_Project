@@ -1,71 +1,71 @@
-Category ID,Category Name,Subcategory ID,Subcategory Name,Child Category ID,Child Category Name,Product ID,Product Name,Price,Description,Brand,Image URL,Stock,Discount
-1,Electronics,101,Mobile Phones,1011,Smartphones,1001,"iPhone 14 Pro",999.99,"Latest iPhone with advanced camera system",Apple,"https://images.unsplash.com/photo-1632661674596-618be0e9d160?w=500",50,0
-1,Electronics,101,Mobile Phones,1011,Smartphones,1002,"Samsung Galaxy S23",899.99,"Premium Android smartphone",Samsung,"https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?w=500",45,10
-1,Electronics,102,Computers & Tablets,1021,Laptops,1003,"MacBook Pro 14-inch",1499.99,"Powerful laptop for professionals",Apple,"https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=500",30,0
-1,Electronics,102,Computers & Tablets,1021,Laptops,1004,"Dell XPS 13",1299.99,"Ultra-portable premium laptop",Dell,"https://images.unsplash.com/photo-1593642634524-b40b5baae6bb?w=500",25,15
-2,Fashion,201,Women,2011,Clothing,2001,"Summer Floral Dress",79.99,"Light and breezy summer dress with floral pattern",Zara,"https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=500",100,20
-2,Fashion,201,Women,2011,Clothing,2002,"High-Waist Jeans",89.99,"Classic high-waist denim jeans",Levis,"https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=500",80,0
-2,Fashion,202,Men,2021,Clothing,2003,"Classic White Shirt",49.99,"Formal cotton shirt for men",Hugo Boss,"https://images.unsplash.com/photo-1598033129183-c4f50c736f10?w=500",120,0
-2,Fashion,202,Men,2021,Clothing,2004,"Slim Fit Blazer",199.99,"Professional blazer for modern men",Calvin Klein,"https://images.unsplash.com/photo-1507679799987-c73779587ccf?w=500",60,15
-3,Home & Living,301,Furniture,3011,Living Room,3001,"3-Seater Sofa",899.99,"Comfortable modern sofa",IKEA,"https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=500",20,10
-3,Home & Living,301,Furniture,3011,Living Room,3002,"Coffee Table",299.99,"Minimalist wooden coffee table",West Elm,"https://images.unsplash.com/photo-1533090481720-856c6e3c1fdc?w=500",30,0
-4,Beauty & Personal Care,401,Makeup,0,0,4001,"MAC Lipstick Collection",24.99,"Long-lasting matte lipstick",MAC,"https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=500",200,0
-4,Beauty & Personal Care,401,Makeup,0,0,4002,"Foundation SPF 30",39.99,"Full coverage liquid foundation",Estee Lauder,"https://images.unsplash.com/photo-1600852306771-c963331f6ed9?w=500",150,5
-4,Beauty & Personal Care,402,Skincare,0,0,4003,"Vitamin C Serum",59.99,"Brightening face serum",The Ordinary,"https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500",100,0
-4,Beauty & Personal Care,402,Skincare,0,0,4004,"Night Cream",49.99,"Hydrating night cream",Neutrogena,"https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=500",80,15
-5,Sports & Outdoors,501,Exercise & Fitness,5011,Treadmills,5001,"Pro Treadmill T1000",1299.99,"Professional grade treadmill",NordicTrack,"https://images.unsplash.com/photo-1576678927484-cc907957088c?w=500",15,20
-5,Sports & Outdoors,501,Exercise & Fitness,5012,Dumbbells,5002,"Adjustable Dumbbell Set",299.99,"20kg adjustable dumbbell set",Bowflex,"https://images.unsplash.com/photo-1586401100295-7a5093aa7f9f?w=500",50,0
-6,Baby & Kids,601,Baby Products,6011,Strollers,6001,"Premium Travel Stroller",399.99,"Lightweight travel stroller",UPPAbaby,"https://images.unsplash.com/photo-1591088398332-8a7791972843?w=500",30,10
-6,Baby & Kids,601,Baby Products,6012,Car Seats,6002,"Convertible Car Seat",299.99,"4-in-1 convertible car seat",Graco,"https://images.unsplash.com/photo-1591324535489-9c78376631dc?w=500",40,0
-6,Baby & Kids,602,Toys,6021,Educational Toys,6003,"Science Kit",49.99,"Educational science experiment kit",National Geographic,"https://images.unsplash.com/photo-1545558014-8692077e9b5c?w=500",100,0
-6,Baby & Kids,602,Toys,6022,Action Figures,6004,"Superhero Action Figure Set",29.99,"Collection of popular superheroes",Marvel,"https://images.unsplash.com/photo-1608889825271-9696283ab804?w=500",150,15
-7,Health & Wellness,701,Vitamins & Supplements,0,0,7001,"Multivitamin Complex",34.99,"Daily multivitamin supplements",NOW Foods,"https://images.unsplash.com/photo-1584308666744-24d5c474f2ae?w=500",200,0
-7,Health & Wellness,702,Medical Supplies,0,0,7002,"First Aid Kit",49.99,"Comprehensive first aid kit",Johnson & Johnson,"https://images.unsplash.com/photo-1603398938378-e54eab446dde?w=500",120,5
-8,Automotive,801,Car Accessories,8011,Seat Covers,8001,"Leather Seat Cover Set",129.99,"Premium leather car seat covers",AutoPro,"https://images.unsplash.com/photo-1618843479313-40f8afb4b4d8?w=500",60,10
-8,Automotive,801,Car Accessories,8012,Dash Cams,8002,"4K Dash Camera",199.99,"High resolution dash cam with night vision",VANTRUE,"https://images.unsplash.com/photo-1617788138017-80ad40651399?w=500",40,0
-9,Grocery & Food,901,Fresh Produce,0,0,9001,"Organic Fruit Basket",49.99,"Selection of seasonal organic fruits",Organic Farms,"https://images.unsplash.com/photo-1610832958506-aa56368176cf?w=500",30,0
-9,Grocery & Food,902,Packaged Foods,0,0,9002,"Gourmet Pasta Set",29.99,"Italian pasta variety pack",Barilla,"https://images.unsplash.com/photo-1551462147-37885dee2088?w=500",100,5
-10,Books & Entertainment,1001,Books,10011,Fiction,10001,"Best Selling Novel Collection",89.99,"Set of 5 bestselling novels",Penguin Books,"https://images.unsplash.com/photo-1512820790803-83ca734da794?w=500",50,15
-10,Books & Entertainment,1001,Books,10012,Non-Fiction,10002,"Self-Development Book Set",69.99,"Popular self-help book collection",Harper Collins,"https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500",40,0
-11,Office Products,1101,Office Supplies,11011,Stationery,11001,"Premium Fountain Pen Set",129.99,"Luxury writing instruments collection",Mont Blanc,"https://images.unsplash.com/photo-1585336261022-680e295ce3fe?w=500",30,0
-11,Office Products,1101,Office Supplies,11012,Printers & Ink,11002,"Color LaserJet Printer",399.99,"Professional office printer",HP,"https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=500",25,10
-12,Pet Supplies,1201,Dog Supplies,0,0,12001,"Premium Dog Food 15kg",79.99,"High-quality dry dog food",Royal Canin,"https://images.unsplash.com/photo-1568640347023-a616a30bc3bd?w=500",100,5
-12,Pet Supplies,1202,Cat Supplies,0,0,12002,"Cat Tree Condo",149.99,"Large cat climbing tower",PetPals,"https://images.unsplash.com/photo-1541781774459-bb2af2f05b55?w=500",40,15
-13,Jewelry & Watches,1301,Women's Jewelry,0,0,13001,"Diamond Pendant Necklace",999.99,"18K gold diamond necklace",Tiffany & Co,"https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?w=500",10,0
-13,Jewelry & Watches,1302,Men's Jewelry,0,0,13002,"Stainless Steel Watch",299.99,"Premium mens watch",Fossil,"https://images.unsplash.com/photo-1524592094714-0f0654e20314?w=500",30,20
-14,Industrial & Scientific,1401,Lab & Scientific,0,0,14001,"Digital Microscope",799.99,"Professional USB microscope",AmScope,"https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?w=500",15,0
-14,Industrial & Scientific,1402,Industrial Supplies,0,0,14002,"Safety Gear Set",199.99,"Complete workplace safety kit",3M,"https://images.unsplash.com/photo-1604328698692-f76ea9498e76?w=500",50,10
-15,Travel & Luggage,1501,Suitcases,0,0,15001,"Hardshell Spinner Luggage",199.99,"Durable travel suitcase",Samsonite,"https://images.unsplash.com/photo-1565031491910-e57fac031c41?w=500",60,15
-15,Travel & Luggage,1502,Backpacks,0,0,15002,"Travel Backpack 40L",129.99,"Anti-theft travel backpack",SwissGear,"https://images.unsplash.com/photo-1553062407-98eeb64c6a45?w=500",80,0
-1,Electronics,103,TV Audio & Video,1031,Televisions,1005,"65-inch 4K OLED TV",1999.99,"Premium OLED Smart TV",LG,"https://images.unsplash.com/photo-1593784991095-a205069470b6?w=500",20,10
-1,Electronics,103,TV Audio & Video,1032,Headphones & Earphones,1006,"Noise Cancelling Headphones",349.99,"Premium wireless headphones",Sony,"https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500",45,0
-2,Fashion,201,Women,2012,Shoes,2005,"Designer High Heels",299.99,"Elegant evening heels",Jimmy Choo,"https://images.unsplash.com/photo-1543163521-1bf539c55dd2?w=500",30,20
-2,Fashion,202,Men,2022,Shoes,2006,"Leather Oxford Shoes",249.99,"Classic formal shoes",Cole Haan,"https://images.unsplash.com/photo-1614252235316-8c857d38b5f4?w=500",40,15
-3,Home & Living,302,Home Decor,3021,Lighting,3003,"Modern Pendant Light",199.99,"Contemporary ceiling light",Philips,"https://images.unsplash.com/photo-1524484485331-a920e742ae05?w=500",40,10
-3,Home & Living,302,Home Decor,3022,Wall Art,3004,"Abstract Canvas Set",149.99,"Set of 3 canvas prints",Art Gallery,"https://images.unsplash.com/photo-1571624436279-b272aff752b5?w=500",25,0
-3,Home & Living,303,Kitchen & Dining,3031,Cookware,3005,"Non-stick Pan Set",199.99,"Premium cookware set",Le Creuset,"https://images.unsplash.com/photo-1584284766765-adb4e225b893?w=500",35,15
-3,Home & Living,303,Kitchen & Dining,3032,Tableware,3006,"Porcelain Dinner Set",149.99,"16-piece dining set",Royal Doulton,"https://images.unsplash.com/photo-1603199506016-b9a594b593c0?w=500",50,0
-4,Beauty & Personal Care,404,Fragrances,0,0,4007,"Designer Perfume",129.99,"Luxury women's fragrance",Chanel,"https://images.unsplash.com/photo-1541643600914-78b084683601?w=500",60,10
-4,Beauty & Personal Care,405,Tools & Accessories,0,0,4008,"Makeup Brush Set",79.99,"Professional makeup brushes",MAC,"https://images.unsplash.com/photo-1567721913486-6585f069b332?w=500",100,20
-5,Sports & Outdoors,503,Sportswear,5031,Clothing,5005,"Men's Running Jacket",89.99,"Lightweight running jacket",Nike,"https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500",75,15
-5,Sports & Outdoors,503,Sportswear,5032,Footwear,5006,"Women's Training Shoes",129.99,"Cross-training athletic shoes",Adidas,"https://images.unsplash.com/photo-1560769629-975ec94e6a86?w=500",60,10
-6,Baby & Kids,602,Toys,6023,Dolls,6005,"Interactive Baby Doll",39.99,"Educational baby doll with accessories",Mattel,"https://images.unsplash.com/photo-1596461404969-9ae70f2830c1?w=500",80,5
-6,Baby & Kids,602,Toys,6024,Board Games,6006,"Family Board Game Set",49.99,"Classic board game collection",Hasbro,"https://images.unsplash.com/photo-1632501641765-e568d28b0015?w=500",70,0
-7,Health & Wellness,703,Personal Care,0,0,7003,"Electric Toothbrush",89.99,"Smart sonic toothbrush",Philips,"https://images.unsplash.com/photo-1559591937-abc3a5d51b93?w=500",90,15
-7,Health & Wellness,704,Sexual Wellness,0,0,7004,"Intimate Care Set",39.99,"Personal care essentials",Durex,"https://images.unsplash.com/photo-1584473457493-17c504be510f?w=500",150,0
-8,Automotive,802,Motorcycle Accessories,0,0,8003,"Motorcycle Helmet",199.99,"DOT certified safety helmet",Bell,"https://images.unsplash.com/photo-1591378603223-e15b45a81640?w=500",30,10
-8,Automotive,803,Car Electronics,0,0,8004,"Car GPS Navigator",149.99,"7-inch touchscreen GPS",Garmin,"https://images.unsplash.com/photo-1619615713569-696192aa3766?w=500",45,5
-9,Grocery & Food,903,Beverages,0,0,9003,"Premium Coffee Set",59.99,"Specialty coffee collection",Starbucks,"https://images.unsplash.com/photo-1559056199-641a0ac8b55e?w=500",120,0
-9,Grocery & Food,904,Snacks,0,0,9004,"Gourmet Nuts Selection",34.99,"Mixed premium nuts",Planters,"https://images.unsplash.com/photo-1599599810694-b5b37304c041?w=500",200,10
-10,Books & Entertainment,1002,Movies & TV Shows,0,0,10003,"4K Movie Collection",79.99,"Premium movie box set",Universal Pictures,"https://images.unsplash.com/photo-1536440136628-849c177e76a1?w=500",70,15
-10,Books & Entertainment,1003,Music,0,0,10004,"Vinyl Record Collection",129.99,"Classic rock vinyl set",Sony Music,"https://images.unsplash.com/photo-1603732551658-5fabbafa84eb?w=500",40,0
-11,Office Products,1102,Office Furniture,0,0,11003,"Ergonomic Office Chair",299.99,"Premium mesh office chair",Herman Miller,"https://images.unsplash.com/photo-1589884629038-b631346a23c0?w=500",25,10
-11,Office Products,1103,Business Technology,0,0,11004,"Video Conference Camera",199.99,"HD webcam with microphone",Logitech,"https://images.unsplash.com/photo-1596566762488-3d67e8b0c661?w=500",40,5
-12,Pet Supplies,1203,Bird Supplies,0,0,12003,"Large Bird Cage",199.99,"Spacious parrot cage",Prevue Pet,"https://images.unsplash.com/photo-1604848698030-c434ba08ece1?w=500",20,10
-12,Pet Supplies,1204,Fish & Aquatic Pets,0,0,12004,"Aquarium Starter Kit",149.99,"Complete 20-gallon setup",Tetra,"https://images.unsplash.com/photo-1522069169874-c58ec4b76be5?w=500",30,15
-13,Jewelry & Watches,1303,Watches,13031,Men's Watches,13003,"Luxury Chronograph Watch",1499.99,"Swiss-made automatic watch",TAG Heuer,"https://images.unsplash.com/photo-1547996160-81dfa63595aa?w=500",15,0
-13,Jewelry & Watches,1303,Watches,13032,Women's Watches,13004,"Rose Gold Watch",899.99,"Elegant women's timepiece",Michael Kors,"https://images.unsplash.com/photo-1523170335258-f5ed11844a49?w=500",25,20
-14,Industrial & Scientific,1403,Safety Supplies,0,0,14003,"Industrial Face Masks",49.99,"N95 protective masks 50pc",3M,"https://images.unsplash.com/photo-1584634731339-252c581abfc5?w=500",200,0
-14,Industrial & Scientific,1404,Tools & Instruments,0,0,14004,"Digital Caliper",79.99,"Precision measuring tool",Mitutoyo,"https://images.unsplash.com/photo-1504917595217-d4dc5ebe6122?w=500",40,5
-15,Travel & Luggage,1503,Travel Accessories,0,0,15003,"Travel Adapter Set",29.99,"Universal power adapter",EPICKA,"https://images.unsplash.com/photo-1484901097220-594e4f5c0b87?w=500",150,10
-15,Travel & Luggage,1504,Travel-sized Essentials,0,0,15004,"Travel Toiletry Kit",39.99,"Complete grooming essentials",Victorinox,"https://images.unsplash.com/photo-1470309864661-68328b2cd0a5?w=500",100,0
+store_id,category-id,Product-id,name,price,description,stock_quantity
+2,3,1001,iPhone 14 Pro,999.99,Latest iPhone with advanced camera system            Brand: Apple,50
+2,3,1002,Samsung Galaxy S23,899.99,Premium Android smartphone            Brand: Samsung,45
+1,7,1003,MacBook Pro 14-inch,1499.99,Powerful laptop for professionals            Brand: Apple,30
+2,7,1004,Dell XPS 13,1299.99,Ultra-portable premium laptop            Brand: Dell,25
+1,33,2001,Summer Floral Dress,79.99,Light and breezy summer dress with floral pattern            Brand: Zara,100
+1,33,2002,High-Waist Jeans,89.99,Classic high-waist denim jeans            Brand: Levis,80
+1,33,2003,Classic White Shirt,49.99,Formal cotton shirt for men            Brand: Hugo Boss,120
+1,33,2004,Slim Fit Blazer,199.99,Professional blazer for modern men            Brand: Calvin Klein,60
+1,48,3001,3-Seater Sofa,899.99,Comfortable modern sofa            Brand: IKEA,20
+1,48,3002,Coffee Table,299.99,Minimalist wooden coffee table            Brand: West Elm,30
+2,69,4001,MAC Lipstick Collection,24.99,Long-lasting matte lipstick            Brand: MAC,200
+1,69,4002,Foundation SPF 30,39.99,Full coverage liquid foundation            Brand: Estee Lauder,150
+1,70,4003,Vitamin C Serum,59.99,Brightening face serum            Brand: The Ordinary,100
+2,70,4004,Night Cream,49.99,Hydrating night cream            Brand: Neutrogena,80
+2,77,5001,Pro Treadmill T1000,1299.99,Professional grade treadmill            Brand: NordicTrack,15
+2,78,5002,Adjustable Dumbbell Set,299.99,20kg adjustable dumbbell set            Brand: Bowflex,50
+1,92,6001,Premium Travel Stroller,399.99,Lightweight travel stroller            Brand: UPPAbaby,30
+2,93,6002,Convertible Car Seat,299.99,4-in-1 convertible car seat            Brand: Graco,40
+1,96,6003,Science Kit,49.99,Educational science experiment kit            Brand: National Geographic,100
+2,97,6004,Superhero Action Figure Set,29.99,Collection of popular superheroes            Brand: Marvel,150
+1,103,7001,Multivitamin Complex,34.99,Daily multivitamin supplements            Brand: NOW Foods,200
+2,104,7002,First Aid Kit,49.99,Comprehensive first aid kit            Brand: Johnson & Johnson,120
+2,110,8001,Leather Seat Cover Set,129.99,Premium leather car seat covers            Brand: AutoPro,60
+1,111,8002,4K Dash Camera,199.99,High resolution dash cam with night vision            Brand: VANTRUE,40
+2,117,9001,Organic Fruit Basket,49.99,Selection of seasonal organic fruits            Brand: Organic Farms,30
+2,118,9002,Gourmet Pasta Set,29.99,Italian pasta variety pack            Brand: Barilla,100
+1,125,10001,Best Selling Novel Collection,89.99,Set of 5 bestselling novels            Brand: Penguin Books,50
+2,126,10002,Self-Development Book Set,69.99,Popular self-help book collection            Brand: Harper Collins,40
+1,134,11001,Premium Fountain Pen Set,129.99,Luxury writing instruments collection            Brand: Mont Blanc,30
+1,135,11002,Color LaserJet Printer,399.99,Professional office printer            Brand: HP,25
+2,141,12001,Premium Dog Food 15kg,79.99,High-quality dry dog food            Brand: Royal Canin,100
+2,142,12002,Cat Tree Condo,149.99,Large cat climbing tower            Brand: PetPals,40
+2,148,13001,Diamond Pendant Necklace,999.99,18K gold diamond necklace            Brand: Tiffany & Co,10
+2,149,13002,Stainless Steel Watch,299.99,Premium mens watch            Brand: Fossil,30
+1,156,14001,Digital Microscope,799.99,Professional USB microscope            Brand: AmScope,15
+1,157,14002,Safety Gear Set,199.99,Complete workplace safety kit            Brand: 3M,50
+1,161,15001,Hardshell Spinner Luggage,199.99,Durable travel suitcase            Brand: Samsonite,60
+2,162,15002,Travel Backpack 40L,129.99,Anti-theft travel backpack            Brand: SwissGear,80
+2,13,1005,65-inch 4K OLED TV,1999.99,Premium OLED Smart TV            Brand: LG,20
+2,14,1006,Noise Cancelling Headphones,349.99,Premium wireless headphones            Brand: Sony,45
+1,34,2005,Designer High Heels,299.99,Elegant evening heels            Brand: Jimmy Choo,30
+2,39,2006,Leather Oxford Shoes,249.99,Classic formal shoes            Brand: Cole Haan,40
+1,52,3003,Modern Pendant Light,199.99,Contemporary ceiling light            Brand: Philips,40
+1,53,3004,Abstract Canvas Set,149.99,Set of 3 canvas prints            Brand: Art Gallery,25
+1,57,3005,Non-stick Pan Set,199.99,Premium cookware set            Brand: Le Creuset,35
+1,58,3006,Porcelain Dinner Set,149.99,16-piece dining set            Brand: Royal Doulton,50
+2,72,4007,Designer Perfume,129.99,Luxury women's fragrance            Brand: Chanel,60
+2,73,4008,Makeup Brush Set,79.99,Professional makeup brushes            Brand: MAC,100
+1,84,5005,Men's Running Jacket,89.99,Lightweight running jacket            Brand: Nike,75
+1,85,5006,Women's Training Shoes,129.99,Cross-training athletic shoes            Brand: Adidas,60
+1,98,6005,Interactive Baby Doll,39.99,Educational baby doll with accessories            Brand: Mattel,80
+1,99,6006,Family Board Game Set,49.99,Classic board game collection            Brand: Hasbro,70
+2,105,7003,Electric Toothbrush,89.99,Smart sonic toothbrush            Brand: Philips,90
+1,106,7004,Intimate Care Set,39.99,Personal care essentials            Brand: Durex,150
+2,112,8003,Motorcycle Helmet,199.99,DOT certified safety helmet            Brand: Bell,30
+1,113,8004,Car GPS Navigator,149.99,7-inch touchscreen GPS            Brand: Garmin,45
+2,119,9003,Premium Coffee Set,59.99,Specialty coffee collection            Brand: Starbucks,120
+2,120,9004,Gourmet Nuts Selection,34.99,Mixed premium nuts            Brand: Planters,200
+2,128,10003,4K Movie Collection,79.99,Premium movie box set            Brand: Universal Pictures,70
+1,130,10004,Vinyl Record Collection,129.99,Classic rock vinyl set            Brand: Sony Music,40
+1,136,11003,Ergonomic Office Chair,299.99,Premium mesh office chair            Brand: Herman Miller,25
+1,137,11004,Video Conference Camera,199.99,HD webcam with microphone            Brand: Logitech,40
+1,143,12003,Large Bird Cage,199.99,Spacious parrot cage            Brand: Prevue Pet,20
+1,144,12004,Aquarium Starter Kit,149.99,Complete 20-gallon setup            Brand: Tetra,30
+1,151,13003,Luxury Chronograph Watch,1499.99,Swiss-made automatic watch            Brand: TAG Heuer,15
+2,152,13004,Rose Gold Watch,899.99,Elegant women's timepiece            Brand: Michael Kors,25
+1,158,14003,Industrial Face Masks,49.99,N95 protective masks 50pc            Brand: 3M,200
+2,159,14004,Digital Caliper,79.99,Precision measuring tool            Brand: Mitutoyo,40
+1,163,15003,Travel Adapter Set,29.99,Universal power adapter            Brand: EPICKA,150
+2,164,15004,Travel Toiletry Kit,39.99,Complete grooming essentials            Brand: Victorinox,100

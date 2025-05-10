@@ -1,0 +1,165 @@
+id,name,parent_id
+1,Electronics,
+2,Mobile Phones,1
+3,Smartphones,2
+4,Feature Phones,2
+5,Phone Accessories,2
+6,Computers & Tablets,1
+7,Laptops,6
+8,Desktops,6
+9,Tablets,6
+10,"Computer Components (RAM, SSD, GPU)",6
+11,"Computer Accessories (Mice, Keyboards, Webcams)",6
+12,"TV, Audio & Video",1
+13,Televisions,12
+14,Headphones & Earphones,12
+15,Speakers,12
+16,Soundbars,12
+17,Projectors,12
+18,Cameras & Photography,1
+19,Digital Cameras,18
+20,Lenses,18
+21,Drones,18
+22,Camera Accessories,18
+23,Gaming,1
+24,Gaming Consoles,23
+25,Games,23
+26,Gaming Accessories,23
+27,Smart Home,1
+28,Smart Lights,27
+29,"Smart Assistants (Alexa, Google Home)",27
+30,"Smart Security (Cameras, Locks)",27
+31,Fashion,
+32,Women,31
+33,"Clothing (Dresses, Tops, Pants, Jackets)",32
+34,"Shoes (Heels, Sneakers, Boots)",32
+35,Bags & Wallets,32
+36,"Accessories (Scarves, Belts, Hats)",32
+37,Men,31
+38,"Clothing (Shirts, Pants, Suits, Jackets)",37
+39,"Shoes (Formal, Casual, Sneakers)",37
+40,Bags & Wallets,37
+41,"Accessories (Ties, Belts, Hats)",37
+42,Kids,31
+43,Clothing,42
+44,Shoes,42
+45,Accessories,42
+46,"Home, Furniture & Kitchen",
+47,Furniture,46
+48,Living Room Furniture,47
+49,Bedroom Furniture,47
+50,Office Furniture,47
+51,Home Decor,46
+52,Lighting,51
+53,Wall Art,51
+54,Rugs & Carpets,51
+55,Curtains,51
+56,Kitchen & Dining,46
+57,Cookware,56
+58,Tableware,56
+59,Kitchen Appliances,56
+60,Bedding,46
+61,Bed Sheets,60
+62,Pillows,60
+63,Comforters,60
+64,Storage & Organization,46
+65,Wardrobes,64
+66,Shelves,64
+67,Organizers,64
+68,Beauty & Personal Care,
+69,Makeup,68
+70,Skincare,68
+71,Hair Care,68
+72,Fragrances,68
+73,"Tools & Accessories (Hair Dryers, Straighteners)",68
+74,Men's Grooming,68
+75,"Sports, Outdoors & Fitness",
+76,Exercise & Fitness,75
+77,Treadmills,76
+78,Dumbbells,76
+79,Yoga Mats,76
+80,Outdoor Recreation,75
+81,Camping & Hiking Gear,80
+82,Bicycles,80
+83,Sportswear,75
+84,Clothing,83
+85,Footwear,83
+86,Team Sports,75
+87,Football,86
+88,Basketball,86
+89,Tennis,86
+90,"Baby, Toys & Kids",
+91,Baby Products,90
+92,Strollers,91
+93,Car Seats,91
+94,Baby Care,91
+95,Toys,90
+96,Educational Toys,95
+97,Action Figures,95
+98,Dolls,95
+99,Board Games,95
+100,Puzzles,95
+101,Kids' Furniture,90
+102,Health & Wellness,
+103,Vitamins & Supplements,102
+104,Medical Supplies,102
+105,Personal Care,102
+106,Sexual Wellness,102
+107,First Aid,102
+108,Automotive,
+109,Car Accessories,108
+110,Seat Covers,109
+111,Dash Cams,109
+112,Motorcycle Accessories,108
+113,"Car Electronics (GPS, Alarms)",108
+114,Tires & Wheels,108
+115,Tools & Equipment,108
+116,Grocery & Food,
+117,Fresh Produce,116
+118,Packaged Foods,116
+119,Beverages,116
+120,Snacks,116
+121,Organic & Health Foods,116
+122,"Household Essentials (Detergents, Cleaners)",116
+123,"Books, Movies & Music",
+124,Books,123
+125,Fiction,124
+126,Non-Fiction,124
+127,Educational,124
+128,Movies & TV Shows,123
+129,Music,123
+130,CDs & Vinyl,129
+131,Musical Instruments,129
+132,Office Products,
+133,Office Supplies,132
+134,Stationery,133
+135,Printers & Ink,133
+136,Office Furniture,132
+137,Business Technology,132
+138,Projectors,137
+139,Office Phones,137
+140,Pet Supplies,
+141,Dog Supplies,140
+142,Cat Supplies,140
+143,Bird Supplies,140
+144,Fish & Aquatic Pets,140
+145,Pet Food,140
+146,Pet Toys & Accessories,140
+147,Jewelry & Watches,
+148,Women's Jewelry,147
+149,Men's Jewelry,147
+150,Watches,147
+151,Men's Watches,150
+152,Women's Watches,150
+153,Fine Jewelry,147
+154,Fashion Jewelry,147
+155,Industrial & Scientific,
+156,Lab & Scientific Products,155
+157,Industrial Supplies,155
+158,Safety Supplies,155
+159,Tools & Instruments,155
+160,Travel & Luggage,
+161,Suitcases,160
+162,Backpacks,160
+163,Travel Accessories,160
+164,Travel-sized Essentials,160
