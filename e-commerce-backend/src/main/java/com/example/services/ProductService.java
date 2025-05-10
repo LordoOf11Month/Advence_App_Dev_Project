@@ -11,6 +11,7 @@ import com.example.repositories.specifications.ProductSpecification;
 import com.example.services.generic.GenericServiceImpl;
 import org.springframework.stereotype.Service;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -33,19 +34,24 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
     }
 
     // Fetch all products
+    @Transactional(readOnly = true)
     public List<ProductResponse> listAllProducts() {
-        return findAll();
+        return productRepository.findAllWithImages().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 
     // Browse and filter products
+    @Transactional(readOnly = true)
     public Page<ProductResponse> browseProducts(ProductFilterRequest filter, Pageable pageable) {
         Specification<Product> spec = ProductSpecification.filterBy(filter);
         return findAll(spec, pageable);
     }
 
     // Get products by store ID
+    @Transactional(readOnly = true)
     public List<ProductResponse> findByStore(Long storeId) {
-        return productRepository.findByStore_Id(storeId).stream()
+        return productRepository.findByStoreIdWithImagesAndCategory(storeId).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
@@ -84,6 +90,13 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
     }
 
     @Override
+    public Optional<ProductResponse> findById(Long id) {
+        return productRepository.findByIdWithImages(id)
+                .map(this::convertToDto);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
     protected ProductResponse convertToDto(Product product) {
         ProductResponse response = new ProductResponse();
         response.setId(product.getId());

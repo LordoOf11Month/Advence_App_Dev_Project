@@ -18,7 +18,7 @@ public class Category {
     @Column(name = "name", length = 120, nullable = false)
     private String name;
 
-    @ManyToOne
+    @ManyToOne()
     @JoinColumn(name = "parent_category_id")
     private Category parentCategory;
 

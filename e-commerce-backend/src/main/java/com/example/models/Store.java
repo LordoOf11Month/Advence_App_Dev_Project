@@ -15,7 +15,7 @@ public class Store {
     @Column(name = "store_id")
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "seller_id", nullable = false)
     private User seller;
 
@@ -56,7 +56,7 @@ public class Store {
     @Column(name = "account_number", length = 50)
     private String accountNumber;
 
-    @OneToMany(mappedBy = "store")
+    @OneToMany(mappedBy = "store", fetch = FetchType.LAZY)
     private List<Product> products;
 
     //address information

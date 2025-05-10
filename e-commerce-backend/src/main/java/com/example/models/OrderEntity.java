@@ -19,7 +19,7 @@ public class OrderEntity {
     @Column(name = "order_id")
     private Long id;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
@@ -32,11 +32,11 @@ public class OrderEntity {
     @Column(name = "stripe_charge_id", length = 255)
     private String stripeChargeId;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "payment_method_id")
     private PaymentMethod paymentMethod;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "shipping_address", nullable = false)
     private Address shippingAddress;
 
@@ -61,7 +61,7 @@ public class OrderEntity {
     @Column(name = "tracking_number", length = 50)
     private String trackingNumber;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OrderItem> orderItems;
 }
 
