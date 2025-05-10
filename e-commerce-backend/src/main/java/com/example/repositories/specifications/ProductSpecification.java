@@ -11,12 +11,6 @@ public class ProductSpecification {
 
     public static Specification<Product> filterBy(ProductDTO.ProductFilterRequest filter) {
         return (root, query, criteriaBuilder) -> {
-            // Use join fetch for category to prevent LazyInitializationException
-            if (query.getResultType().equals(Product.class)) {
-                root.fetch("category", JoinType.LEFT);
-                root.fetch("images", JoinType.LEFT);
-            }
-
             Predicate predicate = criteriaBuilder.conjunction(); // Default predicate: `true`
 
             // Handle "search" parameter for title & description

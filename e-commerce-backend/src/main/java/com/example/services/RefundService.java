@@ -40,22 +40,39 @@ public class RefundService {
 
     @Transactional
     public OrderDTO.RefundResponseDTO requestRefund(OrderDTO.RefundRequestDTO request) {
+        // Get current user
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        // Validate order item exists and belongs to user
         OrderItem orderItem = orderRepository.findOrderItemById(request.getOrderItemId())
                 .orElseThrow(() -> new RuntimeException("Order item not found"));
 
+        if (orderItem.getOrder().getUser().getId() != user.getId()) {
+            throw new RuntimeException("Order item does not belong to the current user");
+        }
+
+        // Validate order status
+        if (orderItem.getOrder().getStatus() != OrderEntity.Status.delivered) {
+            throw new RuntimeException("Refund can only be requested for delivered orders");
+        }
+
+        // Check if refund already exists
         if (refundRepository.findByOrderItem_OrderItemId(request.getOrderItemId()).isPresent()) {
             throw new RuntimeException("Order item already has a refund request");
         }
 
+        // Validate payment information
         if (orderItem.getStripeChargeId() == null) {
             throw new RuntimeException("Cannot refund: No charge ID found for this order item");
         }
 
+        // Create refund request
         Refund refund = new Refund();
         refund.setOrderItem(orderItem);
         refund.setStatus(Refund.RefundStatus.PENDING);
         refund.setReason(request.getReason());
-        // Default to 100% refund amount
         refund.setAmount(orderItem.getPriceAtPurchase().multiply(BigDecimal.valueOf(orderItem.getQuantity())));
         refund.setRequestedAt(LocalDateTime.now());
         
@@ -65,10 +82,13 @@ public class RefundService {
 
     @Transactional
     public OrderDTO.RefundResponseDTO processRefund(OrderDTO.ProcessRefundDTO request) {
-        Refund refund = refundRepository.findPendingRefundByOrderItemId(request.getOrderItemId())
+        // Validate refund exists and is pending
+        Refund refund = refundRepository.findByOrderItem_OrderItemIdAndStatus(request.getOrderItemId(), Refund.RefundStatus.PENDING)
                 .orElseThrow(() -> new RuntimeException("No pending refund found for this order item"));
 
         OrderItem orderItem = refund.getOrderItem();
+
+        // Validate payment information
         if (orderItem.getStripeChargeId() == null) {
             throw new RuntimeException("Cannot refund: No charge ID found for this order item");
         }
@@ -77,6 +97,10 @@ public class RefundService {
         BigDecimal maxRefundAmount = orderItem.getPriceAtPurchase().multiply(BigDecimal.valueOf(orderItem.getQuantity()));
         if (request.getRefundAmount().compareTo(maxRefundAmount) > 0) {
             throw new RuntimeException("Refund amount cannot exceed the original payment amount");
+        }
+
+        if (request.getRefundAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("Refund amount must be greater than zero");
         }
 
         try {
@@ -106,8 +130,13 @@ public class RefundService {
 
     @Transactional
     public OrderDTO.RefundResponseDTO rejectRefund(OrderDTO.RejectRefundDTO request) {
-        Refund refund = refundRepository.findPendingRefundByOrderItemId(request.getOrderItemId())
+        // Validate refund exists and is pending
+        Refund refund = refundRepository.findByOrderItem_OrderItemIdAndStatus(request.getOrderItemId(), Refund.RefundStatus.PENDING)
                 .orElseThrow(() -> new RuntimeException("No pending refund found for this order item"));
+
+        if (request.getRejectionReason() == null || request.getRejectionReason().trim().isEmpty()) {
+            throw new RuntimeException("Rejection reason is required");
+        }
 
         refund.setStatus(Refund.RefundStatus.REJECTED);
         refund.setRejectionReason(request.getRejectionReason());
@@ -128,8 +157,18 @@ public class RefundService {
     }
 
     public List<OrderDTO.RefundResponseDTO> getRefundsForOrder(Long orderId) {
+        // Validate order exists
         OrderEntity order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new RuntimeException("Order not found"));
+
+        // Validate user has access to this order
+        String username = SecurityContextHolder.getContext().getAuthentication().getName();
+        User user = userRepository.findByEmail(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (order.getUser().getId() != user.getId()) {
+            throw new RuntimeException("Order does not belong to the current user");
+        }
 
         return refundRepository.findByOrderItem_Order_Id(orderId).stream()
                 .map(this::convertToRefundResponse)
