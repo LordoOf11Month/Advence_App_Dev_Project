@@ -3,6 +3,7 @@ package com.example.services;
 import com.example.DTO.ProductDTO.*;
 import com.example.models.Product;
 import com.example.models.Store;
+import com.example.models.ProductImage;
 import com.example.repositories.ProductRepository;
 import com.example.repositories.StoreRepository;
 import com.example.repositories.generic.GenericRepository;
@@ -93,6 +94,15 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
         response.setInStock(product.getStockQuantity() > 0);
         response.setCreatedAt(product.getCreatedAt());
         response.setUpdatedAt(product.getUpdatedAt());
+        
+        // Add image URLs to response
+        if (product.getImages() != null) {
+            List<String> imageUrls = product.getImages().stream()
+                .map(ProductImage::getImageUrl)
+                .collect(Collectors.toList());
+            response.setImages(imageUrls);
+        }
+        
         return response;
     }
 
@@ -103,6 +113,21 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
         product.setDescription(request.getDescription());
         product.setPrice(request.getPrice());
         product.setStockQuantity(request.getStockQuantity() != null ? request.getStockQuantity() : 0);
+        
+        // Handle image URLs
+        if (request.getImageUrls() != null && !request.getImageUrls().isEmpty()) {
+            List<ProductImage> productImages = request.getImageUrls().stream()
+                .map(url -> {
+                    ProductImage image = new ProductImage();
+                    image.setImageUrl(url);
+                    image.setProduct(product);
+                    image.setIsPrimary(product.getImages() == null || product.getImages().isEmpty());
+                    return image;
+                })
+                .collect(Collectors.toList());
+            product.setImages(productImages);
+        }
+        
         return product;
     }
 
@@ -135,6 +160,25 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
         if (request.getStockQuantity() != null) {
             existingProduct.setStockQuantity(request.getStockQuantity());
         }
+        
+        // Handle image URLs update
+        if (request.getImageUrls() != null) {
+            // Clear existing images
+            existingProduct.getImages().clear();
+            
+            // Add new images
+            List<ProductImage> productImages = request.getImageUrls().stream()
+                .map(url -> {
+                    ProductImage image = new ProductImage();
+                    image.setImageUrl(url);
+                    image.setProduct(existingProduct);
+                    image.setIsPrimary(existingProduct.getImages().isEmpty());
+                    return image;
+                })
+                .collect(Collectors.toList());
+            existingProduct.getImages().addAll(productImages);
+        }
+        
         return existingProduct;
     }
 

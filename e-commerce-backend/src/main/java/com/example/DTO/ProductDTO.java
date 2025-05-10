@@ -32,6 +32,8 @@ public class ProductDTO {
         @NotBlank
         private String category;
         private Integer stockQuantity;
+        @NotEmpty
+        private List<String> imageUrls; // List of image URLs to be stored
     }
 
     @Data
