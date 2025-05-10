@@ -1,153 +1,17 @@
 import { Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { HttpClient, HttpParams } from '@angular/common/http';
+import { Observable, of, throwError } from 'rxjs';
+import { map, catchError, tap } from 'rxjs/operators';
 import { Product, Category, Banner } from '../models/product.model';
 
 @Injectable({
   providedIn: 'root'
 })
 export class ProductService {
-  // Mock data for demonstration purposes
-  private products: Product[] = [
-    {
-      id: 1001,
-      title: 'Men\'s Casual T-Shirt',
-      price: 199.99,
-      originalPrice: 299.99,
-      discountPercentage: 33,
-      description: 'Comfortable cotton t-shirt with a modern design.',
-      category: 'men-clothing',
-      brand: 'Fashion Brand',
-      rating: 4.5,
-      reviewCount: 120,
-      images: [
-        'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
-        'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3'
-      ],
-      colors: ['Black', 'White', 'Blue'],
-      sizes: ['S', 'M', 'L', 'XL'],
-      isFavorite: false,
-      inStock: true,
-      freeShipping: true,
-      fastDelivery: true,
-      sellerId: 'seller1',
-      sellerName: 'Fashion Store'
-    },
-    {
-      id: 1002,
-      title: 'Women\'s Summer Dress',
-      price: 349.99,
-      originalPrice: 499.99,
-      discountPercentage: 30,
-      description: 'Elegant summer dress perfect for casual outings.',
-      category: 'women-clothing',
-      brand: 'Elegance',
-      rating: 4.8,
-      reviewCount: 85,
-      images: [
-        'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
-        'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3'
-      ],
-      colors: ['Red', 'Blue', 'Yellow'],
-      sizes: ['XS', 'S', 'M', 'L'],
-      isFavorite: true,
-      inStock: true,
-      freeShipping: true,
-      sellerId: 'seller2',
-      sellerName: 'Elegance Boutique'
-    },
-    {
-      id: 3,
-      title: 'Sports Running Shoes',
-      price: 599.99,
-      originalPrice: 799.99,
-      discountPercentage: 25,
-      description: 'Comfortable running shoes with advanced cushioning.',
-      category: 'shoes',
-      brand: 'SportEx',
-      rating: 4.6,
-      reviewCount: 210,
-      images: [
-        'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
-        'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3'
-      ],
-      colors: ['Black', 'White', 'Blue', 'Red'],
-      sizes: ['39', '40', '41', '42', '43', '44'],
-      isFavorite: false,
-      inStock: true,
-      fastDelivery: true,
-      sellerId: 'seller3',
-      sellerName: 'SportEx Store'
-    },
-    {
-      id: 4,
-      title: 'Smart Watch Series 5',
-      price: 1299.99,
-      originalPrice: 1599.99,
-      discountPercentage: 19,
-      description: 'Advanced smartwatch with health monitoring features.',
-      category: 'electronics',
-      brand: 'TechGear',
-      rating: 4.7,
-      reviewCount: 156,
-      images: [
-        'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
-        'https://images.unsplash.com/photo-1579586337278-3befd40fd17a?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3'
-      ],
-      colors: ['Black', 'Silver', 'Gold'],
-      isFavorite: true,
-      inStock: true,
-      freeShipping: true,
-      fastDelivery: true,
-      sellerId: 'seller4',
-      sellerName: 'TechGear Store'
-    },
-    {
-      id: 5,
-      title: 'Stylish Backpack',
-      price: 249.99,
-      originalPrice: 349.99,
-      discountPercentage: 29,
-      description: 'Durable and stylish backpack with multiple compartments.',
-      category: 'accessories',
-      brand: 'UrbanStyle',
-      rating: 4.3,
-      reviewCount: 92,
-      images: [
-        'https://images.unsplash.com/photo-1553062407-98eeb64c6a62?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
-        'https://images.unsplash.com/photo-1581605405669-fcdf81165afa?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3'
-      ],
-      colors: ['Black', 'Gray', 'Blue'],
-      isFavorite: false,
-      inStock: true,
-      freeShipping: true,
-      sellerId: 'seller5',
-      sellerName: 'UrbanStyle Store'
-    },
-    {
-      id: 6,
-      title: 'Wireless Headphones',
-      price: 799.99,
-      originalPrice: 999.99,
-      discountPercentage: 20,
-      description: 'High-quality wireless headphones with noise cancellation.',
-      category: 'electronics',
-      brand: 'SoundPro',
-      rating: 4.9,
-      reviewCount: 178,
-      images: [
-        'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3',
-        'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.0.3'
-      ],
-      colors: ['Black', 'White', 'Red'],
-      isFavorite: true,
-      inStock: true,
-      freeShipping: true,
-      fastDelivery: true,
-      sellerId: 'seller6',
-      sellerName: 'SoundPro Store'
-    }
-  ];
-
+  // API URL
+  private apiUrl = 'http://localhost:8080/api/public/products';
+  
+  // Keep categories and banners as mock data for now
   private categories: Category[] = [
     {
       id: 1,
@@ -592,46 +456,297 @@ export class ProductService {
     }
   ];
 
-  constructor() { }
+  constructor(private http: HttpClient) { }
+
+  // Main method to transform backend response to our frontend Product model
+  private transformApiProduct(apiProduct: any): Product {
+    // Log the raw API product data to debug category structure
+    console.log('Raw API product data:', JSON.stringify(apiProduct, null, 2));
+    
+    // Process category data with improved handling of nested structures
+    let categoryData = '';
+    
+    if (apiProduct.category) {
+      if (typeof apiProduct.category === 'object') {
+        // If category is an object with name property
+        categoryData = apiProduct.category.name || '';
+        
+        // If we have a slug use that instead as it's more consistent for routing
+        if (apiProduct.category.slug) {
+          categoryData = apiProduct.category.slug;
+        }
+      } else if (typeof apiProduct.category === 'string') {
+        // If category is directly a string
+        categoryData = apiProduct.category;
+      }
+    } else if (apiProduct.categoryName) {
+      // Fallback to categoryName if available
+      categoryData = apiProduct.categoryName;
+    } else if (apiProduct.categoryId) {
+      // If we have categoryId but no name, try to find the category from our list
+      const foundCategory = this.findCategoryById(apiProduct.categoryId);
+      if (foundCategory) {
+        categoryData = foundCategory.slug || foundCategory.name;
+      }
+    }
+    
+    // Default values for required fields if they don't exist in API response
+    return {
+      id: apiProduct.id,
+      title: apiProduct.name || apiProduct.title || 'Untitled Product',
+      description: apiProduct.description || '',
+      price: apiProduct.price || 0,
+      originalPrice: apiProduct.originalPrice || apiProduct.original_price,
+      discountPercentage: apiProduct.discountPercentage || apiProduct.discount_percentage,
+      category: categoryData,
+      brand: this.extractBrandData(apiProduct),
+      rating: apiProduct.rating || (apiProduct.totalRating && apiProduct.ratingCount 
+                ? apiProduct.totalRating / apiProduct.ratingCount 
+                : 4.0), // Calculate rating from total and count if available
+      reviewCount: apiProduct.reviewCount || apiProduct.rating_count || 0,
+      images: this.extractImages(apiProduct),
+      colors: apiProduct.colors || apiProduct.variants?.map((v: any) => v.color).filter(Boolean) || [],
+      sizes: apiProduct.sizes || apiProduct.variants?.map((v: any) => v.size).filter(Boolean) || [],
+      freeShipping: apiProduct.freeShipping || apiProduct.free_shipping || false,
+      fastDelivery: apiProduct.fastDelivery || apiProduct.fast_delivery || false,
+      inStock: this.determineStockStatus(apiProduct),
+      sellerId: this.extractSellerId(apiProduct),
+      sellerName: this.extractSellerName(apiProduct),
+      variants: apiProduct.variants || [],
+      isFavorite: apiProduct.isFavorite || false
+    };
+  }
+  
+  // Helper methods to extract data consistently
+  private extractBrandData(apiProduct: any): string {
+    if (apiProduct.brand) {
+      if (typeof apiProduct.brand === 'object') {
+        return apiProduct.brand.name || '';
+      }
+      return apiProduct.brand;
+    }
+    return apiProduct.brandName || '';
+  }
+  
+  private extractImages(apiProduct: any): string[] {
+    if (apiProduct.images && Array.isArray(apiProduct.images)) {
+      return apiProduct.images;
+    }
+    
+    if (apiProduct.images && typeof apiProduct.images === 'object' && !Array.isArray(apiProduct.images)) {
+      // Handle case where images might be an object with URLs as values
+      return Object.values(apiProduct.images);
+    }
+    
+    if (apiProduct.image) {
+      return [apiProduct.image];
+    }
+    
+    if (apiProduct.imageUrl) {
+      return [apiProduct.imageUrl];
+    }
+    
+    return ['https://via.placeholder.com/300'];
+  }
+  
+  private determineStockStatus(apiProduct: any): boolean {
+    if (apiProduct.inStock !== undefined) {
+      return apiProduct.inStock;
+    }
+    
+    if (apiProduct.stock_quantity !== undefined) {
+      return apiProduct.stock_quantity > 0;
+    }
+    
+    if (apiProduct.stockQuantity !== undefined) {
+      return apiProduct.stockQuantity > 0;
+    }
+    
+    return true; // Default to in stock
+  }
+  
+  private extractSellerId(apiProduct: any): string {
+    if (apiProduct.seller && apiProduct.seller.id) {
+      return apiProduct.seller.id.toString();
+    }
+    
+    if (apiProduct.sellerId) {
+      return apiProduct.sellerId.toString();
+    }
+    
+    if (apiProduct.store_id) {
+      return apiProduct.store_id.toString();
+    }
+    
+    if (apiProduct.storeId) {
+      return apiProduct.storeId.toString();
+    }
+    
+    return '1'; // Default seller ID
+  }
+  
+  private extractSellerName(apiProduct: any): string {
+    if (apiProduct.seller && apiProduct.seller.name) {
+      return apiProduct.seller.name;
+    }
+    
+    if (apiProduct.sellerName) {
+      return apiProduct.sellerName;
+    }
+    
+    if (apiProduct.storeName) {
+      return apiProduct.storeName;
+    }
+    
+    return 'Store'; // Default store name
+  }
+  
+  // Helper method to find a category by its ID
+  private findCategoryById(categoryId: number): Category | undefined {
+    // First check top-level categories
+    let result = this.categories.find(cat => cat.id === categoryId);
+    if (result) return result;
+    
+    // Then check subcategories using recursive function
+    for (const category of this.categories) {
+      result = this.findSubcategoryById(category, categoryId);
+      if (result) return result;
+    }
+    
+    return undefined;
+  }
+  
+  // Recursive function to find subcategory by ID
+  private findSubcategoryById(category: Category, id: number): Category | undefined {
+    if (!category.subcategories) return undefined;
+    
+    for (const subcat of category.subcategories) {
+      if (subcat.id === id) return subcat;
+      
+      const result = this.findSubcategoryById(subcat, id);
+      if (result) return result;
+    }
+    
+    return undefined;
+  }
 
   getProducts(): Observable<Product[]> {
-    return of(this.products);
+    return this.http.get<any>(`${this.apiUrl}/all`).pipe(
+      tap(response => console.log('Raw API Response:', JSON.stringify(response, null, 2))),
+      map(response => {
+        console.log('API Response for products:', response);
+        // Transform the API response to match our Product model
+        return Array.isArray(response) 
+          ? response.map(item => this.transformApiProduct(item))
+          : [];
+      }),
+      catchError(error => {
+        console.error('Error fetching products:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   getProductById(id: number): Observable<Product | undefined> {
-    const product = this.products.find(p => p.id === id);
-    return of(product);
+    return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
+      tap(response => console.log(`Raw API Response for product ${id}:`, JSON.stringify(response, null, 2))),
+      map(response => {
+        console.log(`API Response for product ${id}:`, response);
+        return this.transformApiProduct(response);
+      }),
+      catchError(error => {
+        console.error(`Error fetching product with ID ${id}:`, error);
+        return throwError(() => error);
+      })
+    );
   }
 
   getProductsByCategory(category: string): Observable<Product[]> {
-    const filteredProducts = this.products.filter(p => p.category === category);
-    return of(filteredProducts);
+    const params = new HttpParams().set('category', category);
+    
+    return this.http.get<any>(this.apiUrl, { params }).pipe(
+      tap(response => console.log(`Raw API Response for category ${category}:`, JSON.stringify(response, null, 2))),
+      map(response => {
+        console.log(`API Response for category ${category}:`, response);
+        // Handle both array responses and paginated responses
+        const items = response && response.content ? response.content : response;
+        return Array.isArray(items) 
+          ? items.map(item => this.transformApiProduct(item))
+          : [];
+      }),
+      catchError(error => {
+        console.error(`Error fetching products for category ${category}:`, error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  getProductsByStore(storeId: number): Observable<Product[]> {
+    return this.http.get<any>(`${this.apiUrl}/stores/${storeId}`).pipe(
+      map(response => {
+        console.log(`API Response for store ${storeId}:`, response);
+        return Array.isArray(response) 
+          ? response.map(item => this.transformApiProduct(item))
+          : [];
+      }),
+      catchError(error => {
+        console.error(`Error fetching products for store ${storeId}:`, error);
+        return throwError(() => error);
+      })
+    );
   }
 
   getFeaturedProducts(): Observable<Product[]> {
-    // Return a subset of products as featured
-    return of(this.products.slice(0, 4));
+    // Use the main products endpoint and get the first 4 products
+    return this.http.get<any>(this.apiUrl).pipe(
+      map(response => {
+        console.log('API Response for featured products:', response);
+        // Handle both array responses and paginated responses
+        const items = response && response.content ? response.content : response;
+        const products = Array.isArray(items) 
+          ? items.map(item => this.transformApiProduct(item))
+          : [];
+        return products.slice(0, 4);
+      }),
+      catchError(error => {
+        console.error('Error fetching featured products:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   getNewArrivals(): Observable<Product[]> {
-    // Return some products as new arrivals
-    return of(this.products.slice(2, 6));
+    // Use the main products endpoint and select a different slice for "new arrivals"
+    return this.http.get<any>(this.apiUrl).pipe(
+      map(response => {
+        console.log('API Response for new arrivals:', response);
+        // Handle both array responses and paginated responses
+        const items = response && response.content ? response.content : response;
+        const products = Array.isArray(items) 
+          ? items.map(item => this.transformApiProduct(item))
+          : [];
+        return products.slice(0, 4);
+      }),
+      catchError(error => {
+        console.error('Error fetching new arrivals:', error);
+        return throwError(() => error);
+      })
+    );
   }
 
   getCategories(): Observable<Category[]> {
+    // This should be replaced with an API call in the future
     return of(this.categories);
   }
 
   getBanners(): Observable<Banner[]> {
+    // This should be replaced with an API call in the future
     return of(this.banners);
   }
 
   toggleFavorite(productId: number): Observable<boolean> {
-    const product = this.products.find(p => p.id === productId);
-    if (product) {
-      product.isFavorite = !product.isFavorite;
-      return of(product.isFavorite);
-    }
-    return of(false);
+    // In a real implementation, this would call a backend API
+    // For now, let's simulate a successful API call
+    return of(true);
   }
 }

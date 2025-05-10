@@ -1,4 +1,4 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Product } from '../../models/product.model';
@@ -24,35 +24,35 @@ import { CompareService } from '../../services/compare.service';
       
       <a [routerLink]="['/product', product.id]" class="product-link">
         <div class="image-container">
-          <img [src]="product.images[0]" [alt]="product.title" class="product-image">
+          <img [src]="getProductImage()" [alt]="product.title" class="product-image" (error)="handleImageError($event)">
           
-          <div class="discount-badge" *ngIf="product.discountPercentage">
+          <div class="discount-badge" *ngIf="product.discountPercentage && product.discountPercentage > 0">
             {{product.discountPercentage}}% OFF
           </div>
         </div>
         
         <div class="product-info">
-          <h3 class="product-title">{{product.title}}</h3>
+          <h3 class="product-title">{{product.title || 'Product Title'}}</h3>
           
           <a [routerLink]="['/store', product.sellerId]" class="seller-link" (click)="$event.stopPropagation()">
             <span class="material-symbols-outlined">store</span>
-            {{product.sellerName}}
+            {{product.sellerName || 'Store'}}
           </a>
           
           <div class="product-rating">
-            <div class="stars" [attr.data-rating]="product.rating">
-              <span class="material-symbols-outlined">star</span>
-              <span class="material-symbols-outlined">star</span>
-              <span class="material-symbols-outlined">star</span>
-              <span class="material-symbols-outlined">star</span>
-              <span class="material-symbols-outlined">star</span>
+            <div class="stars" [attr.data-rating]="product.rating || 0">
+              <span 
+                *ngFor="let i of [1,2,3,4,5]" 
+                class="material-symbols-outlined"
+                [ngStyle]="{'color': i <= (product.rating || 0) ? 'var(--warning)' : 'var(--neutral-300)'}"
+              >star</span>
             </div>
-            <span class="rating-count">({{product.reviewCount}})</span>
+            <span class="rating-count">({{product.reviewCount || 0}})</span>
           </div>
           
           <div class="product-price">
             <span class="current-price">{{product.price | currency:'TRY':'₺'}}</span>
-            <span class="original-price" *ngIf="product.originalPrice">
+            <span class="original-price" *ngIf="product.originalPrice && product.originalPrice > product.price">
               {{product.originalPrice | currency:'TRY':'₺'}}
             </span>
           </div>
@@ -60,12 +60,14 @@ import { CompareService } from '../../services/compare.service';
           <div class="product-tags">
             <span class="tag free-shipping" *ngIf="product.freeShipping">Free Shipping</span>
             <span class="tag fast-delivery" *ngIf="product.fastDelivery">Fast Delivery</span>
+            <span class="tag in-stock" *ngIf="product.inStock">In Stock</span>
+            <span class="tag out-of-stock" *ngIf="!product.inStock">Out of Stock</span>
           </div>
         </div>
       </a>
       
       <div class="card-actions">
-        <button class="add-to-cart-btn" (click)="onAddToCart($event)">
+        <button class="add-to-cart-btn" (click)="onAddToCart($event)" [disabled]="!product.inStock">
           <span class="material-symbols-outlined">shopping_cart</span>
           Add to Cart
         </button>
@@ -261,20 +263,31 @@ import { CompareService } from '../../services/compare.service';
     }
     
     .tag {
-      font-size: 0.6875rem;
-      padding: var(--space-1) var(--space-2);
+      display: inline-block;
+      font-size: 0.75rem;
+      padding: 2px 6px;
       border-radius: var(--radius-sm);
-      font-weight: 500;
+      margin-right: 4px;
     }
     
-    .free-shipping {
-      background-color: rgba(54, 179, 126, 0.1);
-      color: var(--success);
+    .tag.free-shipping {
+      background-color: #E3F2FD;
+      color: #1976D2;
     }
     
-    .fast-delivery {
-      background-color: rgba(0, 102, 255, 0.1);
-      color: var(--secondary);
+    .tag.fast-delivery {
+      background-color: #E8F5E9;
+      color: #388E3C;
+    }
+    
+    .tag.in-stock {
+      background-color: #E8F5E9;
+      color: #388E3C;
+    }
+    
+    .tag.out-of-stock {
+      background-color: #FFEBEE;
+      color: #D32F2F;
     }
     
     .card-actions {
@@ -322,9 +335,14 @@ import { CompareService } from '../../services/compare.service';
       color: var(--primary);
       border-color: var(--primary);
     }
+    
+    .add-to-cart-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   `]
 })
-export class ProductCardComponent {
+export class ProductCardComponent implements OnInit {
   @Input() product!: Product;
   @Output() addToCart = new EventEmitter<Product>();
   @Output() toggleFavorite = new EventEmitter<number>();
@@ -335,7 +353,20 @@ export class ProductCardComponent {
   constructor(private compareService: CompareService) {}
   
   ngOnInit(): void {
-    this.isInCompare = this.compareService.isInCompare(this.product.id);
+    if (this.product) {
+      this.isInCompare = this.compareService.isInCompare(this.product.id);
+    }
+  }
+  
+  getProductImage(): string {
+    if (this.product && this.product.images && this.product.images.length > 0) {
+      return this.product.images[0];
+    }
+    return 'https://via.placeholder.com/300';
+  }
+  
+  handleImageError(event: any): void {
+    event.target.src = 'https://via.placeholder.com/300';
   }
   
   onAddToCart(event: Event): void {
@@ -353,15 +384,7 @@ export class ProductCardComponent {
   onCompareClick(event: Event): void {
     event.preventDefault();
     event.stopPropagation();
-    
-    if (this.isInCompare) {
-      this.compareService.removeFromCompare(this.product.id);
-      this.isInCompare = false;
-    } else {
-      const added = this.compareService.addToCompare(this.product);
-      this.isInCompare = added;
-    }
-    
+    this.isInCompare = !this.isInCompare;
     this.toggleCompare.emit(this.product);
   }
 }

@@ -4,13 +4,13 @@
 -- Note: Passwords are now stored as plaintext for development purposes ONLY - NOT SECURE FOR PRODUCTION
 INSERT INTO users (user_id, first_name, last_name, email, phone_number, password_hash, role, created_at, stripe_customer_id, is_banned, banned_at, ban_reason, avatar_url)
 VALUES
-(1, 'john', 'doe', 'admin@example.com', '1234567890', 'password', 'ROLE_ADMIN', NOW(), 'cus_admin123', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/1.jpg'),
-(2, 'jane', 'doe', 'seller@example.com', '0987654321', 'password', 'ROLE_SELLER', NOW(), 'cus_seller123', false, NULL, NULL, 'https://randomuser.me/api/portraits/women/1.jpg'),
-(3, 'alice', 'henderson', 'customer@example.com', '1122334455', 'password', 'ROLE_CUSTOMER', NOW(), 'cus_cust123', false, NULL, NULL, 'https://randomuser.me/api/portraits/women/2.jpg'),
-(4, 'bob', 'sanders', 'seller2@example.com', '5544332211', 'password', 'ROLE_SELLER', NOW(), 'cus_seller456', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/2.jpg'),
-(5, 'charlie', 'yılmaz', 'customer2@example.com', '6677889900', 'password', 'ROLE_CUSTOMER', NOW(), 'cus_cust456', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/3.jpg');
+(1, 'john', 'doe', 'admin@example.com', '1234567890', 'password', 'admin', NOW(), 'cus_admin123', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/1.jpg'),
+(2, 'jane', 'doe', 'seller@example.com', '0987654321', 'password', 'seller', NOW(), 'cus_seller123', false, NULL, NULL, 'https://randomuser.me/api/portraits/women/1.jpg'),
+(3, 'alice', 'henderson', 'customer@example.com', '1122334455', 'password', 'customer', NOW(), 'cus_cust123', false, NULL, NULL, 'https://randomuser.me/api/portraits/women/2.jpg'),
+(4, 'bob', 'sanders', 'seller2@example.com', '5544332211', 'password', 'seller', NOW(), 'cus_seller456', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/2.jpg'),
+(5, 'charlie', 'yılmaz', 'customer2@example.com', '6677889900', 'password', 'customer', NOW(), 'cus_cust456', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/3.jpg');
 
--- Categories from category_tree.csv
+-- Categories from category_tree.csv    
 INSERT INTO categories (category_id, name, parent_category_id) VALUES
 (1, 'Electronics', NULL),
 (2, 'Mobile Phones', 1),

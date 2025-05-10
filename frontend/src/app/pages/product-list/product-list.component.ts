@@ -5,7 +5,7 @@ import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../services/product.service';
 import { CartService } from '../../services/cart.service';
 import { CompareService } from '../../services/compare.service';
-import { Product } from '../../models/product.model';
+import { Product, Category } from '../../models/product.model';
 import { ProductCardComponent } from '../../components/product-card/product-card.component';
 
 @Component({
@@ -21,7 +21,23 @@ import { ProductCardComponent } from '../../components/product-card/product-card
         </div>
       </div>
       
-      <div class="product-list-container">
+      <!-- Loading state -->
+      <div *ngIf="isLoading" class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>Loading products...</p>
+      </div>
+      
+      <!-- Error state -->
+      <div *ngIf="hasError" class="error-container">
+        <div class="error-content">
+          <span class="material-symbols-outlined">error</span>
+          <h3>Failed to load products</h3>
+          <p>There was an error loading the products. Please try again.</p>
+          <button class="retry-button" (click)="loadProducts()">Try Again</button>
+        </div>
+      </div>
+      
+      <div class="product-list-container" *ngIf="!isLoading && !hasError">
         <aside class="filters-sidebar">
           <div class="filter-section">
             <h3 class="filter-title">Price Range</h3>
@@ -37,6 +53,9 @@ import { ProductCardComponent } from '../../components/product-card/product-card
           
           <div class="filter-section">
             <h3 class="filter-title">Brand</h3>
+            <div *ngIf="brands.length === 0" class="empty-filter-message">
+              No brands available
+            </div>
             <div class="filter-checkbox" *ngFor="let brand of brands">
               <label>
                 <input type="checkbox" [value]="brand" [(ngModel)]="selectedBrands[brand]">
@@ -314,6 +333,79 @@ import { ProductCardComponent } from '../../components/product-card/product-card
         grid-template-columns: 1fr;
       }
     }
+    
+    .loading-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 4rem 0;
+    }
+    
+    .loading-spinner {
+      width: 48px;
+      height: 48px;
+      border: 4px solid var(--neutral-200);
+      border-top-color: var(--primary);
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 1rem;
+    }
+    
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+    
+    .error-container {
+      display: flex;
+      justify-content: center;
+      padding: 4rem 0;
+    }
+    
+    .error-content {
+      text-align: center;
+      max-width: 400px;
+    }
+    
+    .error-content .material-symbols-outlined {
+      font-size: 48px;
+      color: var(--error);
+      margin-bottom: 1rem;
+    }
+    
+    .error-content h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--neutral-800);
+    }
+    
+    .error-content p {
+      color: var(--neutral-600);
+      margin-bottom: 1rem;
+    }
+    
+    .retry-button {
+      background-color: var(--primary);
+      color: var(--white);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-md);
+      border: none;
+      font-weight: 500;
+      cursor: pointer;
+    }
+    
+    .retry-button:hover {
+      background-color: var(--primary-dark);
+    }
+    
+    .empty-filter-message {
+      font-size: 0.875rem;
+      color: var(--neutral-500);
+      padding: var(--space-2) 0;
+    }
   `]
 })
 export class ProductListComponent implements OnInit {
@@ -321,6 +413,11 @@ export class ProductListComponent implements OnInit {
   filteredProducts: Product[] = [];
   categoryId: string = '';
   categoryName: string = 'All Products';
+  categories: Category[] = []; // Store categories for better mapping
+  
+  // Loading and error states
+  isLoading: boolean = true;
+  hasError: boolean = false;
   
   // Filter states
   priceRange: number = 2000;
@@ -342,45 +439,99 @@ export class ProductListComponent implements OnInit {
   ) {}
   
   ngOnInit(): void {
-    this.route.paramMap.subscribe(params => {
-      this.categoryId = params.get('categoryId') || '';
+    // First load all available categories to use for mapping
+    this.productService.getCategories().subscribe(categories => {
+      this.categories = categories;
       
-      if (this.categoryId) {
-        this.loadProductsByCategory();
-        this.setCategoryName();
-      } else {
-        this.loadAllProducts();
-      }
+      // After categories are loaded, process the route parameters
+      this.route.paramMap.subscribe(params => {
+        this.categoryId = params.get('categoryId') || '';
+        
+        if (this.categoryId) {
+          this.setCategoryName();
+        }
+        
+        this.loadProducts();
+      });
     });
   }
   
   setCategoryName(): void {
-    // Convert slug to display name
+    // First try to find the category in our categories list for more accurate name
+    const foundCategory = this.findCategoryBySlug(this.categoryId);
+    
+    if (foundCategory) {
+      this.categoryName = foundCategory.name;
+      return;
+    }
+    
+    // Fallback to converting slug to display name
     this.categoryName = this.categoryId
       .split('-')
       .map(word => word.charAt(0).toUpperCase() + word.slice(1))
       .join(' ');
   }
   
-  loadAllProducts(): void {
-    this.productService.getProducts().subscribe(products => {
-      this.products = products;
-      this.filteredProducts = [...products];
-      this.extractBrands();
-    });
+  findCategoryBySlug(slug: string): Category | undefined {
+    // First search in top-level categories
+    let result = this.categories.find(c => c.slug === slug);
+    if (result) return result;
+    
+    // Then search recursively in subcategories
+    for (const category of this.categories) {
+      if (category.subcategories) {
+        result = this.findSubcategoryBySlug(category.subcategories, slug);
+        if (result) return result;
+      }
+    }
+    
+    return undefined;
   }
   
-  loadProductsByCategory(): void {
-    this.productService.getProductsByCategory(this.categoryId).subscribe(products => {
-      this.products = products;
-      this.filteredProducts = [...products];
-      this.extractBrands();
+  findSubcategoryBySlug(subcategories: Category[], slug: string): Category | undefined {
+    for (const subcat of subcategories) {
+      if (subcat.slug === slug) return subcat;
+      
+      if (subcat.subcategories) {
+        const result = this.findSubcategoryBySlug(subcat.subcategories, slug);
+        if (result) return result;
+      }
+    }
+    
+    return undefined;
+  }
+  
+  loadProducts(): void {
+    this.isLoading = true;
+    this.hasError = false;
+    
+    const loadObservable = this.categoryId
+      ? this.productService.getProductsByCategory(this.categoryId)
+      : this.productService.getProducts();
+      
+    loadObservable.subscribe({
+      next: (products) => {
+        console.log('Loaded products:', products);
+        this.products = products;
+        this.filteredProducts = [...products];
+        this.extractBrands();
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading products:', error);
+        this.hasError = true;
+        this.isLoading = false;
+      }
     });
   }
   
   extractBrands(): void {
     const brandsSet = new Set<string>();
-    this.products.forEach(product => brandsSet.add(product.brand));
+    this.products.forEach(product => {
+      if (product.brand) {
+        brandsSet.add(product.brand);
+      }
+    });
     this.brands = Array.from(brandsSet);
     
     // Initialize brand filter object

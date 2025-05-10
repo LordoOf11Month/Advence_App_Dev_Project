@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 import { CartItem, Product } from '../models/product.model';
+import { HttpClient } from '@angular/common/http';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root'
@@ -11,7 +13,10 @@ export class CartService {
   
   cart$: Observable<CartItem[]> = this.cartSubject.asObservable();
   
-  constructor() {
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService
+  ) {
     // Try to load cart from localStorage
     const savedCart = localStorage.getItem('cart');
     if (savedCart) {
