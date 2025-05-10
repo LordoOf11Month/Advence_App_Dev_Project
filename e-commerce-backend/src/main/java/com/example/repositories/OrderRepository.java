@@ -26,4 +26,7 @@ public interface OrderRepository extends GenericRepository<OrderEntity, Long> { 
 
     @Query("SELECT oi FROM OrderItem oi WHERE oi.stripePaymentIntentId = :paymentIntentId")
     Optional<OrderItem> findByStripePaymentIntentId(@Param("paymentIntentId") String paymentIntentId);
+
+    @Query("SELECT COUNT(oi) > 0 FROM OrderEntity o JOIN o.orderItems oi WHERE o.user.id = :userId AND oi.product.id = :productId AND o.status IN ('delivered', 'shipped', 'processing')")
+    boolean existsByUserIdAndProductId(@Param("userId") int userId, @Param("productId") Long productId);
 }
