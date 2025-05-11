@@ -62,13 +62,6 @@ import { AuthService } from '../../services/auth.service';
         <div class="auth-links">
           <p>Don't have an account? <a routerLink="/register">Register</a></p>
         </div>
-        
-        <div class="test-accounts">
-          <p>Test Accounts:</p>
-          <button class="test-account-btn" (click)="fillTestAccount('admin@example.com', 'password')">Admin</button>
-          <button class="test-account-btn" (click)="fillTestAccount('seller@example.com', 'password')">Seller</button>
-          <button class="test-account-btn" (click)="fillTestAccount('customer@example.com', 'password')">Customer</button>
-        </div>
       </div>
     </div>
   `,
@@ -163,37 +156,6 @@ import { AuthService } from '../../services/auth.service';
       font-size: 0.9375rem;
     }
     
-    .test-accounts {
-      margin-top: var(--space-5);
-      padding-top: var(--space-4);
-      border-top: 1px solid var(--neutral-200);
-      text-align: center;
-    }
-    
-    .test-accounts p {
-      font-size: 0.9375rem;
-      margin-bottom: var(--space-2);
-      color: var(--neutral-600);
-    }
-    
-    .test-account-btn {
-      margin: 0 var(--space-1);
-      padding: var(--space-1) var(--space-3);
-      background-color: var(--neutral-100);
-      border: 1px solid var(--neutral-300);
-      border-radius: var(--radius-md);
-      font-size: 0.875rem;
-      color: var(--neutral-700);
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-    
-    .test-account-btn:hover {
-      background-color: var(--primary-light);
-      color: var(--primary);
-      border-color: var(--primary);
-    }
-    
     @media (max-width: 576px) {
       .auth-container {
         padding: var(--space-4);
@@ -222,7 +184,8 @@ export class LoginComponent {
     
     this.authService.login({ email: this.email, password: this.password })
       .subscribe({
-        next: () => {
+        next: (response) => {
+          console.log('Login successful');
           const returnUrl = this.route.snapshot.queryParams['returnUrl'] || '/';
           this.router.navigate([returnUrl]);
         },
@@ -234,10 +197,5 @@ export class LoginComponent {
           this.loading = false;
         }
       });
-  }
-  
-  fillTestAccount(email: string, password: string): void {
-    this.email = email;
-    this.password = password;
   }
 }

@@ -7,6 +7,42 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet">
+    <script>
+      // Debug function to test API directly
+      window.testApi = async function(endpoint) {
+        const token = localStorage.getItem('token');
+        const baseUrl = 'http://localhost:8080/api';
+        const url = `${baseUrl}${endpoint}`;
+        
+        console.log(`Testing API endpoint: ${url}`);
+        console.log(`Using token: ${token ? token.substring(0, 15) + '...' : 'none'}`);
+        
+        try {
+          const response = await fetch(url, {
+            method: 'GET',
+            headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+          });
+          
+          console.log(`Response status: ${response.status} ${response.statusText}`);
+          
+          if (!response.ok) {
+            console.error('Error response:', await response.text());
+            return;
+          }
+          
+          const data = await response.json();
+          console.log('Response data:', data);
+          return data;
+        } catch (error) {
+          console.error('Error making request:', error);
+        }
+      };
+      
+      // Usage: Run in browser console:
+      // testApi('/admin/products/all')
+      // or
+      // testApi('/admin/products')
+    </script>
   </head>
   <body>
     <app-root>Loading...</app-root>

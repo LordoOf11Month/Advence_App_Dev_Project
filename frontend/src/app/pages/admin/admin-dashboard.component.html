@@ -14,6 +14,9 @@
       <a [class.active]="activeSection === 'users'" (click)="scrollToSection('users')">
         Users
       </a>
+      <a routerLink="/seller-products">
+        Search Products by Seller
+      </a>
     </nav>
 
     <div class="keyboard-shortcuts">
@@ -52,6 +55,9 @@
       <a [class.active]="activeSection === 'users'" (click)="scrollToSection('users')">
         Users
       </a>
+      <a routerLink="/seller-products">
+        Seller Search
+      </a>
     </nav>
     
     <!-- Sections wrapper to prevent layout shifts -->
@@ -86,7 +92,7 @@
             </div>
             <div class="stat-info">
               <h3>Active Products</h3>
-              <div class="stat-value">{{ stats.activeProducts }}</div>
+              <div class="stat-value">{{ stats.totalProducts - (orderStats?.cancelled || 0) }}</div>
               <small>{{ stats.totalProducts }} total</small>
             </div>
           </div>
@@ -97,7 +103,7 @@
             </div>
             <div class="stat-info">
               <h3>Pending Orders</h3>
-              <div class="stat-value">{{ stats.pendingOrders }}</div>
+              <div class="stat-value">{{ orderStats?.pending || 0 }}</div>
               <small>{{ stats.totalOrders }} total</small>
             </div>
           </div>
@@ -119,6 +125,11 @@
         <div *ngIf="!isLoadingProducts && !productsError">
           <div class="table-actions">
             <button (click)="openProductForm()">Add Product</button>
+            <button routerLink="/seller-products">Search By Seller</button>
+            <button (click)="loadProducts()" title="Reload Products">
+              <span class="material-symbols-outlined">refresh</span>
+              Refresh
+            </button>
             
             <div class="filters">
               <input 
@@ -140,10 +151,12 @@
           <table>
             <thead>
               <tr>
+                <th>Image</th>
                 <th (click)="sortProducts('title')">
                   Title
                   <span *ngIf="productSort.column === 'title'" [class]="productSort.direction">↕</span>
                 </th>
+                <th>Seller</th>
                 <th (click)="sortProducts('price')">
                   Price
                   <span *ngIf="productSort.column === 'price'" [class]="productSort.direction">↕</span>
@@ -158,7 +171,16 @@
             </thead>
             <tbody>
               <tr *ngFor="let product of paginatedProducts?.items">
+                <td>
+                  <div class="product-image">
+                    <img [src]="product.imageUrl || 'assets/images/placeholder-product.png'" alt="{{ product.title }}">
+                    <button class="image-edit-btn" (click)="quickEditImage(product)" title="Edit Image">
+                      <span class="material-symbols-outlined">edit_photo</span>
+                    </button>
+                  </div>
+                </td>
                 <td>{{ product.title }}</td>
+                <td>{{ product.sellerName }}</td>
                 <td>${{ product.price }}</td>
                 <td>{{ product.stock }}</td>
                 <td>
@@ -168,6 +190,16 @@
                 </td>
                 <td>
                   <button (click)="editProduct(product)">Edit</button>
+                  <a [routerLink]="['/product', product.id]" target="_blank"><button>View</button></a>
+                  <button (click)="toggleProductApproval(product)" [class]="product.status === 'active' ? 'warning' : 'success'">
+                    {{ product.status === 'active' ? 'Disapprove' : 'Approve' }}
+                  </button>
+                  <button (click)="toggleFreeShipping(product)" [class]="product.freeShipping ? 'warning' : 'success'">
+                    {{ product.freeShipping ? 'Remove Free Shipping' : 'Add Free Shipping' }}
+                  </button>
+                  <button (click)="toggleFastDelivery(product)" [class]="product.fastDelivery ? 'warning' : 'success'">
+                    {{ product.fastDelivery ? 'Remove Fast Delivery' : 'Add Fast Delivery' }}
+                  </button>
                   <button (click)="deleteProduct(product.id)" class="danger">Delete</button>
                 </td>
               </tr>
@@ -383,6 +415,11 @@
       </div>
 
       <div class="form-group">
+        <label for="description">Description</label>
+        <textarea id="description" [(ngModel)]="currentProduct.description" name="description" rows="3" required></textarea>
+      </div>
+
+      <div class="form-group">
         <label for="price">Price</label>
         <input type="number" id="price" [(ngModel)]="currentProduct.price" name="price" required min="0" step="0.01">
       </div>
@@ -390,6 +427,28 @@
       <div class="form-group">
         <label for="category">Category</label>
         <input type="text" id="category" [(ngModel)]="currentProduct.category" name="category" required>
+      </div>
+
+      <div class="form-group">
+        <label for="imageUrl">Image URL</label>
+        <div class="image-url-container">
+          <input type="text" id="imageUrl" [(ngModel)]="currentProduct.imageUrl" name="imageUrl" placeholder="https://example.com/image.jpg" required>
+          <button type="button" class="update-image-btn" (click)="previewImage()">
+            <span class="material-symbols-outlined">preview</span>
+            Preview
+          </button>
+        </div>
+        <div class="image-url-actions">
+          <small class="image-url-note">Enter the full URL to the image (including https://)</small>
+          <button type="button" class="save-image-btn" (click)="updateImageOnly()">
+            <span class="material-symbols-outlined">save</span>
+            Save Image Only
+          </button>
+        </div>
+        <div class="image-preview" *ngIf="currentProduct.imageUrl">
+          <img [src]="currentProduct.imageUrl" alt="Product image preview" class="preview-image">
+          <span class="image-url-loading" *ngIf="currentProduct.imageUrl.includes('?t=')">Loading...</span>
+        </div>
       </div>
 
       <div class="form-group">
@@ -404,6 +463,31 @@
           <option value="inactive">Inactive</option>
           <option value="out-of-stock">Out of Stock</option>
         </select>
+      </div>
+      
+      <div class="form-group">
+        <label for="seller">Assign to Seller</label>
+        <div class="seller-selection">
+          <select 
+            id="seller" 
+            [(ngModel)]="currentProduct.sellerId" 
+            name="seller"
+            (change)="onSellerSelect(currentProduct.sellerId)">
+            <option value="">-- No Seller (Admin Product) --</option>
+            <option *ngFor="let seller of sellers" [value]="seller.id">
+              {{ seller.storeName }} ({{ seller.status }})
+            </option>
+          </select>
+          <div class="selected-seller-info" *ngIf="currentProduct.sellerId">
+            <span class="seller-name">Selected: {{ currentProduct.sellerName }}</span>
+          </div>
+          <div class="seller-loading" *ngIf="isLoadingSellers">
+            <span>Loading sellers...</span>
+          </div>
+          <div class="seller-error" *ngIf="sellersError">
+            <span>{{ sellersError }}</span>
+          </div>
+        </div>
       </div>
 
       <div class="form-actions">

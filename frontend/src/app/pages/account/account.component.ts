@@ -897,7 +897,7 @@ export class AccountComponent implements OnInit {
   }
   
   trackOrder(orderId: string): void {
-    this.adminService.getOrderTracking(orderId).subscribe(data => {
+    this.adminService.getOrderTracking(orderId).subscribe((data: OrderTracking) => {
       this.trackingInfo = data;
       this.showTracking = true;
     });

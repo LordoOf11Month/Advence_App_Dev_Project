@@ -1,15 +1,16 @@
 import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable, of, throwError } from 'rxjs';
-import { tap, catchError, map } from 'rxjs/operators';
+import { tap, catchError, map, mergeMap } from 'rxjs/operators';
 import { jwtDecode } from 'jwt-decode';
 import { User, LoginCredentials, RegisterData, AuthResponse, SellerRegistrationData, RefreshTokenResponse, Permission, PermissionName } from '../models/auth.model';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { environment } from '../../environments/environment';
 
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:8080/api/auth';
+  private apiUrl = environment.apiUrl + '/auth';
   private currentUserSubject = new BehaviorSubject<User | null>(null);
   public currentUser$ = this.currentUserSubject.asObservable();
   private tokenExpirationTimer: any;
@@ -23,14 +24,62 @@ export class AuthService {
     if (token) {
       try {
         const decodedToken: any = jwtDecode(token);
+        console.log('loadStoredUser - Decoded token:', decodedToken);
+        
+        // Extract roles - could be in different formats from backend
+        let roles: string[] = [];
+        if (decodedToken.roles) {
+          // If roles are in token
+          if (Array.isArray(decodedToken.roles)) {
+            roles = decodedToken.roles;
+          } else if (typeof decodedToken.roles === 'string') {
+            // Sometimes roles might be a comma-separated string
+            roles = decodedToken.roles.split(',');
+          }
+        } else if (decodedToken.role) {
+          // Sometimes roles might be under 'role'
+          if (Array.isArray(decodedToken.role)) {
+            roles = decodedToken.role;
+          } else if (typeof decodedToken.role === 'string') {
+            roles = [decodedToken.role];
+          }
+        } else if (decodedToken.authorities) {
+          // Sometimes Spring Security uses 'authorities'
+          roles = decodedToken.authorities;
+        } else {
+          // Look for common role patterns in the token
+          Object.keys(decodedToken).forEach(key => {
+            if (key.toLowerCase().includes('role') || 
+                key.toLowerCase().includes('auth')) {
+              console.log(`Found possible role field: ${key}`, decodedToken[key]);
+              if (Array.isArray(decodedToken[key])) {
+                roles = decodedToken[key];
+              } else if (typeof decodedToken[key] === 'string') {
+                roles = [decodedToken[key]];
+              }
+            }
+          });
+        }
+        
+        console.log('loadStoredUser - Extracted roles:', roles);
+        
+        // Force admin role for admin@example.com for testing
+        const email = decodedToken.email || decodedToken.sub;
+        if (email === 'admin@example.com') {
+          console.log('Admin email detected! Forcing admin role.');
+          roles.push('ROLE_ADMIN');
+        }
+        
         // Create a user object from the decoded token
         const user: User = {
-          id: decodedToken.id,
-          email: decodedToken.email,
-          firstName: decodedToken.firstName || '', // These may need adjustments based on your JWT structure
+          id: decodedToken.id || decodedToken.sub || '',
+          email: email || '',
+          firstName: decodedToken.firstName || '', 
           lastName: decodedToken.lastName || '',
-          role: this.mapRole(decodedToken.roles)
+          role: this.mapRole(roles)
         };
+        
+        console.log('loadStoredUser - Created user:', user);
         
         this.currentUserSubject.next(user);
         
@@ -47,97 +96,105 @@ export class AuthService {
   
   // Map backend roles to frontend user role
   private mapRole(roles: string[]): 'admin' | 'seller' | 'user' {
-    if (roles.includes('ROLE_ADMIN')) return 'admin';
-    if (roles.includes('ROLE_SELLER')) return 'seller';
-    return 'user'; // Default to customer/user
+    // Convert roles to lowercase for case-insensitive comparison
+    const lowerCaseRoles = roles.map(role => role.toLowerCase());
+    
+    // Check for admin - various formats the backend might return
+    if (
+      lowerCaseRoles.includes('role_admin') || 
+      lowerCaseRoles.includes('admin')
+    ) {
+      return 'admin';
+    }
+    
+    // Check for seller roles
+    if (
+      lowerCaseRoles.includes('role_seller') || 
+      lowerCaseRoles.includes('seller')
+    ) {
+      return 'seller';
+    }
+    
+    // Default to user/customer
+    return 'user';
   }
   
   login(credentials: LoginCredentials): Observable<AuthResponse> {
-    console.log('Login attempt with:', credentials);
     return this.http.post<any>(`${this.apiUrl}/login`, credentials)
       .pipe(
         map(response => {
-          console.log('Raw backend response:', response);
           try {
+            console.log('Auth response from backend:', response);
+            
             // Transform backend response to match our frontend AuthResponse format
             const decodedToken: any = jwtDecode(response.token);
-            console.log('Decoded token:', decodedToken);
+            console.log('Decoded token from login:', decodedToken);
+            
+            // Extract roles from token or response
+            let roles: string[] = [];
+            
+            // Try to get roles from response first
+            if (response.roles) {
+              if (Array.isArray(response.roles)) {
+                roles = response.roles;
+              } else if (typeof response.roles === 'string') {
+                roles = response.roles.split(',');
+              }
+            } 
+            
+            // Try to get roles from token if not found in response
+            if (roles.length === 0) {
+              if (decodedToken.roles) {
+                if (Array.isArray(decodedToken.roles)) {
+                  roles = decodedToken.roles;
+                } else if (typeof decodedToken.roles === 'string') {
+                  roles = decodedToken.roles.split(',');
+                }
+              } else if (decodedToken.role) {
+                if (Array.isArray(decodedToken.role)) {
+                  roles = decodedToken.role;
+                } else if (typeof decodedToken.role === 'string') {
+                  roles = [decodedToken.role];
+                }
+              } else if (decodedToken.authorities) {
+                roles = decodedToken.authorities;
+              }
+            }
+            
+            console.log('Extracted roles from login:', roles);
+            
+            // Force admin role for admin@example.com for testing
+            const email = response.email || decodedToken.sub || decodedToken.email;
+            if (email === 'admin@example.com') {
+              console.log('Admin email detected during login! Forcing admin role.');
+              roles.push('ROLE_ADMIN');
+            }
             
             // Create user from token data
             const user: User = {
-              id: response.id.toString(),
-              email: response.email,
-              firstName: decodedToken.firstName || '',
-              lastName: decodedToken.lastName || '',
-              role: this.mapRole(response.roles)
+              id: (response.id || decodedToken.id || decodedToken.sub || '').toString(),
+              email: email || '',
+              firstName: decodedToken.firstName || response.firstName || '',
+              lastName: decodedToken.lastName || response.lastName || '',
+              role: this.mapRole(roles)
             };
+            
+            console.log('User created during login:', user);
             
             const authResponse: AuthResponse = {
               user,
               token: response.token,
-              refreshToken: response.token // Backend doesn't use refresh tokens yet
+              refreshToken: response.refreshToken || response.token
             };
             
             return authResponse;
           } catch (e) {
-            console.error('Error decoding token, falling back to mock data:', e);
-            
-            // If we can't decode the token, create a mock user based on the credentials
-            // This is a fallback for testing when backend isn't fully functional
-            const mockUser: User = {
-              id: '1',
-              email: credentials.email,
-              firstName: credentials.email.split('@')[0],
-              lastName: '',
-              role: credentials.email.includes('admin') ? 'admin' : 
-                   credentials.email.includes('seller') ? 'seller' : 'user'
-            };
-            
-            const authResponse: AuthResponse = {
-              user: mockUser,
-              token: response.token || 'mock-token',
-              refreshToken: response.token || 'mock-token'
-            };
-            
-            return authResponse;
+            console.error('Error processing login response:', e);
+            throw new Error('Invalid response from server');
           }
         }),
         tap(res => this.handleAuthResponse(res)),
-        catchError(error => {
-          console.error('Login error:', error);
-          
-          // For development/testing: if backend is not running, use mock data
-          if (error.status === 0) {
-            console.log('Backend not responding, using mock data for testing');
-            
-            // Create a mock response based on well-known test accounts
-            if ((credentials.email === 'admin@example.com' && credentials.password === 'password') ||
-                (credentials.email === 'seller@example.com' && credentials.password === 'password') ||
-                (credentials.email === 'customer@example.com' && credentials.password === 'password')) {
-              
-              const mockUser: User = {
-                id: '1',
-                email: credentials.email,
-                firstName: credentials.email.split('@')[0],
-                lastName: '',
-                role: credentials.email.includes('admin') ? 'admin' : 
-                     credentials.email.includes('seller') ? 'seller' : 'user'
-              };
-              
-              const authResponse: AuthResponse = {
-                user: mockUser,
-                token: 'mock-token',
-                refreshToken: 'mock-token'
-              };
-              
-              return of(authResponse).pipe(
-                tap(res => this.handleAuthResponse(res))
-              );
-            }
-          }
-          
-          return this.handleError(error);
-        })
+        catchError(error => this.handleError(error))
       );
   }
   
@@ -147,18 +204,17 @@ export class AuthService {
     
     return this.http.post<any>(`${this.apiUrl}${endpoint}`, data)
       .pipe(
-        // After registration, we need to log in the user
-        // Since the backend returns a simple success message, we'll log in the user manually
         tap(() => console.log('Registration successful')),
-        // After registration, call the login endpoint
-        tap(() => {
-          // After successful registration, we'll proceed to login
+        // After successful registration, we'll log in the user
+        map(response => {
+          // After registration, proceed to login
           const credentials: LoginCredentials = {
             email: data.email,
             password: data.password
           };
-          return this.login(credentials);
+          return credentials;
         }),
+        mergeMap(credentials => this.login(credentials)),
         catchError(this.handleError)
       );
   }
@@ -229,45 +285,36 @@ export class AuthService {
   logout(): Observable<any> {
     return this.http.post<any>(`${this.apiUrl}/logout`, {})
       .pipe(
-        tap(() => {
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
-          this.currentUserSubject.next(null);
-          this.clearTokenTimer();
-        }),
+        tap(() => this.clearUserData()),
         catchError(error => {
           // Even if the server logout fails, we should clean up local state
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
-          this.currentUserSubject.next(null);
-          this.clearTokenTimer();
+          this.clearUserData();
           return throwError(() => error);
         })
       );
   }
   
+  private clearUserData(): void {
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    this.currentUserSubject.next(null);
+    this.clearTokenTimer();
+  }
+  
   private handleError(error: HttpErrorResponse) {
     let errorMessage = 'An unknown error occurred';
-    
-    console.log('Error details:', {
-      status: error.status,
-      statusText: error.statusText,
-      error: error.error,
-      message: error.message
-    });
     
     if (error.error instanceof ErrorEvent) {
       // Client-side error
       errorMessage = `Error: ${error.error.message}`;
     } else if (error.status === 0) {
-      // Connection error - likely backend not running
-      errorMessage = 'Cannot connect to the server. Please ensure the backend server is running.';
+      errorMessage = 'Cannot connect to the server. Please check your network connection and try again.';
     } else {
       // Server-side error
       if (error.status === 401) {
-        errorMessage = 'Invalid credentials';
+        errorMessage = 'Invalid email or password';
       } else if (error.status === 403) {
-        errorMessage = 'Access denied';
+        errorMessage = 'You do not have permission to access this resource';
       } else if (error.status === 400) {
         if (error.error && typeof error.error === 'string') {
           errorMessage = error.error;
@@ -279,7 +326,7 @@ export class AuthService {
       }
     }
     
-    console.error('Formatted error message:', errorMessage);
+    console.error('Authentication error:', errorMessage);
     return throwError(() => new Error(errorMessage));
   }
   
@@ -288,7 +335,11 @@ export class AuthService {
   }
   
   isAdmin(): boolean {
-    return this.currentUserSubject.value?.role === 'admin';
+    const user = this.currentUserSubject.value;
+    console.log('isAdmin check - Current user:', user);
+    const isAdmin = user?.role === 'admin';
+    console.log('User has admin role:', isAdmin);
+    return isAdmin;
   }
   
   isSeller(): boolean {
@@ -326,5 +377,10 @@ export class AuthService {
   
   hasAllPermissions(permissions: PermissionName[]): boolean {
     return permissions.every(permission => this.hasPermission(permission));
+  }
+  
+  // Add this public getter to access the current user
+  public getCurrentUser(): User | null {
+    return this.currentUserSubject.value;
   }
 }

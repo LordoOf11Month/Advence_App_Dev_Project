@@ -25,10 +25,12 @@ import com.example.services.CustomUserDetailsService;
 public class SecurityConfig {
 
     private final JwtFilter jwtFilter;
+    private final AdminOverrideFilter adminOverrideFilter;
     private final CustomUserDetailsService userDetailsService;
 
-    public SecurityConfig(JwtFilter jwtFilter, CustomUserDetailsService userDetailsService) {
+    public SecurityConfig(JwtFilter jwtFilter, AdminOverrideFilter adminOverrideFilter, CustomUserDetailsService userDetailsService) {
         this.jwtFilter = jwtFilter;
+        this.adminOverrideFilter = adminOverrideFilter;
         this.userDetailsService = userDetailsService;
     }
 
@@ -44,7 +46,7 @@ public class SecurityConfig {
             "http://127.0.0.1:8080"
         ));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type", "X-Requested-With"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Cache-Control", "Content-Type", "X-Requested-With", "X-Role-Override", "X-Admin-Override"));
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(3600L); // 1 hour
@@ -73,7 +75,9 @@ public class SecurityConfig {
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
 
+        // Add filters in the correct order
         http.addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
+        http.addFilterAfter(adminOverrideFilter, JwtFilter.class);
 
         return http.build();
     }

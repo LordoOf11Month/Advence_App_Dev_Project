@@ -1,9 +1,14 @@
 package com.example.DTO;
 
-import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
 
 public class ProductDTO {
@@ -22,6 +27,10 @@ public class ProductDTO {
         private LocalDateTime updatedAt;
         private boolean freeShipping;
         private boolean fastDelivery;
+        private Long storeId;
+        private String storeName;
+        private Long sellerId;
+        private String sellerName;
     }
 
     @Data

@@ -19,6 +19,46 @@ import { PaymentComponent } from './pages/checkout/payment.component';
 import { ReviewComponent } from './pages/checkout/review.component';
 import { ConfirmationComponent } from './pages/checkout/confirmation.component';
 import { AuthGuard } from './guards/auth.guard';
+import { AdminGuard } from './guards/admin.guard';
+import { Component } from '@angular/core';
+import { JsonPipe, CommonModule } from '@angular/common';
+import { jwtDecode } from 'jwt-decode';
+import { SellerProductsComponent } from './components/seller-products.component';
+
+// Simple debug component for checking auth status
+@Component({
+  selector: 'app-debug',
+  standalone: true,
+  imports: [CommonModule],
+  template: `
+    <div style="padding: 20px">
+      <h1>Auth Debug Page</h1>
+      <div *ngIf="tokenDetails">
+        <h2>JWT Token Details</h2>
+        <pre>{{ tokenDetails | json }}</pre>
+      </div>
+      <div *ngIf="!tokenDetails">
+        <p>No token found in localStorage</p>
+      </div>
+    </div>
+  `
+})
+export class DebugComponent {
+  tokenDetails: any;
+  
+  constructor() {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        this.tokenDetails = jwtDecode(token);
+        console.log('Decoded token:', this.tokenDetails);
+      } catch (e) {
+        console.error('Error decoding token:', e);
+        this.tokenDetails = { error: 'Invalid token format' };
+      }
+    }
+  }
+}
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -26,6 +66,7 @@ export const routes: Routes = [
   { path: 'product/:productId', component: ProductDetailComponent },
   { path: 'store/:sellerId', component: StorePageComponent },
   { path: 'cart', component: CartComponent },
+  { path: 'seller-products', component: SellerProductsComponent },
   {
     path: 'checkout',
     children: [
@@ -47,6 +88,7 @@ export const routes: Routes = [
     path: 'seller/register', 
     component: SellerRegisterComponent 
   },
+  { path: 'debug', component: DebugComponent },
   {
     path: 'compare',
     loadComponent: () => import('./pages/product-compare/product-compare.component')
@@ -54,8 +96,7 @@ export const routes: Routes = [
   },
   {
     path: 'admin',
-    canActivate: [AuthGuard],
-    data: { requiresAdmin: true },
+    canActivate: [AdminGuard],
     children: [
       { path: '', component: AdminDashboardComponent },
       { path: 'products', component: AdminProductsComponent },

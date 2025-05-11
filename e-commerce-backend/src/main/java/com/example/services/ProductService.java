@@ -1,36 +1,44 @@
 package com.example.services;
 
-import com.example.DTO.ProductDTO.*;
-import com.example.models.Product;
-import com.example.models.Store;
-import com.example.models.ProductImage;
-import com.example.repositories.ProductRepository;
-import com.example.repositories.StoreRepository;
-import com.example.repositories.generic.GenericRepository;
-import com.example.repositories.specifications.ProductSpecification;
-import com.example.services.generic.GenericServiceImpl;
-import org.springframework.stereotype.Service;
-import org.springframework.security.access.AccessDeniedException;
-import org.springframework.transaction.annotation.Transactional;
-
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.example.DTO.ProductDTO.CreateProductRequest;
+import com.example.DTO.ProductDTO.ProductFilterRequest;
+import com.example.DTO.ProductDTO.ProductResponse;
+import com.example.models.Product;
+import com.example.models.ProductImage;
+import com.example.models.Store;
+import com.example.models.User;
+import com.example.repositories.ProductImageRepository;
+import com.example.repositories.ProductRepository;
+import com.example.repositories.StoreRepository;
+import com.example.repositories.specifications.ProductSpecification;
+import com.example.services.generic.GenericServiceImpl;
 
 @Service
 public class ProductService extends GenericServiceImpl<Product, ProductResponse, CreateProductRequest, Long> {
 
     private final ProductRepository productRepository;
     private final StoreRepository storeRepository;
+    private final ProductImageRepository productImageRepository;
 
-    public ProductService(ProductRepository productRepository, StoreRepository storeRepository) {
+    public ProductService(ProductRepository productRepository, 
+                         StoreRepository storeRepository,
+                         ProductImageRepository productImageRepository) {
         super(productRepository);
         this.productRepository = productRepository;
         this.storeRepository = storeRepository;
+        this.productImageRepository = productImageRepository;
     }
 
     // Fetch all products
@@ -105,10 +113,24 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
         response.setPrice(product.getPrice());
         response.setCategory(product.getCategory() != null ? product.getCategory().getName() : "Uncategorized");
         response.setInStock(product.getStockQuantity() > 0);
+        response.setStockQuantity(product.getStockQuantity());
         response.setCreatedAt(product.getCreatedAt());
         response.setUpdatedAt(product.getUpdatedAt());
         response.setFreeShipping(product.isFreeShipping());
         response.setFastDelivery(product.isFastDelivery());
+        
+        // Add store and seller information
+        if (product.getStore() != null) {
+            Store store = product.getStore();
+            response.setStoreId(store.getId());
+            response.setStoreName(store.getStoreName());
+            
+            if (store.getSeller() != null) {
+                User seller = store.getSeller();
+                response.setSellerId(Long.valueOf(seller.getId()));
+                response.setSellerName(seller.getFirstName() + " " + seller.getLastName());
+            }
+        }
         
         // Add image URLs to response
         if (product.getImages() != null) {
@@ -262,5 +284,141 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
                 .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
         
         productRepository.delete(product);
+    }
+
+    @Transactional
+    public ProductResponse updateProductImages(Long id, List<String> imageUrls) {
+        System.out.println("Updating product images for product ID: " + id);
+        System.out.println("Received image URLs: " + imageUrls);
+        
+        // Check for Discord CDN URLs
+        boolean hasDiscordUrl = false;
+        for (String url : imageUrls) {
+            if (url != null && (url.contains("discordapp.net") || url.contains("discord.com"))) {
+                hasDiscordUrl = true;
+                System.out.println("Detected Discord CDN URL: " + url);
+            }
+        }
+        
+        Product existingProduct = productRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Product not found with id: " + id));
+        
+        // Filter out any null or empty URLs
+        List<String> validImageUrls = imageUrls.stream()
+                .filter(url -> url != null && !url.trim().isEmpty() && !url.equals("null") && !url.equals("undefined"))
+                .collect(Collectors.toList());
+        
+        System.out.println("Valid image URLs after filtering: " + validImageUrls);
+        
+        // Check if there are any valid URLs
+        if (validImageUrls.isEmpty()) {
+            System.out.println("No valid image URLs provided, not updating images");
+            // Don't clear existing images if no valid URLs are provided
+            return convertToDto(existingProduct);
+        }
+        
+        // Get existing images before clearing for logging
+        List<String> oldImages = existingProduct.getImages().stream()
+                .map(ProductImage::getImageUrl)
+                .collect(Collectors.toList());
+        System.out.println("Old images before clearing: " + oldImages);
+        
+        // IMPORTANT: We need to explicitly clear AND delete all existing images
+        // to avoid stale data issues
+        
+        // Step 1: Clear existing images from memory
+        existingProduct.getImages().clear();
+        
+        // Step 2: Explicitly delete all image records from the database
+        productImageRepository.deleteAllByProductId(id);
+        System.out.println("Deleted all product images from database for product ID: " + id);
+        
+        // Step 3: Flush changes to ensure deletion is committed
+        Product updatedProduct = productRepository.saveAndFlush(existingProduct);
+        System.out.println("Cleared all existing images and flushed changes");
+        
+        // Now add the new images
+        List<ProductImage> newImages = new ArrayList<>();
+        for (int i = 0; i < validImageUrls.size(); i++) {
+            String url = validImageUrls.get(i);
+            
+            // Special handling for Discord CDN URLs
+            if (url.contains("discordapp.net") || url.contains("discord.com")) {
+                System.out.println("Adding Discord CDN URL without modification: " + url);
+            }
+            
+            ProductImage image = new ProductImage();
+            image.setImageUrl(url);
+            image.setProduct(updatedProduct);
+            image.setIsPrimary(i == 0); // First image is primary
+            newImages.add(image);
+        }
+        
+        // Step 4: Save all new images explicitly first
+        newImages = productImageRepository.saveAll(newImages);
+        System.out.println("Saved " + newImages.size() + " new product images");
+        
+        // Step 5: Add saved images to product and update
+        updatedProduct.setImages(newImages);
+        Product savedProduct = productRepository.save(updatedProduct);
+        System.out.println("Saved product with " + savedProduct.getImages().size() + " new images");
+        
+        // Double-check what images are now in the DB
+        List<String> newImageUrls = savedProduct.getImages().stream()
+                .map(ProductImage::getImageUrl)
+                .collect(Collectors.toList());
+        System.out.println("New images after update: " + newImageUrls);
+        
+        // Step 6: Reload product from DB to ensure we have latest data
+        Product reloadedProduct = productRepository.findByIdWithImages(id)
+                .orElseThrow(() -> new RuntimeException("Product not found after saving"));
+                
+        return convertToDto(reloadedProduct);
+    }
+
+    // Modified method for handling admin product creation with Discord CDN URLs
+    public ProductResponse saveWithDefaultStore(CreateProductRequest request, Long defaultStoreId) {
+        Product product = convertToEntity(request);
+        
+        // Set a default store if none is specified
+        if (product.getStore() == null) {
+            Store defaultStore = storeRepository.findById(defaultStoreId)
+                .orElseGet(() -> {
+                    // Try to find any store if the specified one doesn't exist
+                    return storeRepository.findAll().stream()
+                        .findFirst()
+                        .orElseThrow(() -> new RuntimeException("No stores available to assign to product"));
+                });
+                
+            product.setStore(defaultStore);
+            
+            // Log for debugging
+            System.out.println("Using default store for product: " + defaultStore.getStoreName() + " (ID: " + defaultStore.getId() + ")");
+        }
+        
+        // For URLs with Discord CDN, ensure they're properly validated
+        if (product.getImages() != null) {
+            product.getImages().forEach(image -> {
+                // Clean and sanitize the URL if needed
+                String url = image.getImageUrl();
+                if (url != null && url.contains("discordapp.net")) {
+                    System.out.println("Processing Discord CDN URL: " + url);
+                }
+            });
+        }
+        
+        Product savedProduct = repository.save(product);
+        System.out.println("Product saved successfully with ID: " + savedProduct.getId());
+        
+        return convertToDto(savedProduct);
+    }
+
+    // Overriding the save method to ensure store is set
+    @Override
+    @Transactional
+    public ProductResponse save(CreateProductRequest request) {
+        // Use store ID 1 as default for admin-created products
+        // This can be changed to any default store ID that exists in your system
+        return saveWithDefaultStore(request, 1L);
     }
 }
