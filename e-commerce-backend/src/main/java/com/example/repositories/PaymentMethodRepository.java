@@ -8,8 +8,8 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface PaymentMethodRepository extends GenericRepository<PaymentMethod, Long> {
+public interface PaymentMethodRepository extends GenericRepository<PaymentMethod, String> {
     List<PaymentMethod> findByUser(User user);
     long countByUser(User user);
-    List<PaymentMethod> findByUserAndIdNot(User user, Long id);
+    List<PaymentMethod> findByUserAndStripePaymentMethodIdNot(User user, String stripePaymentMethodId);
 }

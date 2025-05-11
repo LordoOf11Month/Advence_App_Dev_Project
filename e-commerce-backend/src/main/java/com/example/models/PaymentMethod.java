@@ -9,16 +9,12 @@ import lombok.Setter;
 @Getter @Setter
 public class PaymentMethod {
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id")
-    private Long id;
+    @Column(name = "stripe_payment_method_id", length = 255)
+    private String stripePaymentMethodId;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
-
-    @Column(name = "stripe_payment_method_id", length = 255, nullable = false)
-    private String stripePaymentMethodId;
 
     // Enum for card brands
     public enum CardBrand {

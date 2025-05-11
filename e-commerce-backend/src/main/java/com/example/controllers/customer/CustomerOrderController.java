@@ -23,6 +23,7 @@ import java.util.Map;
 import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.ArrayList;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -62,24 +63,18 @@ public class CustomerOrderController {
             User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // Create order first
+            // Create order with payment intents
             OrderResponse order = orderService.create(createDto);
             
-            // Create payment intents for each order item
+            // Return the order ID and payment intents
             Map<String, Object> response = new HashMap<>();
             response.put("orderId", order.getId());
-            
-            List<Map<String, String>> paymentIntents = new ArrayList<>();
-            for (OrderDTO.OrderItemDTO item : order.getItems()) {
-                
-                Map<String, String> paymentIntent = stripeService.createPaymentIntent(
-                    user.getStripeCustomerId(),
-                    productService.findById(item.getProductId()).orElseThrow(() -> new RuntimeException("Product not found")).getPrice().multiply(BigDecimal.valueOf(item.getQuantity())).longValue(),
-                    "usd"
-                );
-                paymentIntents.add(paymentIntent);
-            }
-            response.put("paymentIntents", paymentIntents);
+            response.put("paymentIntents", order.getItems().stream()
+                .map(item -> Map.of(
+                    "paymentIntentId", item.getStripePaymentIntentId(),
+                    "clientSecret", item.getClientSecret()
+                ))
+                .collect(Collectors.toList()));
 
             return ResponseEntity.ok(response);
         }

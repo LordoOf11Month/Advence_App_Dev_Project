@@ -32,6 +32,7 @@ import java.util.HashMap;
 
 
 import com.example.models.PaymentMethod;
+import com.stripe.model.PaymentIntent;
 
 @Service
 public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.OrderResponse, OrderDTO.CreateOrderRequest, Long> {
@@ -116,27 +117,15 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
             String chargeId = stripeService.confirmPaymentIntent(paymentIntentId);
             orderItem.setStripeChargeId(chargeId);
             
-            // Get payment method details from Stripe
-            com.stripe.model.PaymentIntent paymentIntent = stripeService.getPaymentIntent(paymentIntentId);
-            String paymentMethodId = paymentIntent.getPaymentMethod();
-            
             // Check if all items in the order are paid
             OrderEntity order = orderItem.getOrder();
             boolean allItemsPaid = order.getOrderItems().stream()
                     .allMatch(item -> item.getStripeChargeId() != null);
 
-            // If all items are paid, update order status and set payment method
+            // If all items are paid, update order status
             if (allItemsPaid) {
                 order.setStatus(OrderEntity.Status.processing);
                 order.setStripeChargeId(chargeId);
-                
-                // Set payment method if not already set
-                if (order.getPaymentMethod() == null && paymentMethodId != null) {
-                    PaymentMethod paymentMethod = new PaymentMethod();
-                    paymentMethod.setStripePaymentMethodId(paymentMethodId);
-                    paymentMethod.setUser(order.getUser());
-                    order.setPaymentMethod(paymentMethod);
-                }
             }
 
             orderRepository.save(order);
@@ -286,6 +275,15 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
         dto.setProductId(item.getProduct().getId());
         dto.setQuantity(item.getQuantity());
         dto.setPriceAtPurchase(item.getPriceAtPurchase());
+        dto.setStripePaymentIntentId(item.getStripePaymentIntentId());
+        // Get client secret from Stripe service
+        try {
+            PaymentIntent paymentIntent = stripeService.getPaymentIntent(item.getStripePaymentIntentId());
+            dto.setClientSecret(paymentIntent.getClientSecret());
+        } catch (StripeException e) {
+            // Log error but don't fail the request
+            System.err.println("Error getting payment intent client secret: " + e.getMessage());
+        }
         return dto;
     }
 

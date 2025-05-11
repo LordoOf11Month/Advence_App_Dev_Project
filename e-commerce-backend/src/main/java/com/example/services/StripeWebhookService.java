@@ -40,12 +40,17 @@ public class StripeWebhookService {
     public void processEvent(String payload, String sigHeader) throws SignatureVerificationException {
         Event event = Webhook.constructEvent(payload, sigHeader, webhookSecret);
         
+        System.out.println("Processing Stripe webhook event: " + event.getType() + " [ID: " + event.getId() + "]");
+        
         switch (event.getType()) {
             case "customer.created":
                 handleCustomerCreated(event);
                 break;
             case "payment_intent.succeeded":
                 handlePaymentIntentSucceeded(event);
+                break;
+            case "payment_intent.created":
+                handlePaymentIntentCreated(event);
                 break;
             case "charge.succeeded":
                 handleChargeSucceeded(event);
@@ -56,18 +61,27 @@ public class StripeWebhookService {
             case "charge.failed":
                 handleChargeFailed(event);
                 break;
+            case "refund.created":
+                handleRefundCreated(event);
+                break;
             case "refund.succeeded":
                 handleRefundSucceeded(event);
                 break;
             case "refund.failed":
                 handleRefundFailed(event);
                 break;
+            case "refund.updated":
+                handleRefundUpdated(event);
+                break;
+            case "charge.refund.updated":
+                handleChargeRefundUpdated(event);
+                break;
             default:
-                // Log unhandled event types
-                System.out.println("Unhandled event type: " + event.getType());
+                System.out.println("Unhandled event type: " + event.getType() + " [ID: " + event.getId() + "]");
         }
     }
 
+    @SuppressWarnings("deprecation")
     private void handleCustomerCreated(Event event) {
         Customer customer = (Customer) event.getData().getObject();
         // Find user by email and update Stripe customer ID
@@ -78,6 +92,18 @@ public class StripeWebhookService {
                 });
     }
 
+    private void handlePaymentIntentCreated(Event event) {
+        try {
+            PaymentIntent paymentIntent = (PaymentIntent) event.getData().getObject();
+            System.out.println("Payment Intent Created: " + paymentIntent.getId());
+            // Add any necessary handling for payment intent creation
+        } catch (Exception e) {
+            System.out.println("Error processing payment_intent.created event: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @SuppressWarnings("deprecation")
     private void handlePaymentIntentSucceeded(Event event) {
         PaymentIntent paymentIntent = (PaymentIntent) event.getData().getObject();
         // Update order item with payment intent ID
@@ -88,6 +114,7 @@ public class StripeWebhookService {
                 });
     }
 
+    @SuppressWarnings("deprecation")
     private void handleChargeSucceeded(Event event) {
         Charge charge = (Charge) event.getData().getObject();
         // Update order item with charge ID
@@ -98,20 +125,31 @@ public class StripeWebhookService {
                 });
     }
 
+    @SuppressWarnings("deprecation")
     private void handleChargeRefunded(Event event) {
-        Charge charge = (Charge) event.getData().getObject();
-        // Find and update refund status
-        if (!charge.getRefunds().getData().isEmpty()) {
-            String refundId = charge.getRefunds().getData().get(0).getId();
-            refundRepository.findByStripeRefundId(refundId)
-                    .ifPresent(refund -> {
-                        refund.setStatus(Refund.RefundStatus.COMPLETED);
-                        refund.setProcessedAt(LocalDateTime.now());
-                        refundRepository.save(refund);
-                    });
+        try {
+            Charge charge = (Charge) event.getData().getObject();
+            if (charge.getRefunds() != null && !charge.getRefunds().getData().isEmpty()) {
+                String refundId = charge.getRefunds().getData().get(0).getId();
+                Optional<Refund> refundOpt = refundRepository.findByStripeRefundId(refundId);
+                if (refundOpt.isPresent()) {
+                    Refund refund = refundOpt.get();
+                    refund.setStatus(Refund.RefundStatus.COMPLETED);
+                    refund.setProcessedAt(LocalDateTime.now());
+                    refundRepository.save(refund);
+                } else {
+                    System.out.println("Warning: Refund with ID " + refundId + " not found in database");
+                }
+            } else {
+                System.out.println("Warning: No refunds found in charge " + charge.getId());
+            }
+        } catch (Exception e) {
+            System.out.println("Error processing charge.refunded event: " + e.getMessage());
+            e.printStackTrace();
         }
     }
 
+    @SuppressWarnings("deprecation")
     private void handleChargeFailed(Event event) {
         Charge charge = (Charge) event.getData().getObject();
         // Update order item status or handle failed payment
@@ -122,6 +160,18 @@ public class StripeWebhookService {
                 });
     }
 
+    private void handleRefundCreated(Event event) {
+        try {
+            com.stripe.model.Refund refund = (com.stripe.model.Refund) event.getData().getObject();
+            System.out.println("Refund Created: " + refund.getId() + " for charge: " + refund.getCharge());
+            // Add any necessary handling for refund creation
+        } catch (Exception e) {
+            System.out.println("Error processing refund.created event: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    @SuppressWarnings("deprecation")
     private void handleRefundSucceeded(Event event) {
         com.stripe.model.Refund stripeRefund = (com.stripe.model.Refund) event.getData().getObject();
         // Update refund status
@@ -133,6 +183,7 @@ public class StripeWebhookService {
                 });
     }
 
+    @SuppressWarnings("deprecation")
     private void handleRefundFailed(Event event) {
         com.stripe.model.Refund stripeRefund = (com.stripe.model.Refund) event.getData().getObject();
         // Update refund status
@@ -142,5 +193,27 @@ public class StripeWebhookService {
                     existingRefund.setProcessedAt(LocalDateTime.now());
                     refundRepository.save(existingRefund);
                 });
+    }
+
+    private void handleRefundUpdated(Event event) {
+        try {
+            com.stripe.model.Refund refund = (com.stripe.model.Refund) event.getData().getObject();
+            System.out.println("Refund Updated: " + refund.getId() + " Status: " + refund.getStatus());
+            // Add any necessary handling for refund updates
+        } catch (Exception e) {
+            System.out.println("Error processing refund.updated event: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+    private void handleChargeRefundUpdated(Event event) {
+        try {
+            Charge charge = (Charge) event.getData().getObject();
+            System.out.println("Charge Refund Updated: " + charge.getId());
+            // Add any necessary handling for charge refund updates
+        } catch (Exception e) {
+            System.out.println("Error processing charge.refund.updated event: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 } 

@@ -33,6 +33,9 @@ public class OrderDTO {
         private int quantity;
 
         private BigDecimal priceAtPurchase;
+        
+        private String stripePaymentIntentId;
+        private String clientSecret;
     }
 
     @Data

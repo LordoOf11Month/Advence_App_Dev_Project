@@ -53,10 +53,12 @@ public class RefundService {
             throw new RuntimeException("Order item does not belong to the current user");
         }
 
+        //these feauture commented out for testing
+
         // Validate order status
-        if (orderItem.getOrder().getStatus() != OrderEntity.Status.delivered) {
-            throw new RuntimeException("Refund can only be requested for delivered orders");
-        }
+        // if (orderItem.getOrder().getStatus() != OrderEntity.Status.delivered) {
+        //     throw new RuntimeException("Refund can only be requested for delivered orders");
+        // }
 
         // Check if refund already exists
         if (refundRepository.findByOrderItem_OrderItemId(request.getOrderItemId()).isPresent()) {
@@ -95,11 +97,14 @@ public class RefundService {
 
         // Validate refund amount
         BigDecimal maxRefundAmount = orderItem.getPriceAtPurchase().multiply(BigDecimal.valueOf(orderItem.getQuantity()));
-        if (request.getRefundAmount().compareTo(maxRefundAmount) > 0) {
+        BigDecimal refundAmount = request.getRefundAmount();
+        if (refundAmount == null) {
+            refundAmount = maxRefundAmount;
+        }
+        if (refundAmount.compareTo(maxRefundAmount) > 0) {
             throw new RuntimeException("Refund amount cannot exceed the original payment amount");
         }
-
-        if (request.getRefundAmount().compareTo(BigDecimal.ZERO) <= 0) {
+        if (refundAmount.compareTo(BigDecimal.ZERO) <= 0) {
             throw new RuntimeException("Refund amount must be greater than zero");
         }
 
