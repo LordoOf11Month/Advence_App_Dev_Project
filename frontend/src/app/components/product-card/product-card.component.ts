@@ -20,6 +20,8 @@ import { CompareService } from '../../services/compare.service';
         <span class="material-symbols-outlined">
           {{isInCompare ? 'compare_check' : 'compare'}}
         </span>
+        <span class="compare-tooltip" *ngIf="isInCompare">In Compare</span>
+        <span class="compare-counter" *ngIf="compareCount > 0 && isInCompare">{{compareCount}}/4</span>
       </div>
       
       <a [routerLink]="['/product', product.id]" class="product-link">
@@ -74,7 +76,8 @@ import { CompareService } from '../../services/compare.service';
         
         <button class="add-to-compare-btn" (click)="onCompareClick($event)" [class.is-comparing]="isInCompare">
           <span class="material-symbols-outlined">{{isInCompare ? 'compare_check' : 'compare'}}</span>
-          {{isInCompare ? 'Remove' : 'Compare'}}
+          {{isInCompare ? 'Remove from Compare' : 'Add to Compare'}}
+          <span class="bottom-counter" *ngIf="compareCount > 0 && isInCompare">{{compareCount}}/4</span>
         </button>
       </div>
     </div>
@@ -138,6 +141,42 @@ import { CompareService } from '../../services/compare.service';
     
     .compare-button.is-comparing .material-symbols-outlined {
       color: var(--primary);
+    }
+    
+    .compare-tooltip {
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--primary);
+      color: white;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 0.7rem;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity var(--transition-fast);
+      pointer-events: none;
+    }
+    
+    .compare-button.is-comparing:hover .compare-tooltip {
+      opacity: 1;
+    }
+    
+    .compare-counter {
+      position: absolute;
+      bottom: -10px;
+      right: -10px;
+      background-color: var(--primary);
+      color: white;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      font-size: 0.7rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
     }
     
     .product-link {
@@ -336,6 +375,16 @@ import { CompareService } from '../../services/compare.service';
       border-color: var(--primary);
     }
     
+    .bottom-counter {
+      background-color: var(--primary-dark);
+      color: white;
+      font-size: 0.7rem;
+      padding: 1px 5px;
+      border-radius: var(--radius-sm);
+      margin-left: var(--space-1);
+      font-weight: bold;
+    }
+    
     .add-to-cart-btn:disabled {
       opacity: 0.6;
       cursor: not-allowed;
@@ -349,12 +398,21 @@ export class ProductCardComponent implements OnInit {
   @Output() toggleCompare = new EventEmitter<Product>();
   
   isInCompare = false;
+  compareCount = 0;
   
   constructor(private compareService: CompareService) {}
   
   ngOnInit(): void {
-    if (this.product) {
+    if (this.product && this.product.id) {
+      // Check if product is in compare list
       this.isInCompare = this.compareService.isInCompare(this.product.id);
+      this.compareCount = this.compareService.getCompareCount();
+      
+      // Subscribe to changes in the compare list to update UI accordingly
+      this.compareService.getCompareProducts().subscribe(products => {
+        this.isInCompare = products.some(p => p.id === this.product.id);
+        this.compareCount = products.length;
+      });
     }
   }
   
@@ -362,11 +420,12 @@ export class ProductCardComponent implements OnInit {
     if (this.product && this.product.images && this.product.images.length > 0) {
       return this.product.images[0];
     }
-    return 'https://via.placeholder.com/300';
+    return '/assets/images/placeholder-product.svg';
   }
   
-  handleImageError(event: any): void {
-    event.target.src = 'https://via.placeholder.com/300';
+  handleImageError(event: Event): void {
+    const target = event.target as HTMLImageElement;
+    target.src = '/assets/images/placeholder-product.svg';
   }
   
   onAddToCart(event: Event): void {
@@ -384,7 +443,21 @@ export class ProductCardComponent implements OnInit {
   onCompareClick(event: Event): void {
     event.preventDefault();
     event.stopPropagation();
-    this.isInCompare = !this.isInCompare;
+    
+    if (this.isInCompare) {
+      this.compareService.removeFromCompare(this.product.id);
+      this.isInCompare = false;
+    } else {
+      const added = this.compareService.addToCompare(this.product);
+      this.isInCompare = added;
+      
+      // If product wasn't added (e.g., comparison limit reached), we could show a message
+      if (!added) {
+        console.log('Comparison limit reached (max 4 products)');
+        // Could integrate with notification service here if available
+      }
+    }
+    
     this.toggleCompare.emit(this.product);
   }
 }

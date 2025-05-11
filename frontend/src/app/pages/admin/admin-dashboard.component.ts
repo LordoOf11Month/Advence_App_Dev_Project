@@ -48,7 +48,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
     sellerId: '',
     sellerName: '',
     dateAdded: new Date(),
-    lastUpdated: new Date()
+    lastUpdated: new Date(),
+    description: '',
+    imageUrl: '/assets/images/placeholder-product.svg'
   };
 
   // Order management
@@ -424,7 +426,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
       dateAdded: new Date(),
       lastUpdated: new Date(),
       description: '',
-      imageUrl: 'https://via.placeholder.com/150'
+      imageUrl: '/assets/images/placeholder-product.svg'
     };
     
     // Ensure sellers are loaded for the dropdown

@@ -96,7 +96,7 @@ export class OrderService {
           price: item.priceAtPurchase || item.product.price,
           category: item.product.category?.name || '',
           brand: item.product.brand || '',
-          images: item.product.images || ['https://via.placeholder.com/300'],
+          images: item.product.images || ['/assets/images/placeholder-product.svg'],
           description: item.product.description || '',
           rating: item.product.rating || 0,
           reviewCount: item.product.reviewCount || 0,

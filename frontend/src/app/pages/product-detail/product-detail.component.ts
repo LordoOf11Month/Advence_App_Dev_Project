@@ -650,11 +650,11 @@ export class ProductDetailComponent implements OnInit {
     if (product.images && product.images.length > 0) {
       return product.images[0];
     }
-    return 'https://via.placeholder.com/500';
+    return '/assets/images/placeholder-product.svg';
   }
   
   handleImageError(event: any): void {
-    event.target.src = 'https://via.placeholder.com/150';
+    event.target.src = '/assets/images/placeholder-product.svg';
   }
   
   setCategoryName(): void {

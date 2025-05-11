@@ -486,19 +486,15 @@ export class AdminReviewsComponent implements OnInit {
 
   toggleApproval(review: AdminReview): void {
     const newApprovalStatus = !review.approved;
-    this.adminService.approveReview(review.productId, review.userId, newApprovalStatus).subscribe({
+    this.adminService.approveReview(parseInt(review.id), newApprovalStatus).subscribe({
       next: (updatedReview) => {
         // Update review in the local arrays
-        const index = this.reviews.findIndex(r => 
-          r.productId === review.productId && r.userId === review.userId
-        );
+        const index = this.reviews.findIndex(r => r.id === review.id);
         if (index !== -1) {
           this.reviews[index].approved = newApprovalStatus;
         }
         
-        const filteredIndex = this.filteredReviews.findIndex(r => 
-          r.productId === review.productId && r.userId === review.userId
-        );
+        const filteredIndex = this.filteredReviews.findIndex(r => r.id === review.id);
         if (filteredIndex !== -1) {
           this.filteredReviews[filteredIndex].approved = newApprovalStatus;
         }
@@ -515,21 +511,18 @@ export class AdminReviewsComponent implements OnInit {
   }
 
   cancelDelete(): void {
-    this.selectedReview = null;
     this.showDeleteConfirmation = false;
+    this.selectedReview = null;
   }
 
   deleteReview(): void {
     if (!this.selectedReview) return;
-
-    this.adminService.deleteReview(this.selectedReview.productId, this.selectedReview.userId).subscribe({
+    
+    this.adminService.deleteReview(parseInt(this.selectedReview.id)).subscribe({
       next: () => {
-        // Remove the review from the arrays
-        this.reviews = this.reviews.filter(r => 
-          !(r.productId === this.selectedReview!.productId && r.userId === this.selectedReview!.userId)
-        );
-        
-        this.filterReviews(); // Re-filter the reviews
+        // Remove from local arrays
+        this.reviews = this.reviews.filter(r => r.id !== this.selectedReview.id);
+        this.filteredReviews = this.filteredReviews.filter(r => r.id !== this.selectedReview.id);
         this.showDeleteConfirmation = false;
         this.selectedReview = null;
       },

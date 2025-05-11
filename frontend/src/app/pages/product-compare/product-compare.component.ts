@@ -33,6 +33,10 @@ import { Product } from '../../models/product.model';
       
       <div *ngIf="products.length > 0" class="bg-white rounded-lg shadow overflow-x-auto">
         <table class="w-full product-comparison-table">
+          <colgroup>
+            <col style="width: 180px;">
+            <col *ngFor="let product of products" style="width: 250px;">
+          </colgroup>
           <thead>
             <tr>
               <th class="attribute-column">Product</th>
@@ -86,23 +90,18 @@ import { Product } from '../../models/product.model';
           
           <tbody>
             <tr>
-              <td class="attribute-name">Brand</td>
-              <td *ngFor="let product of products">{{product.brand}}</td>
-            </tr>
-            
-            <tr>
-              <td class="attribute-name">Description</td>
-              <td *ngFor="let product of products" class="description-cell">
-                {{product.description}}
-              </td>
-            </tr>
-            
-            <tr>
               <td class="attribute-name">Seller</td>
               <td *ngFor="let product of products">
                 <a [routerLink]="['/store', product.sellerId]" class="seller-link">
                   {{product.sellerName}}
                 </a>
+              </td>
+            </tr>
+            
+            <tr class="description-row">
+              <td class="attribute-name">Description</td>
+              <td *ngFor="let product of products" class="description-cell">
+                <div class="description-content">{{product.description}}</div>
               </td>
             </tr>
             
@@ -152,12 +151,17 @@ import { Product } from '../../models/product.model';
     .product-comparison-table {
       border-collapse: collapse;
       min-width: 100%;
+      table-layout: fixed;
     }
     
     .product-comparison-table th,
     .product-comparison-table td {
       padding: var(--space-4);
       border: 1px solid var(--neutral-200);
+    }
+    
+    .description-row {
+      height: 220px;
     }
     
     .attribute-column {
@@ -274,13 +278,39 @@ import { Product } from '../../models/product.model';
     }
     
     .description-cell {
-      font-size: 0.875rem;
-      max-width: 250px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      display: -webkit-box;
-      -webkit-line-clamp: 3;
-      -webkit-box-orient: vertical;
+      min-width: 220px;
+      max-width: 280px;
+      vertical-align: top;
+      height: 200px;
+    }
+    
+    .description-content {
+      display: block;
+      height: 180px;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      line-height: 1.5;
+      padding: var(--space-2);
+      margin: var(--space-1);
+      white-space: normal;
+      text-align: left;
+      scrollbar-width: thin;
+      scrollbar-color: var(--neutral-300) transparent;
+      border-radius: var(--radius-sm);
+      background-color: var(--neutral-50);
+    }
+    
+    .description-content::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    .description-content::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    .description-content::-webkit-scrollbar-thumb {
+      background-color: var(--neutral-300);
+      border-radius: 3px;
     }
     
     .seller-link {

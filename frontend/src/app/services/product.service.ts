@@ -546,7 +546,7 @@ export class ProductService {
       return [apiProduct.imageUrl];
     }
     
-    return ['https://via.placeholder.com/300'];
+    return ['/assets/images/placeholder-product.svg'];
   }
   
   private determineStockStatus(apiProduct: any): boolean {

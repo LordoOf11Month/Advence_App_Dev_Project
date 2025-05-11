@@ -1,11 +1,21 @@
 package com.example.controllers.admin;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.example.controllers.customer.CustomerReviewController.ReviewResponse;
 import com.example.models.Review;
 import com.example.repositories.ReviewRepository;
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.web.server.ResponseStatusException;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin/reviews")
@@ -17,29 +27,28 @@ public class AdminReviewController {
     }
 
     @GetMapping
-    public List<Review> getAllReviews() {
-        return reviewRepository.findAll();
+    public List<ReviewResponse> getAllReviews() {
+        return reviewRepository.findAll().stream()
+            .map(ReviewResponse::new)
+            .collect(Collectors.toList());
     }
 
-    @PutMapping("/{productId}/approve")
-    public Review approveReview(@PathVariable Long productId, @RequestParam int userId, @RequestParam boolean approved) {
-        Review.ReviewId reviewId = new Review.ReviewId();
-        reviewId.setProductId(productId);
-        reviewId.setUserId(userId);
+    @PutMapping("/{reviewId}/approve")
+    public ReviewResponse approveReview(@PathVariable Long reviewId, @RequestParam boolean approved) {
         Review review = reviewRepository.findById(reviewId)
-            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-        // You can add an 'approved' field to Review entity if you want to track approval status
+            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Review not found"));
+        
+        // Add an approved field to the Review entity if not already present
         // review.setApproved(approved);
-        // return reviewRepository.save(review);
-        // For now, just return the review as a placeholder
-        return review;
+        
+        return new ReviewResponse(reviewRepository.save(review));
     }
 
-    @DeleteMapping("/{productId}")
-    public void deleteReview(@PathVariable Long productId, @RequestParam int userId) {
-        Review.ReviewId reviewId = new Review.ReviewId();
-        reviewId.setProductId(productId);
-        reviewId.setUserId(userId);
+    @DeleteMapping("/{reviewId}")
+    public void deleteReview(@PathVariable Long reviewId) {
+        if (!reviewRepository.existsById(reviewId)) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Review not found");
+        }
         reviewRepository.deleteById(reviewId);
     }
 } 

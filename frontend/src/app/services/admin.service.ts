@@ -364,7 +364,7 @@ export class AdminService {
     console.log('[AdminService] Original image URL: ', originalImageUrl);
     
     // Use a placeholder image for initial creation
-    productToCreate.imageUrl = 'https://via.placeholder.com/150';
+    productToCreate.imageUrl = '/assets/images/placeholder-product.svg';
     
     const productData = {
       title: productToCreate.title,
@@ -373,7 +373,7 @@ export class AdminService {
       approved: productToCreate.status === 'active',
       stockQuantity: productToCreate.stock || 0,
       description: productToCreate.description || 'No description provided',
-      imageUrls: ['https://via.placeholder.com/150'], // Always use placeholder for initial creation
+      imageUrls: ['/assets/images/placeholder-product.svg'], // Always use placeholder for initial creation
       freeShipping: productToCreate.freeShipping || false,
       fastDelivery: productToCreate.fastDelivery || false,
       sellerId: productToCreate.sellerId || null
@@ -386,7 +386,7 @@ export class AdminService {
         console.log('[AdminService] Product created with ID:', response.id);
         
         // Now that we have a product ID, update the image if an original was provided
-        if (originalImageUrl && originalImageUrl !== 'https://via.placeholder.com/150') {
+        if (originalImageUrl && originalImageUrl !== '/assets/images/placeholder-product.svg') {
           console.log('[AdminService] Updating product image to:', originalImageUrl);
           
           // Use the working image update method
@@ -422,7 +422,7 @@ export class AdminService {
           dateAdded: new Date(response.createdAt),
           lastUpdated: new Date(response.updatedAt),
           description: response.description || '',
-          imageUrl: response.imageUrl || 'https://via.placeholder.com/150',
+          imageUrl: response.imageUrl || '/assets/images/placeholder-product.svg',
           freeShipping: response.freeShipping || false,
           fastDelivery: response.fastDelivery || false
         };
@@ -635,9 +635,9 @@ export class AdminService {
   getReviews(): Observable<AdminReview[]> {
     return this.http.get<any[]>(`${this.apiUrl}/admin/reviews`).pipe(
       map(reviews => reviews.map(review => ({
-        id: `${review.id.productId}_${review.id.userId}`,
-        productId: review.id.productId,
-        userId: review.id.userId,
+        id: review.id.toString(),
+        productId: review.productId,
+        userId: review.userId,
         productName: review.productName || 'Unknown Product',
         userName: review.userName || 'Unknown User',
         rating: review.rating,
@@ -654,17 +654,15 @@ export class AdminService {
     );
   }
 
-  approveReview(productId: number, userId: number, approved: boolean): Observable<AdminReview> {
-    // Add userId as a query parameter
+  approveReview(reviewId: number, approved: boolean): Observable<AdminReview> {
     const params = new HttpParams()
-      .set('userId', userId.toString())
       .set('approved', approved.toString());
 
-    return this.http.put<any>(`${this.apiUrl}/admin/reviews/${productId}/approve`, {}, { params }).pipe(
+    return this.http.put<any>(`${this.apiUrl}/admin/reviews/${reviewId}/approve`, {}, { params }).pipe(
       map(review => ({
-        id: `${review.id.productId}_${review.id.userId}`,
-        productId: review.id.productId,
-        userId: review.id.userId,
+        id: review.id.toString(),
+        productId: review.productId,
+        userId: review.userId,
         productName: review.productName || 'Unknown Product',
         userName: review.userName || 'Unknown User',
         rating: review.rating,
@@ -675,19 +673,16 @@ export class AdminService {
         status: approved ? 'approved' : 'pending' as AdminReview['status']
       })),
       catchError(error => {
-        console.error(`Error approving review (product: ${productId}, user: ${userId}):`, error);
+        console.error(`Error approving review (id: ${reviewId}):`, error);
         return throwError(() => new Error('Failed to approve review'));
       })
     );
   }
 
-  deleteReview(productId: number, userId: number): Observable<void> {
-    // Add userId as a query parameter
-    const params = new HttpParams().set('userId', userId.toString());
-
-    return this.http.delete<void>(`${this.apiUrl}/admin/reviews/${productId}`, { params }).pipe(
+  deleteReview(reviewId: number): Observable<void> {
+    return this.http.delete<void>(`${this.apiUrl}/admin/reviews/${reviewId}`).pipe(
       catchError(error => {
-        console.error(`Error deleting review (product: ${productId}, user: ${userId}):`, error);
+        console.error(`Error deleting review (id: ${reviewId}):`, error);
         return throwError(() => new Error('Failed to delete review'));
       })
     );

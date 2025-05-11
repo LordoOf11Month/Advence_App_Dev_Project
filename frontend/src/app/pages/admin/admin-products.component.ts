@@ -174,7 +174,7 @@ import { AdminProduct } from '../../models/admin.model';
                     name="imageUrl"
                     [(ngModel)]="currentProduct.imageUrl"
                     required
-                    placeholder="https://example.com/image.jpg"
+                    placeholder="/assets/images/placeholder-product.svg"
                   >
                   <button type="button" class="preview-image-btn" (click)="updateImagePreview()">
                     <span class="material-symbols-outlined">preview</span>
@@ -705,7 +705,9 @@ export class AdminProductsComponent implements OnInit {
     sellerId: '',
     sellerName: '',
     dateAdded: new Date(),
-    lastUpdated: new Date()
+    lastUpdated: new Date(),
+    description: 'Product description',
+    imageUrl: '/assets/images/placeholder-product.svg'
   };
 
   constructor(private adminService: AdminService) {}
@@ -769,7 +771,7 @@ export class AdminProductsComponent implements OnInit {
       dateAdded: new Date(),
       lastUpdated: new Date(),
       description: 'Product description',
-      imageUrl: 'https://via.placeholder.com/150'
+      imageUrl: '/assets/images/placeholder-product.jpg'
     };
     this.showProductForm = true;
   }

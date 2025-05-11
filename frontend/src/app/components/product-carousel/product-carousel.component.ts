@@ -1,4 +1,4 @@
-import { Component, Input, AfterViewInit, ViewChild, ElementRef } from '@angular/core';
+import { Component, Input, AfterViewInit, ViewChild, ElementRef, ChangeDetectorRef, OnChanges, SimpleChanges } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Product } from '../../models/product.model';
 import { ProductCardComponent } from '../product-card/product-card.component';
@@ -131,7 +131,7 @@ import { ProductService } from '../../services/product.service';
     }
   `]
 })
-export class ProductCarouselComponent implements AfterViewInit {
+export class ProductCarouselComponent implements AfterViewInit, OnChanges {
   @Input() products: Product[] = [];
   @Input() title: string = '';
   
@@ -145,15 +145,37 @@ export class ProductCarouselComponent implements AfterViewInit {
   
   constructor(
     private cartService: CartService,
-    private productService: ProductService
+    private productService: ProductService,
+    private cdr: ChangeDetectorRef
   ) {}
   
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['products'] && this.carouselContainer) {
+      // If the view is already initialized when products change
+      setTimeout(() => {
+        this.initCarousel();
+      });
+    }
+  }
+  
   ngAfterViewInit(): void {
-    this.initCarousel();
-    window.addEventListener('resize', () => this.initCarousel());
+    // Use setTimeout to avoid the ExpressionChangedAfterItHasBeenCheckedError
+    setTimeout(() => {
+      this.initCarousel();
+      this.cdr.detectChanges();
+    });
+    
+    window.addEventListener('resize', () => {
+      this.initCarousel();
+      this.cdr.detectChanges();
+    });
   }
   
   initCarousel(): void {
+    if (!this.carouselContainer || !this.carouselContainer.nativeElement) {
+      return;
+    }
+    
     const containerWidth = this.carouselContainer.nativeElement.offsetWidth;
     
     if (window.innerWidth <= 576) {
@@ -186,6 +208,10 @@ export class ProductCarouselComponent implements AfterViewInit {
   }
   
   updateSlidePosition(): void {
+    if (!this.carouselTrack || !this.carouselTrack.nativeElement) {
+      return;
+    }
+    
     const track = this.carouselTrack.nativeElement;
     const translateX = -this.currentSlide * this.slideWidth;
     track.style.transform = `translateX(${translateX}px)`;

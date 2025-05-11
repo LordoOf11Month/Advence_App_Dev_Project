@@ -631,41 +631,70 @@ export class ProductReviewsComponent implements OnInit {
   }
   
   loadReviews(): void {
-    this.reviewService.getReviewsByProductId(this.productId, this.sortOption, this.currentPage, this.pageSize).subscribe(result => {
-      // For demo purposes, we're adding userLiked/userDisliked properties to the reviews
-      const mappedReviews = result.reviews.map(review => ({
-        ...review,
-        userLiked: false,
-        userDisliked: false
-      }));
-      
-      // If loading more, append to existing reviews, otherwise replace them
-      if (this.currentPage > 1) {
-        this.reviews = [...this.reviews, ...mappedReviews];
-      } else {
-        this.reviews = mappedReviews;
+    this.reviewService.getReviewsByProductId(
+      this.productId, 
+      this.sortOption, 
+      this.currentPage, 
+      this.pageSize
+    ).subscribe({
+      next: (response) => {
+        if (this.currentPage === 1) {
+          this.reviews = response.reviews.map(review => ({
+            ...review,
+            userLiked: false,
+            userDisliked: false
+          }));
+        } else {
+          // Append to existing reviews when loading more
+          this.reviews = [
+            ...this.reviews, 
+            ...response.reviews.map(review => ({
+              ...review,
+              userLiked: false,
+              userDisliked: false
+            }))
+          ];
+        }
+        
+        this.totalReviews = response.total;
+        this.hasMoreReviews = (this.currentPage * this.pageSize) < response.total;
+        this.isLoadingMore = false;
+      },
+      error: (error) => {
+        console.error('Error loading reviews:', error);
+        this.isLoadingMore = false;
       }
-      
-      this.totalReviews = result.total;
-      this.hasMoreReviews = this.reviews.length < this.totalReviews;
     });
   }
   
   loadReviewStats(): void {
-    this.reviewService.getReviewStats(this.productId).subscribe(stats => {
-      this.reviewStats = stats;
-      
-      // Calculate percentages for rating breakdown
-      const total = stats.totalReviews || 1; // Avoid division by zero
-      this.ratingBreakdown = [5, 4, 3, 2, 1].map(stars => {
-        const count = stats.ratingCounts[stars] || 0;
-        return {
-          stars,
-          count,
-          percentage: (count / total) * 100
-        };
-      });
+    this.reviewService.getReviewStats(this.productId).subscribe({
+      next: (stats) => {
+        this.reviewStats = stats;
+        this.generateRatingBreakdown();
+      },
+      error: (error) => {
+        console.error('Error loading review stats:', error);
+      }
     });
+  }
+  
+  generateRatingBreakdown(): void {
+    if (!this.reviewStats) return;
+    
+    this.ratingBreakdown = [];
+    for (let i = 5; i >= 1; i--) {
+      const count = this.reviewStats.ratingCounts[i] || 0;
+      const percentage = this.reviewStats.totalReviews > 0 
+        ? (count / this.reviewStats.totalReviews) * 100 
+        : 0;
+      
+      this.ratingBreakdown.push({
+        stars: i,
+        count,
+        percentage
+      });
+    }
   }
   
   sortReviews(): void {
@@ -686,7 +715,8 @@ export class ProductReviewsComponent implements OnInit {
   }
   
   onRatingChange(rating: number): void {
-    this.reviewForm.patchValue({ rating });
+    this.reviewForm.get('rating')?.setValue(rating);
+    this.reviewForm.get('rating')?.markAsTouched();
   }
   
   submitReview(): void {
@@ -726,7 +756,7 @@ export class ProductReviewsComponent implements OnInit {
       },
       error: (error) => {
         this.isSubmitting = false;
-        console.error('Error submitting review:', error);
+        alert(error.message || 'Error submitting review');
       }
     });
   }
@@ -737,13 +767,13 @@ export class ProductReviewsComponent implements OnInit {
     
     if (review.userLiked) {
       // If already liked, undo the like
-      review.likes!--;
+      review.likes = (review.likes || 0) - 1;
       review.userLiked = false;
     } else {
       // Add like and remove dislike if present
-      review.likes!++;
+      review.likes = (review.likes || 0) + 1;
       if (review.userDisliked) {
-        review.dislikes!--;
+        review.dislikes = (review.dislikes || 0) - 1;
         review.userDisliked = false;
       }
       review.userLiked = true;
@@ -759,13 +789,13 @@ export class ProductReviewsComponent implements OnInit {
     
     if (review.userDisliked) {
       // If already disliked, undo the dislike
-      review.dislikes!--;
+      review.dislikes = (review.dislikes || 0) - 1;
       review.userDisliked = false;
     } else {
       // Add dislike and remove like if present
-      review.dislikes!++;
+      review.dislikes = (review.dislikes || 0) + 1;
       if (review.userLiked) {
-        review.likes!--;
+        review.likes = (review.likes || 0) - 1;
         review.userLiked = false;
       }
       review.userDisliked = true;
@@ -777,6 +807,7 @@ export class ProductReviewsComponent implements OnInit {
   
   reportReview(reviewId: string): void {
     // In a real app, implement report functionality
+    this.reviewService.reportReview(reviewId, 'inappropriate').subscribe();
     alert('Review reported! Thank you for your feedback.');
   }
   
