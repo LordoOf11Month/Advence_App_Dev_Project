@@ -334,6 +334,11 @@ export class AuthService {
     return !!this.currentUserSubject.value;
   }
   
+  getCurrentUserId(): string | null {
+    const currentUser = this.currentUserSubject.value;
+    return currentUser ? currentUser.id : null;
+  }
+  
   isAdmin(): boolean {
     const user = this.currentUserSubject.value;
     console.log('isAdmin check - Current user:', user);

@@ -182,7 +182,15 @@ import { StarRatingComponent } from '../star-rating/star-rating.component';
                   </button>
                 </div>
                 
-                <div class="review-report">
+                <div class="review-actions-right">
+                  <button 
+                    *ngIf="isCurrentUserReview(review.userId)" 
+                    class="delete-button" 
+                    (click)="confirmDeleteReview(review.id)"
+                  >
+                    <span class="material-symbols-outlined">delete</span>
+                    Delete
+                  </button>
                   <button class="link-button" (click)="reportReview(review.id)">Report</button>
                 </div>
               </div>
@@ -193,6 +201,24 @@ import { StarRatingComponent } from '../star-rating/star-rating.component';
             <button class="load-more-button" (click)="loadMoreReviews()">
               {{isLoadingMore ? 'Loading...' : 'Load More Reviews'}}
             </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Delete Confirmation Modal -->
+      <div class="modal" *ngIf="showDeleteConfirmation">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Confirm Delete</h2>
+            <button class="close-btn" (click)="cancelDeleteReview()">×</button>
+          </div>
+          <div class="modal-body">
+            <p>Are you sure you want to delete this review?</p>
+            <p class="warning">This action cannot be undone.</p>
+          </div>
+          <div class="modal-footer">
+            <button class="btn secondary" (click)="cancelDeleteReview()">Cancel</button>
+            <button class="btn danger" (click)="deleteReview()">Delete</button>
           </div>
         </div>
       </div>
@@ -587,6 +613,121 @@ import { StarRatingComponent } from '../star-rating/star-rating.component';
       .review-report {
         margin-top: var(--space-2);
       }
+      
+      .review-actions-right {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+      }
+    }
+    
+    .delete-button {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      background-color: rgba(255, 86, 48, 0.1);
+      color: var(--error);
+      border: 1px solid var(--error);
+      border-radius: var(--radius-md);
+      padding: var(--space-1) var(--space-2);
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    
+    .delete-button:hover {
+      background-color: var(--error);
+      color: var(--white);
+    }
+    
+    .delete-button .material-symbols-outlined {
+      font-size: 1rem;
+    }
+    
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .modal-content {
+      background-color: var(--white);
+      border-radius: var(--radius-md);
+      width: 100%;
+      max-width: 400px;
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--neutral-200);
+    }
+    
+    .modal-header h2 {
+      font-size: 1.25rem;
+      margin: 0;
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--neutral-500);
+      cursor: pointer;
+    }
+    
+    .modal-body {
+      padding: var(--space-4);
+    }
+    
+    .warning {
+      color: var(--error);
+      font-weight: 500;
+    }
+    
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-3);
+      padding: var(--space-4);
+      border-top: 1px solid var(--neutral-200);
+    }
+    
+    .btn {
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      border: none;
+    }
+    
+    .btn.secondary {
+      background-color: var(--neutral-200);
+      color: var(--neutral-700);
+    }
+    
+    .btn.secondary:hover {
+      background-color: var(--neutral-300);
+    }
+    
+    .btn.danger {
+      background-color: var(--error);
+      color: var(--white);
+    }
+    
+    .btn.danger:hover {
+      background-color: var(--error-dark, #d32f2f);
     }
   `]
 })
@@ -607,6 +748,10 @@ export class ProductReviewsComponent implements OnInit {
   currentUrl = '';
   totalReviews = 0;
   pageSize = 5;
+  
+  // Delete review confirmation
+  showDeleteConfirmation = false;
+  reviewToDelete: string | null = null;
   
   constructor(
     private reviewService: ReviewService,
@@ -814,5 +959,46 @@ export class ProductReviewsComponent implements OnInit {
   enlargeImage(imageUrl: string): void {
     // In a real app, implement image lightbox/modal
     window.open(imageUrl, '_blank');
+  }
+  
+  isCurrentUserReview(userId: string): boolean {
+    if (!this.isAuthenticated) return false;
+    
+    // Get current user ID from auth service
+    const currentUserId = this.authService.getCurrentUserId();
+    return userId === currentUserId;
+  }
+  
+  confirmDeleteReview(reviewId: string): void {
+    this.reviewToDelete = reviewId;
+    this.showDeleteConfirmation = true;
+  }
+  
+  cancelDeleteReview(): void {
+    this.reviewToDelete = null;
+    this.showDeleteConfirmation = false;
+  }
+  
+  deleteReview(): void {
+    if (!this.reviewToDelete) return;
+    
+    // The deleteReview method in ReviewService expects a productId
+    this.reviewService.deleteReview(this.productId).subscribe({
+      next: () => {
+        // Remove the deleted review from the list
+        this.reviews = this.reviews.filter(review => review.id !== this.reviewToDelete);
+        
+        // Update review stats
+        this.loadReviewStats();
+        
+        // Close the confirmation dialog
+        this.cancelDeleteReview();
+      },
+      error: (error) => {
+        console.error('Error deleting review:', error);
+        alert(error.message || 'Failed to delete review. Please try again.');
+        this.cancelDeleteReview();
+      }
+    });
   }
 }
