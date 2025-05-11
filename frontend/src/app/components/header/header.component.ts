@@ -47,34 +47,25 @@ import { Category } from '../../models/product.model';
           </a>
         </div>
 
-        <div class="all-categories-btn" 
-             (mouseenter)="showAllCategories = true"
-             (mouseleave)="showAllCategories = false">
-          <button class="categories-toggle">
+        <div class="all-categories-btn">
+          <button class="categories-toggle" (click)="toggleAllCategories($event)">
             <span class="material-symbols-outlined">menu</span>
-            Tüm Kategoriler
+            <span class="all-categories-link">Tüm Kategoriler</span>
           </button>
           
-          <div class="mega-menu all-categories-menu" *ngIf="showAllCategories">
+          <div class="mega-menu all-categories-menu">
             <div class="mega-menu-content">
               <div class="submenu-columns">
+                <!-- One column per top-level category -->
                 <div class="submenu-column" *ngFor="let category of categories">
                   <h3 class="submenu-title">
-                    <a [routerLink]="['/category', category.slug]">{{category.name}}</a>
+                    <a [routerLink]="['/category', getCategorySlug(category)]">{{category.name}}</a>
                   </h3>
-                  <ul class="submenu-list" *ngIf="category.subcategories?.length">
+                  <ul class="submenu-list" *ngIf="hasSubcategories(category)">
                     <li *ngFor="let subcategory of category.subcategories">
-                      <a [routerLink]="['/category', subcategory.slug]">
+                      <a [routerLink]="['/category', getCategorySlug(subcategory)]">
                         {{subcategory.name}}
-                        <span class="material-symbols-outlined" *ngIf="subcategory.subcategories?.length">chevron_right</span>
                       </a>
-                      <div class="nested-submenu" *ngIf="subcategory.subcategories?.length">
-                        <ul class="nested-submenu-list">
-                          <li *ngFor="let child of subcategory.subcategories">
-                            <a [routerLink]="['/category', child.slug]">{{child.name}}</a>
-                          </li>
-                        </ul>
-                      </div>
                     </li>
                   </ul>
                 </div>
@@ -116,10 +107,35 @@ import { Category } from '../../models/product.model';
       </div>
       
       <nav class="categories-nav" [class.show]="showMobileMenu" *ngIf="!isSellerRoute && !isAdminRoute">
-        <div class="container">
+        <div class="container container-nav">
+          <!-- Main horizontal category navigation -->
           <ul class="categories-list">
+            <!-- Only show top-level parent categories in the main navigation bar -->
             <li *ngFor="let category of categories" class="category-item">
-              <a [routerLink]="['/category', category.slug]">{{category.name}}</a>
+              <a [routerLink]="['/category', getCategorySlug(category)]" class="category-link">
+                {{category.name}}
+                <span class="chevron-down" *ngIf="hasSubcategories(category)">▼</span>
+              </a>
+              
+              <!-- Dropdown mega menu for subcategories only -->
+              <div class="mega-menu" *ngIf="hasSubcategories(category)">
+                <div class="mega-menu-content">
+                  <div class="submenu-columns">
+                    <div class="submenu-column">
+                      <h3 class="submenu-title">
+                        <a [routerLink]="['/category', getCategorySlug(category)]">{{category.name}}</a>
+                      </h3>
+                      <ul class="submenu-list">
+                        <li *ngFor="let subcategory of category.subcategories">
+                          <a [routerLink]="['/category', getCategorySlug(subcategory)]">
+                            {{subcategory.name}}
+                          </a>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </li>
           </ul>
         </div>
@@ -128,6 +144,33 @@ import { Category } from '../../models/product.model';
     <div class="header-spacer"></div>
   `,
   styles: [`
+    /* Global reset for navigation containers to ensure dropdowns can extend beyond limits */
+    body {
+      overflow-x: hidden;
+    }
+    
+    .main-header, header, nav, .categories-nav, .container, ul, li {
+      overflow: visible;
+    }
+    
+    /* Enhanced hover effect for the submenu items */
+    .submenu-list li a:hover {
+      background-color: rgba(0, 123, 255, 0.08);
+      color: var(--primary);
+    }
+    
+    /* Force the dropdown menus to be rendered at the highest level possible */
+    .mega-menu, .all-categories-menu, .nested-submenu {
+      position: absolute;
+      z-index: 9999;
+      /* Use transform to create a new stacking context */
+      transform: translateZ(0);
+      /* Ensure the menu isn't clipped by any parent containers */
+      clip-path: none;
+      /* Force the browser to create a new rendering layer */
+      will-change: transform;
+    }
+
     :host {
       display: block;
     }
@@ -141,6 +184,7 @@ import { Category } from '../../models/product.model';
       z-index: 1000;
       box-shadow: var(--shadow-sm);
       transition: all var(--transition-normal);
+      overflow: visible;
     }
     
     header.scrolled {
@@ -180,10 +224,15 @@ import { Category } from '../../models/product.model';
     }
     
     .container {
-      width: 100%;
-      max-width: 1200px;
+      max-width: 1280px;
       margin: 0 auto;
-      padding: 0 var(--space-4);
+      padding: 0 var(--spacing-md);
+      width: 100%;
+    }
+    
+    .container-nav {
+      overflow: visible !important;
+      position: static !important;
     }
     
     .flex-between {
@@ -307,9 +356,118 @@ import { Category } from '../../models/product.model';
     
     .categories-nav {
       background-color: var(--white);
-      border-top: 1px solid var(--neutral-200);
+      position: relative;
+      z-index: 50;
+      border: 1px solid var(--neutral-200);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+    }
+    
+    .sidebar-menu {
+      position: relative;
+      display: inline-block;
+      background-color: var(--white);
+      min-width: 240px;
+    }
+    
+    .categories-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      background-color: white;
+    }
+    
+    .category-item {
+      position: relative;
+      height: 100%; /* Consistent with later definitions */
+      /* text-decoration and font-size are better on the <a> tag or covered by later styles */
+    }
+
+    .category-item:hover > .mega-menu {
+      display: block;
+    }
+
+    /* Styles for the chevron, derived from previously misplaced styles */
+    .category-item .category-link .chevron-down {
+        font-size: 10px;
+        color: var(--neutral-400);
+        margin-left: 4px; /* Added for better appearance */
+        transition: transform 0.2s ease-in-out;
+    }
+
+    .category-item:hover .category-link .chevron-down {
+        transform: rotate(180deg); /* Optional: rotate chevron on hover */
+    }
+    
+    .mega-menu {
+      display: none;
+      position: absolute;
+      left: 0;
+      top: 100%;
+      width: 360px; /* Further increased from 320px */
+      background-color: var(--white);
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
+      z-index: 9999;
+      border: 1px solid var(--neutral-200);
+      border-radius: 0 0 4px 4px;
+      transform: translateZ(0);
+    }
+    
+    .mega-menu-content {
+      padding: 25px;
+    }
+    
+    .submenu-columns {
+      display: flex;
+      flex-wrap: wrap;
+    }
+    
+    .submenu-column {
+      flex: 1 0 100%;
+    }
+    
+    .submenu-title {
+      margin: 0 0 15px 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: var(--color-text-dark);
       border-bottom: 1px solid var(--neutral-200);
-      height: 36px; /* Set a fixed height */
+      padding-bottom: 8px;
+    }
+      
+
+    
+    .submenu-title a {
+      color: var(--color-text-dark);
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+    
+    .submenu-title a:hover {
+      color: var(--primary);
+    }
+    
+    .submenu-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: grid;
+      gap: 10px;
+      
+      li {
+        margin: 0;
+        
+        a {
+          display: block;
+          padding: 8px 0;
+          color: var(--color-text);
+          text-decoration: none;
+          font-size: 14px;
+        }
+        a:hover {
+          color: var(--color-primary);
+        }
+      }
     }
     
     .categories-list {
@@ -317,13 +475,14 @@ import { Category } from '../../models/product.model';
       list-style: none;
       margin: 0;
       padding: 0;
-      flex-wrap: nowrap; /* Changed from wrap to nowrap */
-      overflow-x: auto;
-      -ms-overflow-style: none; /* IE and Edge */
-      scrollbar-width: none; /* Firefox */
+      flex-wrap: nowrap;
+      overflow: visible !important; /* Changed from overflow-x: auto to allow dropdowns to extend beyond */
       max-width: 100%;
       white-space: nowrap;
       height: 100%; /* Take full height of parent */
+      align-items: center;
+      position: relative !important;
+      z-index: 1000 !important;
     }
     
     .categories-list::-webkit-scrollbar {
@@ -350,19 +509,6 @@ import { Category } from '../../models/product.model';
       color: var(--primary);
     }
     
-    .mega-menu {
-      position: absolute;
-      top: 100%;
-      left: 0;
-      width: 100%;
-      background: var(--white);
-      box-shadow: var(--shadow-md);
-      border-radius: 0 0 var(--radius-md) var(--radius-md);
-      padding: var(--space-3); /* reduced from space-6 */
-      z-index: 100;
-      animation: fadeIn 0.2s ease-in-out;
-    }
-
     .mega-menu-content {
       max-width: 900px; /* reduced from 1200px */
       margin: 0 auto;
@@ -395,11 +541,16 @@ import { Category } from '../../models/product.model';
       margin-bottom: var(--space-1); /* reduced from space-2 */
     }
 
-    .submenu-list a {
-      color: var(--neutral-600);
-      font-size: 0.875rem; /* reduced from 0.9375rem */
+    .submenu-list li a {
+      color: var(--neutral-700);
+      font-size: 15px;
       text-decoration: none;
-      transition: color var(--transition-fast);
+      display: block;
+      padding: 8px 12px;
+      transition: all var(--transition-fast);
+      border-radius: 4px;
+      margin-left: -12px;
+      margin-right: -12px;
     }
 
     .submenu-list a:hover {
@@ -527,6 +678,103 @@ import { Category } from '../../models/product.model';
       margin-right: var(--space-4);
     }
 
+    .all-categories-btn:hover .all-categories-menu {
+      display: block !important;
+    }
+    
+    .all-categories-menu {
+      position: absolute;
+      top: 100%;
+      left: 0;
+      z-index: 99999;
+      background-color: var(--white);
+      border: 1px solid var(--neutral-200);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      border-radius: 0 0 4px 4px;
+      min-width: 800px;
+      max-width: 90vw;
+      display: none; /* Initially hidden */
+    }
+    
+    /* Mega menu styles */
+    .mega-menu-content {
+      display: flex;
+      padding: 15px 20px;
+    }
+    
+    .submenu-columns {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 20px;
+      width: 100%;
+    }
+    
+    .submenu-column {
+      flex: 0 0 calc(20% - 20px);
+      min-width: 200px;
+      margin-bottom: 15px;
+    }
+    
+    .submenu-title {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--color-text-dark);
+      border-bottom: 1px solid var(--neutral-200);
+      padding-bottom: 8px;
+      
+
+    
+    .submenu-list {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      
+      li {
+        position: relative;
+        margin-bottom: 6px;
+      }
+      li:hover > .nested-submenu {
+        display: block;
+      }
+      li a {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        color: var(--color-text);
+        text-decoration: none;
+        font-size: 14px;
+        padding: 4px 0;
+      }
+      li a .material-symbols-outlined {
+        font-size: 16px;
+        color: var(--neutral-400);
+      }
+      li a:hover {
+        color: var(--color-primary);
+      }
+    }
+    
+    .nested-submenu {
+      display: none;
+      position: absolute;
+      left: 100%;
+      top: -10px;
+      width: 240px;
+      background-color: var(--white);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+      border: 1px solid var(--neutral-200);
+      border-radius: 4px;
+      padding: 10px 0;
+      z-index: 2200;
+    }
+    
+    .nested-submenu-list {
+      list-style: none;
+      margin: 0;
+      padding: 0 15px;
+    }
+    
     .categories-toggle {
       display: flex;
       align-items: center;
@@ -536,13 +784,25 @@ import { Category } from '../../models/product.model';
       padding: var(--space-2) var(--space-4);
       border-radius: var(--radius-md);
       font-weight: 500;
+      border: none;
+      cursor: pointer;
       transition: background-color var(--transition-fast);
+      
+      .material-symbols-outlined {
+        font-size: 1.25rem;
+      }
+      
+      .all-categories-link {
+        color: inherit;
+        text-decoration: none;
+      }
     }
 
     .categories-toggle:hover {
       background-color: var(--primary-dark);
     }
 
+    /* ... */
     .categories-toggle .material-symbols-outlined {
       font-size: 1.25rem;
     }
@@ -652,8 +912,22 @@ export class HeaderComponent {
   }
   
   ngOnInit(): void {
-    this.productService.getCategories().subscribe(categories => {
-      this.categories = categories;
+    // Load all categories but filter to only show top-level parent categories in the main navigation
+    this.productService.getCategories().subscribe((categories: Category[]) => {
+      // We need to identify which categories are top-level (parent categories)
+      // We do this by examining the structure to find categories that aren't subcategories of any other category
+      const subcategoryIds = new Set();
+      
+      // First, collect all IDs of subcategories
+      categories.forEach(category => {
+        if (category.subcategories && category.subcategories.length > 0) {
+          category.subcategories.forEach(sub => subcategoryIds.add(sub.id));
+        }
+      });
+      
+      // Then filter to only include categories whose IDs are not in the subcategory set
+      this.categories = categories.filter(category => !subcategoryIds.has(category.id));
+      console.log('Loaded parent categories for navigation:', this.categories);
     });
     
     this.cartService.cart$.subscribe(() => {
@@ -666,6 +940,7 @@ export class HeaderComponent {
     });
   }
   
+
   @HostListener('window:scroll')
   onWindowScroll() {
     this.isScrolled = window.scrollY > 50;
@@ -675,15 +950,37 @@ export class HeaderComponent {
     this.showMobileMenu = !this.showMobileMenu;
   }
   
+  toggleAllCategories(event: Event): void {
+    event.preventDefault();
+    // When clicked, navigate to all categories page
+    this.router.navigate(['/category', 'all']);
+  }
+  
   onSearchBlur(): void {
     // Delay hiding the suggestions to allow for clicking on them
     setTimeout(() => {
       this.showSearchSuggestions = false;
     }, 200);
   }
-
+  
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/']);
+  }
+
+  // Helper method to get category slug
+  getCategorySlug(category: any): string {
+    if (category.slug) {
+      return category.slug;
+    }
+    if (category.name) {
+      return category.name.toLowerCase().replace(/ /g, '-');
+    }
+    return 'all';
+  }
+  
+  // Helper method to safely check if a category has subcategories
+  hasSubcategories(category: any): boolean {
+    return category && category.subcategories && category.subcategories.length > 0;
   }
 }

@@ -24,7 +24,7 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
       <!-- Breadcrumbs with Tailwind -->
       <div class="text-sm text-neutral-600 mb-4">
         <a routerLink="/" class="text-neutral-600 hover:text-primary">Home</a> / 
-        <a [routerLink]="['/category', product.category]" class="text-neutral-600 hover:text-primary">{{categoryName}}</a> / 
+        <a [routerLink]="['/category', categorySlug]" class="text-neutral-600 hover:text-primary">{{categoryName}}</a> / 
         <span>{{product.title}}</span>
       </div>
       
@@ -197,7 +197,7 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
     <!-- Reviews Section -->
     <section class="mt-8 pt-8 border-t border-neutral-200" *ngIf="product && !isLoading && !hasError">
       <div class="container mx-auto px-4">
-        <app-product-reviews [productId]="product?.id || 0"></app-product-reviews>
+        <app-product-reviews [productId]="product!.id || 0"></app-product-reviews>
       </div>
     </section>
   `,
@@ -590,6 +590,7 @@ export class ProductDetailComponent implements OnInit {
   selectedImage: string = '';
   quantity: number = 1;
   categoryName: string = '';
+  categorySlug: string = '';
   Math = Math;
   isInCompare: boolean = false;
   
@@ -659,8 +660,17 @@ export class ProductDetailComponent implements OnInit {
   
   setCategoryName(): void {
     if (this.product) {
+      // Save the raw category data for linking
+      this.categorySlug = this.product.category;
+      
+      // For smartphones, ensure we're using the subcategory name
+      if (this.product.title && this.product.title.toLowerCase().includes('iphone') || 
+          this.product.title.toLowerCase().includes('samsung galaxy')) {
+        this.categorySlug = 'smartphones';
+      }
+      
       // Convert slug to display name
-      this.categoryName = this.product.category
+      this.categoryName = this.categorySlug
         .split('-')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
@@ -710,7 +720,7 @@ export class ProductDetailComponent implements OnInit {
   
   toggleFavorite(): void {
     if (this.product) {
-      this.productService.toggleFavorite(this.product.id).subscribe(isFavorite => {
+      this.productService.toggleFavorite(this.product.id).subscribe((isFavorite: boolean) => {
         if (this.product) {
           this.product.isFavorite = !this.product.isFavorite;
         }

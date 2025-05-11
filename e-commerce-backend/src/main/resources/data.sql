@@ -10,95 +10,175 @@ VALUES
 (4, 'bob', 'sanders', 'seller2@example.com', '5544332211', 'password', 'seller', NOW(), 'cus_seller456', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/2.jpg'),
 (5, 'charlie', 'yılmaz', 'customer2@example.com', '6677889900', 'password', 'customer', NOW(), 'cus_cust456', false, NULL, NULL, 'https://randomuser.me/api/portraits/men/3.jpg');
 
--- Categories from category_tree.csv    
-INSERT INTO categories (category_id, name, parent_category_id) VALUES
-(1, 'Electronics', NULL),
-(2, 'Mobile Phones', 1),
-(3, 'Smartphones', 2),
-(4, 'Feature Phones', 2),
-(5, 'Phone Accessories', 2),
-(6, 'Computers & Tablets', 1),
-(7, 'Laptops', 6),
-(8, 'Desktops', 6),
-(9, 'Tablets', 6),
-(10, 'Computer Components (RAM, SSD, GPU)', 6),
-(11, 'Computer Accessories (Mice, Keyboards, Webcams)', 6),
-(12, 'TV, Audio & Video', 1),
-(13, 'Televisions', 12),
-(14, 'Headphones & Earphones', 12),
-(15, 'Speakers', 12),
-(16, 'Soundbars', 12),
-(17, 'Projectors', 12),
-(18, 'Cameras & Photography', 1),
-(19, 'Digital Cameras', 18),
-(20, 'Lenses', 18),
-(21, 'Drones', 18),
-(22, 'Camera Accessories', 18),
-(23, 'Gaming', 1),
-(24, 'Gaming Consoles', 23),
-(25, 'Games', 23),
-(26, 'Gaming Accessories', 23),
-(27, 'Smart Home', 1),
-(28, 'Smart Lights', 27),
-(29, 'Smart Assistants (Alexa, Google Home)', 27),
-(30, 'Smart Security (Cameras, Locks)', 27),
-(31, 'Fashion', NULL),
-(32, 'Women', 31),
-(33, 'Clothing (Dresses, Tops, Pants, Jackets)', 32),
-(34, 'Shoes (Heels, Sneakers, Boots)', 32),
-(35, 'Bags & Wallets', 32),
-(36, 'Accessories (Scarves, Belts, Hats)', 32),
-(37, 'Men', 31),
-(38, 'Clothing (Shirts, Pants, Suits, Jackets)', 37),
-(39, 'Shoes (Formal, Casual, Sneakers)', 37),
-(40, 'Bags & Wallets', 37),
-(41, 'Accessories (Ties, Belts, Hats)', 37),
-(42, 'Kids', 31),
-(43, 'Clothing', 42),
-(44, 'Shoes', 42),
-(45, 'Accessories', 42),
-(46, 'Home, Furniture & Kitchen', NULL),
-(47, 'Furniture', 46),
-(48, 'Living Room Furniture', 47),
-(49, 'Bedroom Furniture', 47),
-(50, 'Office Furniture', 47),
-(51, 'Home Decor', 46),
-(52, 'Lighting', 51),
-(53, 'Wall Art', 51),
-(54, 'Rugs & Carpets', 51),
-(55, 'Curtains', 51),
-(56, 'Kitchen & Dining', 46),
-(57, 'Cookware', 56),
-(58, 'Tableware', 56),
-(59, 'Kitchen Appliances', 56),
-(60, 'Bedding', 46),
-(61, 'Bed Sheets', 60),
-(62, 'Pillows', 60),
-(63, 'Comforters', 60),
-(64, 'Storage & Organization', 46),
-(65, 'Wardrobes', 64),
-(66, 'Shelves', 64),
-(67, 'Organizers', 64),
-(68, 'Beauty & Personal Care', NULL),
-(69, 'Makeup', 68),
-(70, 'Skincare', 68),
-(71, 'Hair Care', 68),
-(72, 'Fragrances', 68),
-(73, 'Tools & Accessories (Hair Dryers, Straighteners)', 68),
-(74, 'Men''s Grooming', 68),
-(75, 'Sports, Outdoors & Fitness', NULL),
-(76, 'Exercise & Fitness', 75),
-(77, 'Treadmills', 76),
-(78, 'Dumbbells', 76),
-(79, 'Yoga Mats', 76),
-(80, 'Outdoor Recreation', 75),
-(81, 'Camping & Hiking Gear', 80),
-(82, 'Bicycles', 80),
-(83, 'Sportswear', 75),
-(84, 'Clothing', 83),
-(85, 'Footwear', 83),
-(86, 'Team Sports', 75),
-(87, 'Football', 86),
+-- Categories from frontend mockup with enhanced fields
+-- Root Categories
+INSERT INTO categories (category_id, name, slug, image_url, description, is_active, parent_category_id) VALUES
+(1, 'Electronics', 'electronics', 'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&q=60', 'All electronic devices and accessories', true, NULL),
+(31, 'Fashion', 'fashion', 'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&q=60', 'Clothing and accessories for all', true, NULL),
+(46, 'Home & Living', 'home-living', 'https://images.unsplash.com/photo-1484101403633-562f891dc89a?auto=format&fit=crop&q=60', 'Everything for your home', true, NULL),
+(68, 'Beauty & Personal Care', 'beauty-personal-care', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=60', 'Beauty and personal care products', true, NULL),
+(75, 'Sports & Outdoors', 'sports-outdoors', 'https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&q=60', 'Sports equipment and outdoor gear', true, NULL),
+(90, 'Baby & Kids', 'baby-kids', 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&q=60', 'Products for babies and children', true, NULL),
+(100, 'Health & Wellness', 'health-wellness', 'https://images.unsplash.com/photo-1505576399279-565b52d4ac71?auto=format&fit=crop&q=60', 'Health and wellness products', true, NULL),
+(110, 'Automotive', 'automotive', 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=60', 'Automotive parts and accessories', true, NULL),
+(120, 'Grocery & Food', 'grocery-food', 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60', 'Food and grocery items', true, NULL),
+(123, 'Books & Entertainment', 'books-entertainment', 'https://images.unsplash.com/photo-1524578271613-d550eacf6090?auto=format&fit=crop&q=60', 'Books, movies, and entertainment', true, NULL),
+(130, 'Office Products', 'office-products', 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=60', 'Office supplies and equipment', true, NULL),
+(140, 'Pet Supplies', 'pet-supplies', 'https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&q=60', 'Supplies for pets', true, NULL),
+(150, 'Jewelry & Watches', 'jewelry-watches', 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&q=60', 'Jewelry and watches', true, NULL);
+
+-- Electronics subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(2, 'Mobile Phones', 'mobile-phones', 'Smartphones and mobile devices', true, 1),
+(6, 'Computers & Tablets', 'computers-tablets', 'Computers, laptops, and tablets', true, 1),
+(12, 'TV, Audio & Video', 'tv-audio-video', 'Television and audio equipment', true, 1),
+(18, 'Cameras & Photography', 'cameras-photography', 'Cameras and photography equipment', true, 1),
+(23, 'Gaming', 'gaming', 'Video games and gaming equipment', true, 1),
+(27, 'Smart Home', 'smart-home', 'Smart home devices and accessories', true, 1);
+
+-- Mobile Phones subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(3, 'Smartphones', 'smartphones', 'Latest smartphones from all brands', true, 2),
+(4, 'Feature Phones', 'feature-phones', 'Basic feature phones', true, 2),
+(5, 'Phone Accessories', 'phone-accessories', 'Cases, chargers, and other phone accessories', true, 2);
+
+-- Computers & Tablets subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(7, 'Laptops', 'laptops', 'Portable computers for work and play', true, 6),
+(8, 'Desktops', 'desktops', 'Desktop computers for home and office', true, 6),
+(9, 'Tablets', 'tablets', 'Tablet computers for mobility', true, 6),
+(10, 'Computer Components', 'computer-components', 'RAM, SSDs, GPUs, and other computer parts', true, 6),
+(11, 'Computer Accessories', 'computer-accessories', 'Mice, keyboards, webcams, and other peripherals', true, 6);
+
+-- TV, Audio & Video subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(13, 'Televisions', 'televisions', 'Smart TVs and standard televisions', true, 12),
+(14, 'Headphones & Earphones', 'headphones-earphones', 'Wireless and wired audio devices', true, 12),
+(15, 'Speakers', 'speakers', 'Bluetooth and wired speakers', true, 12),
+(16, 'Soundbars', 'soundbars', 'Sound enhancement for TVs', true, 12),
+(17, 'Projectors', 'projectors', 'Home and office projectors', true, 12);
+
+-- Cameras & Photography subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(19, 'Digital Cameras', 'digital-cameras', 'DSLR and mirrorless cameras', true, 18),
+(20, 'Lenses', 'camera-lenses', 'Camera lenses for all types of photography', true, 18),
+(21, 'Drones', 'drones', 'Camera drones for aerial photography', true, 18),
+(22, 'Camera Accessories', 'camera-accessories', 'Tripods, bags, and other camera gear', true, 18);
+
+-- Gaming subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(24, 'Gaming Consoles', 'gaming-consoles', 'PlayStation, Xbox, Nintendo, and more', true, 23),
+(25, 'Games', 'games', 'Video games for all platforms', true, 23),
+(26, 'Gaming Accessories', 'gaming-accessories', 'Controllers, headsets, and other gaming gear', true, 23);
+
+-- Smart Home subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(28, 'Smart Lights', 'smart-lights', 'Smart lighting solutions for your home', true, 27),
+(29, 'Smart Assistants', 'smart-assistants', 'Alexa, Google Home, and other smart assistants', true, 27),
+(30, 'Smart Security', 'smart-security', 'Smart cameras, locks, and other security devices', true, 27);
+
+-- Fashion subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(32, 'Women', 'women', 'Fashion items for women', true, 31),
+(37, 'Men', 'men', 'Fashion items for men', true, 31),
+(42, 'Kids', 'kids', 'Fashion items for children', true, 31);
+
+-- Women's fashion subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(33, 'Clothing', 'women-clothing', 'Dresses, tops, pants, and jackets for women', true, 32),
+(34, 'Shoes', 'women-shoes', 'Heels, sneakers, and boots for women', true, 32),
+(35, 'Bags & Wallets', 'women-bags-wallets', 'Handbags, purses, and wallets for women', true, 32),
+(36, 'Accessories', 'women-accessories', 'Scarves, belts, and hats for women', true, 32);
+
+-- Men's fashion subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(38, 'Clothing', 'men-clothing', 'Shirts, pants, suits, and jackets for men', true, 37),
+(39, 'Shoes', 'men-shoes', 'Formal, casual, and sneakers for men', true, 37),
+(40, 'Bags & Wallets', 'men-bags-wallets', 'Bags and wallets for men', true, 37),
+(41, 'Accessories', 'men-accessories', 'Ties, belts, and hats for men', true, 37);
+
+-- Kids fashion subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(43, 'Clothing', 'kids-clothing', 'Clothing for children', true, 42),
+(44, 'Shoes', 'kids-shoes', 'Shoes for children', true, 42),
+(45, 'Accessories', 'kids-accessories', 'Accessories for children', true, 42);
+
+-- Home & Living subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(47, 'Furniture', 'furniture', 'Furniture for all rooms', true, 46),
+(51, 'Home Decor', 'home-decor', 'Decorative items for your home', true, 46),
+(56, 'Kitchen & Dining', 'kitchen-dining', 'Kitchen and dining essentials', true, 46),
+(60, 'Bedding', 'bedding', 'Bed sheets, pillows, and comforters', true, 46),
+(64, 'Storage & Organization', 'storage-organization', 'Storage solutions for your home', true, 46);
+
+-- Furniture subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(48, 'Living Room Furniture', 'living-room-furniture', 'Sofas, coffee tables, and more', true, 47),
+(49, 'Bedroom Furniture', 'bedroom-furniture', 'Beds, dressers, and nightstands', true, 47),
+(50, 'Office Furniture', 'office-furniture', 'Desks, office chairs, and more', true, 47);
+
+-- Home Decor subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(52, 'Lighting', 'lighting', 'Lamps, ceiling lights, and more', true, 51),
+(53, 'Wall Art', 'wall-art', 'Paintings, prints, and wall decor', true, 51),
+(54, 'Rugs & Carpets', 'rugs-carpets', 'Area rugs, throw rugs, and carpets', true, 51),
+(55, 'Curtains', 'curtains', 'Window treatments and curtains', true, 51);
+
+-- Kitchen & Dining subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(57, 'Cookware', 'cookware', 'Pots, pans, and cooking utensils', true, 56),
+(58, 'Tableware', 'tableware', 'Plates, bowls, and serving dishes', true, 56),
+(59, 'Kitchen Appliances', 'kitchen-appliances', 'Blenders, mixers, and other appliances', true, 56);
+
+-- Bedding subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(61, 'Bed Sheets', 'bed-sheets', 'Sheet sets for all bed sizes', true, 60),
+(62, 'Pillows', 'pillows', 'Bed pillows of all types', true, 60),
+(63, 'Comforters', 'comforters', 'Comforters and duvets for your bed', true, 60);
+
+-- Storage & Organization subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(65, 'Wardrobes', 'wardrobes', 'Clothing storage and wardrobes', true, 64),
+(66, 'Shelves', 'shelves', 'Wall shelves and bookcases', true, 64),
+(67, 'Organizers', 'organizers', 'Storage bins, baskets, and organizers', true, 64);
+
+-- Beauty & Personal Care subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(69, 'Makeup', 'makeup', 'Foundation, lipstick, and other cosmetics', true, 68),
+(70, 'Skincare', 'skincare', 'Facial cleansers, moisturizers, and more', true, 68),
+(71, 'Hair Care', 'hair-care', 'Shampoo, conditioner, and styling products', true, 68),
+(72, 'Fragrances', 'fragrances', 'Perfumes and colognes', true, 68),
+(73, 'Tools & Accessories', 'beauty-tools-accessories', 'Hair dryers, straighteners, and other tools', true, 68),
+(74, 'Men''s Grooming', 'mens-grooming', 'Grooming products for men', true, 68);
+
+-- Sports & Outdoors subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(76, 'Exercise & Fitness', 'exercise-fitness', 'Fitness equipment for home workouts', true, 75),
+(80, 'Outdoor Recreation', 'outdoor-recreation', 'Camping, hiking, and outdoor activities', true, 75),
+(83, 'Sportswear', 'sportswear', 'Clothing and footwear for sports', true, 75),
+(86, 'Team Sports', 'team-sports', 'Equipment for team sports', true, 75);
+
+-- Exercise & Fitness subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(77, 'Treadmills', 'treadmills', 'Running machines for home use', true, 76),
+(78, 'Dumbbells', 'dumbbells', 'Free weights for strength training', true, 76),
+(79, 'Yoga Mats', 'yoga-mats', 'Mats for yoga and floor exercises', true, 76);
+
+-- Outdoor Recreation subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(81, 'Camping & Hiking Gear', 'camping-hiking', 'Tents, backpacks, and camping equipment', true, 80),
+(82, 'Bicycles', 'bicycles', 'Road bikes, mountain bikes, and more', true, 80);
+
+-- Sportswear subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(84, 'Clothing', 'sports-clothing', 'Athletic apparel for all sports', true, 83),
+(85, 'Footwear', 'sports-footwear', 'Athletic shoes for all sports', true, 83);
+
+-- Team Sports subcategories
+INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
+(87, 'Football', 'football', 'Footballs, goals, and equipment', true, 86),
+(88, 'Basketball', 'basketball', 'Basketballs, hoops, and accessories', true, 86),
+(89, 'Tennis', 'tennis', 'Tennis rackets, balls, and equipment', true, 86);
 (88, 'Basketball', 86),
 (89, 'Tennis', 86),
 (90, 'Baby, Toys & Kids', NULL),

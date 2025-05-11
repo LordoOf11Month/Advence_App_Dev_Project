@@ -445,10 +445,20 @@ export class ProductListComponent implements OnInit {
       
       // After categories are loaded, process the route parameters
       this.route.paramMap.subscribe(params => {
-        this.categoryId = params.get('categoryId') || '';
+        const categorySlug = params.get('categoryId') || '';
+        this.categoryId = categorySlug; // Store the slug for reference
         
-        if (this.categoryId) {
-          this.setCategoryName();
+        if (categorySlug) {
+          // Try to find the category by slug
+          const category = this.findCategoryBySlug(categorySlug);
+          if (category) {
+            this.categoryName = category.name;
+            console.log(`Found category with slug ${categorySlug}:`, category);
+          } else {
+            console.log(`Category with slug ${categorySlug} not found, using slug as name`);
+            // If we can't find the category, use the slug as the name (capitalize first letter)
+            this.categoryName = categorySlug.charAt(0).toUpperCase() + categorySlug.slice(1);
+          }
         }
         
         this.loadProducts();
@@ -505,22 +515,92 @@ export class ProductListComponent implements OnInit {
     this.isLoading = true;
     this.hasError = false;
     
+    console.log(`Loading products for category: ${this.categoryId || 'all'}`);
+    
+    // For smartphones specifically, use the search API directly
+    if (this.categoryId === 'smartphones') {
+      console.log('Using direct search for smartphones');
+      this.productService.searchProducts('Smartphone').subscribe({
+        next: (products) => {
+          console.log('Loaded smartphone products via search:', products);
+          this.products = products;
+          this.filteredProducts = [...products];
+          this.extractBrands();
+          this.isLoading = false;
+        },
+        error: (error) => {
+          console.error('Error loading smartphone products:', error);
+          // Fallback to all products if search fails
+          this.fallbackToAllProducts();
+        }
+      });
+      return;
+    }
+    
+    // Standard category loading
     const loadObservable = this.categoryId
-      ? this.productService.getProductsByCategory(this.categoryId)
+      ? this.productService.getProductsByCategory(this.categoryId) // categoryId now contains the slug
       : this.productService.getProducts();
       
     loadObservable.subscribe({
       next: (products) => {
-        console.log('Loaded products:', products);
+        console.log(`Loaded ${products.length} products for category ${this.categoryId || 'all'}:`, products);
+        this.products = products;
+        this.filteredProducts = [...products];
+        this.extractBrands();
+        this.isLoading = false;
+        
+        // If no products and we're in a category, try a fallback
+        if (products.length === 0 && this.categoryId) {
+          console.log('No products found for category, trying fallback search');
+          this.fallbackToSearch();
+        }
+      },
+      error: (error) => {
+        console.error('Error loading products:', error);
+        // Try fallback method
+        if (this.categoryId) {
+          this.fallbackToSearch();
+        } else {
+          this.hasError = true;
+          this.isLoading = false;
+        }
+      }
+    });
+  }
+  
+  fallbackToAllProducts(): void {
+    console.log('Falling back to all products');
+    this.productService.getProducts().subscribe({
+      next: (products) => {
+        console.log('Loaded all products as fallback:', products);
         this.products = products;
         this.filteredProducts = [...products];
         this.extractBrands();
         this.isLoading = false;
       },
       error: (error) => {
-        console.error('Error loading products:', error);
+        console.error('Error loading fallback products:', error);
         this.hasError = true;
         this.isLoading = false;
+      }
+    });
+  }
+  
+  fallbackToSearch(): void {
+    console.log(`Falling back to search with category name: ${this.categoryName}`);
+    this.productService.searchProducts(this.categoryName).subscribe({
+      next: (products) => {
+        console.log(`Loaded ${products.length} products via fallback search:`, products);
+        this.products = products;
+        this.filteredProducts = [...products];
+        this.extractBrands();
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error using fallback search:', error);
+        // Last resort - load all products
+        this.fallbackToAllProducts();
       }
     });
   }

@@ -24,6 +24,7 @@ import { Component } from '@angular/core';
 import { JsonPipe, CommonModule } from '@angular/common';
 import { jwtDecode } from 'jwt-decode';
 import { SellerProductsComponent } from './components/seller-products.component';
+import { CategoryTestComponent } from './components/category-test/category-test.component';
 
 // Simple debug component for checking auth status
 @Component({
@@ -67,6 +68,7 @@ export const routes: Routes = [
   { path: 'store/:sellerId', component: StorePageComponent },
   { path: 'cart', component: CartComponent },
   { path: 'seller-products', component: SellerProductsComponent },
+  { path: 'category-test', component: CategoryTestComponent },
   {
     path: 'checkout',
     children: [

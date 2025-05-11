@@ -375,73 +375,23 @@ export class ProductService {
 
   /**
    * Get products by category from the API
-   * @param categoryIdOrSlug - The ID, name or slug of the category to filter by
    */
-  getProductsByCategory(categoryIdOrSlug: string): Observable<Product[]> {
-    console.log(`Fetching products for category identifier: ${categoryIdOrSlug}`);
+  getProductsByCategory(category: string): Observable<Product[]> {
+    const params = new HttpParams().set('category', category);
     
-    // Special handling for problematic categories
-    if (categoryIdOrSlug === 'laptops') {
-      console.log('Using direct search for laptops');
-      return this.searchProducts('Laptop').pipe(
-        map(products => {
-          // Make sure product 1001 (MacBook) is included
-          this.getProductById(1001).subscribe(macbook => {
-            if (macbook && !products.some(p => p.id === 1001)) {
-              products.push(macbook);
-            }
-          });
-          return products;
-        })
-      );
-    }
-    
-    if (categoryIdOrSlug === 'smartphones') {
-      console.log('Using direct search for smartphones');
-      return this.searchProducts('Smartphone').pipe(
-        map(products => {
-          // Ensure both iPhone and Samsung are included
-          const requiredIds = [1002, 1003]; // Samsung and iPhone
-          requiredIds.forEach(id => {
-            if (!products.some(p => p.id === id)) {
-              this.getProductById(id).subscribe(phone => {
-                if (phone) products.push(phone);
-              });
-            }
-          });
-          return products;
-        })
-      );
-    }
-    
-    // Check if it's a numeric ID or a slug
-    let endpoint: string;
-    
-    if (!isNaN(Number(categoryIdOrSlug))) {
-      // If it's a numeric ID, use the category ID endpoint
-      const categoryId = Number(categoryIdOrSlug);
-      endpoint = `${this.apiUrl}/category/${categoryId}`;
-      console.log(`Using category ID endpoint: ${endpoint}`);
-    } else {
-      // If it's a string slug, use the slug endpoint
-      const slug = categoryIdOrSlug.toLowerCase().trim();
-      endpoint = `${this.apiUrl}/category/slug/${slug}`;
-      console.log(`Using category slug endpoint: ${endpoint}`);
-    }
-    
-    // Call the appropriate backend endpoint
-    return this.http.get<any>(endpoint).pipe(
-      tap(response => console.log(`Raw API Response for category ${categoryIdOrSlug}:`, response)),
+    return this.http.get<any>(this.apiUrl, { params }).pipe(
+      tap(response => console.log(`Raw API Response for category ${category}:`, JSON.stringify(response, null, 2))),
       map(response => {
-        console.log('API Response for category products:', response);
-        return Array.isArray(response) 
-          ? response.map(item => this.transformApiProduct(item))
+        console.log(`API Response for category ${category}:`, response);
+        // Handle both array responses and paginated responses
+        const items = response && response.content ? response.content : response;
+        return Array.isArray(items) 
+          ? items.map(item => this.transformApiProduct(item))
           : [];
       }),
       catchError(error => {
-        console.error(`Error fetching products for category ${categoryIdOrSlug}:`, error);
-        // Instead of throwing error, try searching with category name
-        return this.searchProducts(categoryIdOrSlug);
+        console.error(`Error fetching products for category ${category}:`, error);
+        return throwError(() => error);
       })
     );
   }
@@ -492,62 +442,21 @@ export class ProductService {
   }
 
   /**
-   * Toggle favorite status for a product
-   */
-  toggleFavorite(productId: number): Observable<boolean> {
-    // In a real app, this would make an API call to toggle favorite status
-    // For now, we'll simulate the toggle with a mock response
-    return of(true).pipe(
-      tap(isFavorite => {
-        console.log(`Product ${productId} favorite status toggled to ${isFavorite}`);
-      }),
-      catchError(error => {
-        console.error(`Error toggling favorite status for product ${productId}:`, error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  /**
-   * Get new arrivals products
-   */
-  getNewArrivals(): Observable<Product[]> {
-    return this.http.get<any>(`${this.apiUrl}/new-arrivals`).pipe(
-      tap(response => console.log('Raw API Response for new arrivals:', JSON.stringify(response, null, 2))),
-      map(response => {
-        console.log('API Response for new arrivals:', response);
-        // Transform the API response to match our Product model
-        return Array.isArray(response) 
-          ? response.map(item => this.transformApiProduct(item))
-          : [];
-      }),
-      catchError(error => {
-        console.error('Error fetching new arrivals:', error);
-        // Return some mock products as fallback
-        return this.getProducts().pipe(
-          map(products => products.slice(0, 8))
-        );
-      })
-    );
-  }
-
-  /**
    * Search products by keyword
    */
   searchProducts(keyword: string): Observable<Product[]> {
-    const params = new HttpParams().set('keyword', keyword);
+    const params = new HttpParams().set('search', keyword);
     
-    return this.http.get<any>(`${this.apiUrl}/search`, { params }).pipe(
-      tap(response => console.log(`Raw API Response for search '${keyword}':`, JSON.stringify(response, null, 2))),
+    return this.http.get<any>(`${this.apiUrl}`, { params }).pipe(
       map(response => {
-        console.log(`API Response for search '${keyword}':`, response);
-        // Transform the API response to match our Product model
-        return Array.isArray(response) 
-          ? response.map(item => this.transformApiProduct(item))
+        console.log(`API Response for search "${keyword}":`, response);
+        const items = response && response.content ? response.content : response;
+        return Array.isArray(items) 
+          ? items.map(item => this.transformApiProduct(item))
           : [];
       }),
       catchError(error => {
-        console.error(`Error searching products with keyword '${keyword}':`, error);
+        console.error(`Error searching products with keyword "${keyword}":`, error);
         return throwError(() => error);
       })
     );

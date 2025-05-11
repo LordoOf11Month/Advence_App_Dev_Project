@@ -25,8 +25,27 @@ public interface ProductRepository extends GenericRepository<Product, Long> {
     // Updated to support pagination and Long parameter
     Page<Product> findByCategory_Id(Long categoryId, Pageable pageable);
     
+    // Method to find products by category ID without pagination
+    @Query("SELECT DISTINCT p FROM Product p LEFT JOIN FETCH p.images LEFT JOIN FETCH p.category WHERE p.category.id = :categoryId")
+    List<Product> findByCategoryId(@Param("categoryId") Long categoryId);
+    
+    // Method to find products by category slug
+    @Query("SELECT DISTINCT p FROM Product p LEFT JOIN FETCH p.images LEFT JOIN FETCH p.category WHERE p.category.slug = :slug")
+    List<Product> findByCategorySlug(@Param("slug") String slug);
+    
     // Added method for text search with pagination
     Page<Product> findByNameContainingOrDescriptionContaining(String name, String description, Pageable pageable);
+    
+    // Method for text search without pagination
+    @Query("SELECT DISTINCT p FROM Product p LEFT JOIN FETCH p.images LEFT JOIN FETCH p.category WHERE p.name LIKE %:keyword% OR p.description LIKE %:keyword%")
+    List<Product> searchByKeyword(@Param("keyword") String keyword);
+    
+    // Method to broadly search for products by category name, handling variations
+    @Query("SELECT DISTINCT p FROM Product p LEFT JOIN FETCH p.images LEFT JOIN FETCH p.category " +
+           "WHERE LOWER(p.category.name) LIKE LOWER(CONCAT('%', :categoryName, '%')) " +
+           "OR LOWER(p.name) LIKE LOWER(CONCAT('%', :categoryName, '%')) " +
+           "OR LOWER(p.description) LIKE LOWER(CONCAT('%', :categoryName, '%'))")
+    List<Product> findByCategoryNameBroad(@Param("categoryName") String categoryName);
 
     @Query("SELECT DISTINCT p FROM Product p LEFT JOIN FETCH p.images LEFT JOIN FETCH p.category WHERE p.id = :id")
     Optional<Product> findByIdWithImages(@Param("id") Long id);

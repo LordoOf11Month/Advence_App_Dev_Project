@@ -132,12 +132,12 @@ export class HomeComponent implements OnInit {
     this.newArrivalsError = false;
     
     this.productService.getNewArrivals().subscribe({
-      next: (products) => {
+      next: (products: Product[]) => {
         this.newArrivals = products;
         console.log('Loaded new arrivals:', products.length);
         this.loadingNewArrivals = false;
       },
-      error: (error) => {
+      error: (error: Error) => {
         console.error('Error loading new arrivals:', error);
         this.newArrivalsError = true;
         this.loadingNewArrivals = false;

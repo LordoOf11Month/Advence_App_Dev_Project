@@ -1,6 +1,7 @@
 package com.example.services;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -70,6 +71,113 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
                 .map(this::convertToDto);
     }
     
+    // Get all products by category ID (no pagination)
+    @Transactional(readOnly = true)
+    public List<ProductResponse> findByCategoryId(Long categoryId) {
+        return productRepository.findByCategoryId(categoryId).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+    
+    // Get all products by category slug using category name matching
+    @Transactional(readOnly = true)
+    public List<ProductResponse> findByCategorySlug(String slug) {
+        try {
+            System.out.println("ProductService: Searching for products with category: " + slug);
+            
+            if (slug == null || slug.isEmpty()) {
+                System.out.println("Empty slug provided, returning all products");
+                return listAllProducts();
+            }
+            
+            // Convert slug to readable name (e.g., "smartphones" to "Smartphones")
+            String categoryName = convertSlugToCategoryName(slug);
+            System.out.println("Converted slug '" + slug + "' to category name: '" + categoryName + "'");
+            
+            List<Product> products = new ArrayList<>();
+            
+            // Multi-level search strategy to find the most relevant products:
+            
+            // LEVEL 1: Try exact slug matching (most specific)
+            products = productRepository.findByCategorySlug(slug);
+            System.out.println("Level 1 search (exact slug): found " + products.size() + " products");
+            
+            // LEVEL 2: If no results, use our new broader search
+            if (products.isEmpty()) {
+                products = productRepository.findByCategoryNameBroad(categoryName);
+                System.out.println("Level 2 search (category broad): found " + products.size() + " products");
+                
+                // LEVEL 3: If still no results, try some common categories
+                if (products.isEmpty()) {
+                    // Special handling for known categories
+                    if (slug.equalsIgnoreCase("smartphones") || slug.equalsIgnoreCase("smartphone") || 
+                        slug.equalsIgnoreCase("phones") || slug.equalsIgnoreCase("mobile-phones")) {
+                        // Try looking for common smartphone brands
+                        List<Product> phoneProducts = new ArrayList<>();
+                        for (String brand : Arrays.asList("iPhone", "Samsung", "Galaxy", "Pixel", "Phone")) {
+                            phoneProducts.addAll(productRepository.searchByKeyword(brand));
+                        }
+                        products = phoneProducts.stream().distinct().collect(Collectors.toList());
+                        System.out.println("Level 3 search (smartphone special handling): found " + products.size() + " products");
+                    } 
+                    else if (slug.equalsIgnoreCase("laptops") || slug.equalsIgnoreCase("laptop") || 
+                             slug.equalsIgnoreCase("computers") || slug.equalsIgnoreCase("notebooks")) {
+                        // Try looking for common laptop brands
+                        List<Product> laptopProducts = new ArrayList<>();
+                        for (String brand : Arrays.asList("Laptop", "MacBook", "Dell", "HP", "Lenovo", "ASUS", "ThinkPad", "XPS")) {
+                            laptopProducts.addAll(productRepository.searchByKeyword(brand));
+                        }
+                        products = laptopProducts.stream().distinct().collect(Collectors.toList());
+                        System.out.println("Level 3 search (laptop special handling): found " + products.size() + " products");
+                    }
+                    
+                    // LEVEL 4: Last resort - general keyword search
+                    if (products.isEmpty()) {
+                        products = productRepository.searchByKeyword(categoryName);
+                        System.out.println("Level 4 search (keyword): found " + products.size() + " products");
+                    }
+                }
+            }
+            
+            // If we still didn't find any products, try a simple search with the original slug
+            if (products.isEmpty()) {
+                products = productRepository.searchByKeyword(slug);
+                System.out.println("Final fallback search: found " + products.size() + " products");
+            }
+            
+            System.out.println("Returning " + products.size() + " products for category: " + slug);
+            return products.stream()
+                    .map(this::convertToDto)
+                    .collect(Collectors.toList());
+                    
+        } catch (Exception e) {
+            System.out.println("Unexpected error in findByCategorySlug: " + e.getMessage());
+            e.printStackTrace();
+            // Return empty list on error rather than throwing exception
+            return new ArrayList<>();
+        }
+    }
+    
+    /**
+     * Helper method to convert a slug to a readable category name
+     */
+    private String convertSlugToCategoryName(String slug) {
+        try {
+            if (slug.contains("-")) {
+                return Arrays.stream(slug.split("-"))
+                    .map(word -> word.length() > 0 ? word.substring(0, 1).toUpperCase() + word.substring(1) : "")
+                    .collect(Collectors.joining(" "));
+            } else if (slug.length() > 0) {
+                // Just capitalize the first letter
+                return slug.substring(0, 1).toUpperCase() + slug.substring(1);
+            }
+            return slug;
+        } catch (Exception e) {
+            System.out.println("Error converting slug to category name: " + e.getMessage());
+            return slug; // Return original on error
+        }
+    }
+    
     // Search products by name or description
     public Page<ProductResponse> search(String query, Pageable pageable) {
         if (query == null || query.trim().isEmpty()) {
@@ -77,6 +185,17 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
         }
         return productRepository.findByNameContainingOrDescriptionContaining(query, query, pageable)
                 .map(this::convertToDto);
+    }
+    
+    // Search products by keyword (name or description) without pagination
+    @Transactional(readOnly = true)
+    public List<ProductResponse> searchByKeyword(String keyword) {
+        if (keyword == null || keyword.trim().isEmpty()) {
+            return listAllProducts();
+        }
+        return productRepository.searchByKeyword(keyword).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 
     // Get products by store ID with pagination
@@ -101,6 +220,67 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
     public Optional<ProductResponse> findById(Long id) {
         return productRepository.findByIdWithImages(id)
                 .map(this::convertToDto);
+    }
+    
+    /**
+     * Find all products that are related to the product with the given ID.
+     * Primarily finds products in the same category.
+     */
+    @Transactional(readOnly = true)
+    public List<ProductResponse> findRelatedProductsById(Long id) {
+        System.out.println("Finding related products for product ID: " + id);
+        
+        // First get the product to determine its category
+        Optional<Product> productOpt = productRepository.findByIdWithImages(id);
+        
+        if (!productOpt.isPresent()) {
+            System.out.println("Product with ID " + id + " not found");
+            return new ArrayList<>(); // Return empty list if product not found
+        }
+        
+        Product product = productOpt.get();
+        List<Product> relatedProducts = new ArrayList<>();
+        
+        // If the product has a category, find other products in the same category
+        if (product.getCategory() != null) {
+            System.out.println("Product belongs to category: " + product.getCategory().getName());
+            
+            // Get products from the same category
+            // Convert int to Long when passing to repository method
+            relatedProducts = productRepository.findByCategoryId(Long.valueOf(product.getCategory().getId()));
+            System.out.println("Found " + relatedProducts.size() + " products in the same category");
+            
+            // If we didn't find enough related products, try a broader search based on category name
+            if (relatedProducts.size() <= 1) {
+                String categoryName = product.getCategory().getName();
+                relatedProducts = productRepository.findByCategoryNameBroad(categoryName);
+                System.out.println("Found " + relatedProducts.size() + " products with broader category search");
+            }
+        } else {
+            System.out.println("Product has no category, trying to match by name or description");
+            // If no category, try to find related products by name or description
+            String[] keywords = product.getName().split("\\s+");
+            for (String keyword : keywords) {
+                if (keyword.length() > 3) { // Only use meaningful keywords
+                    relatedProducts.addAll(productRepository.searchByKeyword(keyword));
+                }
+            }
+            System.out.println("Found " + relatedProducts.size() + " products with name/description search");
+        }
+        
+        // If we still didn't find enough related products, add some popular products
+        if (relatedProducts.isEmpty()) {
+            System.out.println("No related products found, using all products");
+            relatedProducts = productRepository.findAllWithImages();
+        }
+        
+        // Filter out the current product and limit results
+        return relatedProducts.stream()
+                .filter(p -> !p.getId().equals(id)) // Exclude current product
+                .distinct() // Remove duplicates
+                .limit(10) // Limit to 10 related products
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 
     @Override
