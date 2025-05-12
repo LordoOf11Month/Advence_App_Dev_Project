@@ -588,7 +588,7 @@ button:disabled {
     scrollbar-width: thin;
     overflow-x: hidden;
   }
-  
+
   /* Style sections for better visual separation without jumps */
   section {
     margin-bottom: 20px;
@@ -598,35 +598,35 @@ button:disabled {
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
     position: relative;
   }
-  
+
   /* Hide section indicators */
   .section-indicator {
     display: none !important;
   }
-  
+
   /* Hide touch instructions */
   .touch-instructions {
     display: none !important;
   }
-  
+
   /* Prevent animation and visual jumps */
   * {
     animation: none !important;
     transition: none !important;
   }
-  
+
   /* Only preserve transitions for interactive elements */
   a, button, input, .admin-nav a {
     transition: background-color 0.2s, color 0.2s !important;
   }
-  
+
   /* Fix spacing between sections */
   .sections-wrapper {
     display: flex;
     flex-direction: column;
     gap: 20px;
   }
-  
+
   /* Fix nav bar */
   .admin-nav {
     overflow-x: auto;
@@ -635,24 +635,24 @@ button:disabled {
     display: flex;
     padding: 10px 0;
   }
-  
+
   .admin-nav a {
     flex-shrink: 0;
     padding: 8px 16px;
     font-size: 14px;
   }
-  
+
   /* Hide the sidebar completely on mobile */
   .admin-sidebar {
     display: none;
   }
-  
+
   /* Make the content take full width */
   .admin-content {
     width: 100%;
     padding: 10px;
   }
-  
+
   /* Add a mobile navigation at the top */
   .mobile-nav {
     display: flex;
@@ -665,7 +665,7 @@ button:disabled {
     top: 0;
     z-index: 10;
   }
-  
+
   .mobile-nav a {
     padding: 8px 15px;
     white-space: nowrap;
@@ -675,12 +675,12 @@ button:disabled {
     border-radius: 4px;
     margin-right: 5px;
   }
-  
+
   .mobile-nav a.active {
     background-color: var(--primary);
     color: white;
   }
-  
+
   /* Section styles */
   section {
     margin-bottom: 16px;
@@ -689,25 +689,25 @@ button:disabled {
     border-radius: 8px;
     box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   }
-  
+
   section h2 {
     font-size: 18px;
     margin-bottom: 16px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--neutral-200);
   }
-  
+
   /* Table adjustments for mobile */
   table {
     font-size: 14px;
     display: block;
     overflow-x: auto;
   }
-  
+
   th, td {
     padding: 8px;
   }
-  
+
   td button {
     padding: 6px 8px;
     font-size: 12px;
@@ -973,4 +973,245 @@ textarea {
   border-radius: 4px;
   font-size: 0.9rem;
   margin-top: 6px;
+}
+
+.empty-state {
+  background-color: #f8f9fa;
+  border: 1px dashed #ccc;
+  border-radius: 4px;
+  padding: 2rem;
+  text-align: center;
+  margin: 1rem 0;
+}
+
+.empty-state p {
+  color: #6c757d;
+  font-size: 1rem;
+  margin: 0;
+}
+
+.status-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.status-filters button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #dee2e6;
+  background-color: #fff;
+  border-radius: 0.25rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s;
+}
+
+.status-filters button:hover {
+  background-color: #f8f9fa;
+}
+
+.status-filters button.active {
+  background-color: #007bff;
+  color: white;
+  border-color: #007bff;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-badge.pending {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.status-badge.processing {
+  background-color: #17a2b8;
+  color: white;
+}
+
+.status-badge.shipped {
+  background-color: #007bff;
+  color: white;
+}
+
+.status-badge.delivered {
+  background-color: #28a745;
+  color: white;
+}
+
+.status-badge.cancelled {
+  background-color: #dc3545;
+  color: white;
+}
+
+.status-badge.refunded {
+  background-color: #6c757d;
+  color: white;
+}
+
+.order-details-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.order-detail-item {
+  background-color: #f8f9fa;
+  padding: 1rem;
+  border-radius: 4px;
+}
+
+.detail-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+}
+
+.detail-value {
+  font-weight: 500;
+  font-size: 1rem;
+}
+
+.order-detail-section {
+  margin-bottom: 1.5rem;
+}
+
+.order-detail-section h3 {
+  font-size: 1.1rem;
+  margin-bottom: 0.75rem;
+  color: #495057;
+  border-bottom: 1px solid #dee2e6;
+  padding-bottom: 0.5rem;
+}
+
+.order-items-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.order-items-table th,
+.order-items-table td {
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+}
+
+.order-items-table th {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+.order-items-table tfoot {
+  background-color: #f8f9fa;
+  font-weight: 600;
+}
+
+.text-right {
+  text-align: right;
+}
+
+/* Order Timeline */
+.order-timeline {
+  margin: 1rem 0;
+  position: relative;
+}
+
+.order-timeline:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 15px;
+  width: 2px;
+  background-color: #dee2e6;
+}
+
+.timeline-item {
+  position: relative;
+  padding-left: 40px;
+  margin-bottom: 1.5rem;
+}
+
+.timeline-icon {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background-color: #dee2e6;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  z-index: 1;
+}
+
+.timeline-icon.ordered {
+  background-color: #007bff;
+}
+
+.timeline-icon.processing {
+  background-color: #17a2b8;
+}
+
+.timeline-icon.shipped {
+  background-color: #fd7e14;
+}
+
+.timeline-icon.delivered {
+  background-color: #28a745;
+}
+
+.timeline-item.active .timeline-icon {
+  box-shadow: 0 0 0 4px rgba(40, 167, 69, 0.2);
+}
+
+.timeline-content h4 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+}
+
+.timeline-content p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.modal-footer button {
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+}
+
+.btn-primary {
+  background-color: #007bff;
+  color: white;
+  border: 1px solid #007bff;
+}
+
+.btn-primary:hover {
+  background-color: #0069d9;
+  border-color: #0062cc;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+  border: 1px solid #6c757d;
+}
+
+.btn-secondary:hover {
+  background-color: #5a6268;
+  border-color: #545b62;
 }

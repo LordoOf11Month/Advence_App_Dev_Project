@@ -32,6 +32,11 @@ public class AdminOrderController {
         return ResponseEntity.ok(orderService.findAllAdminOrders(filter, page, size));
     }
 
+    @GetMapping("/stats")
+    public ResponseEntity<Map<String, Object>> getOrderStats() {
+        return ResponseEntity.ok(orderService.getOrderStats());
+    }
+
     @GetMapping("/by-user/{userId}")
     public ResponseEntity<List<OrderResponse>> getOrdersByUser(@PathVariable Integer userId) {
         return ResponseEntity.ok(orderService.getOrdersByUserId(userId));

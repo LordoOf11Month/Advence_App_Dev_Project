@@ -300,6 +300,9 @@ import { delay, catchError, of } from 'rxjs';
                       <div class="detail-item-total">
                         ₺{{item.product.price * item.quantity}}
                       </div>
+                      <div class="detail-item-actions" *ngIf="selectedOrder.status === 'delivered'">
+                        <button class="refund-btn" (click)="requestRefund(item)">Request Refund</button>
+                      </div>
                     </div>
                   </div>
 
@@ -559,6 +562,56 @@ import { delay, catchError, of } from 'rxjs';
               <p>{{trackingInfo.updatedAt | date:'medium'}}</p>
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Refund Form Modal -->
+    <div class="modal" *ngIf="showRefundForm">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Request Refund</h3>
+          <button class="close-btn" (click)="cancelRefund()">×</button>
+        </div>
+        <div class="modal-body">
+          <div *ngIf="refundingItem">
+            <div class="refund-product-info">
+              <div class="refund-product-image">
+                <img [src]="refundingItem.product.images[0]" [alt]="refundingItem.product.title">
+              </div>
+              <div class="refund-product-details">
+                <h4>{{refundingItem.product.title}}</h4>
+                <p>Quantity: {{refundingItem.quantity}}</p>
+                <p>Price: ₺{{refundingItem.product.price * refundingItem.quantity}}</p>
+              </div>
+            </div>
+
+            <div class="form-group refund-reason">
+              <label for="refundReason">Reason for Refund *</label>
+              <textarea
+                id="refundReason"
+                [(ngModel)]="refundReason"
+                placeholder="Please explain why you're requesting a refund..."
+                rows="4">
+              </textarea>
+              <div class="error-message" *ngIf="refundReason.trim() === '' && refundReason !== ''">
+                Please provide a reason for your refund request
+              </div>
+            </div>
+
+            <div class="refund-info">
+              <p><strong>Note:</strong> Refund requests will be reviewed by the seller. If approved, the amount will be refunded to your original payment method.</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="cancel-btn" (click)="cancelRefund()">Cancel</button>
+          <button
+            class="submit-btn"
+            [disabled]="!refundReason.trim()"
+            (click)="submitRefund()">
+            Submit Refund Request
+          </button>
         </div>
       </div>
     </div>
@@ -1542,6 +1595,95 @@ import { delay, catchError, of } from 'rxjs';
       color: var(--error);
       border: 1px solid var(--error-100);
     }
+
+    .detail-item-actions {
+      margin-top: 10px;
+    }
+
+    .refund-btn {
+      background-color: #f8f9fa;
+      color: #dc3545;
+      border: 1px solid #dc3545;
+      padding: 5px 10px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+      transition: all 0.2s;
+    }
+
+    .refund-btn:hover {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    .refund-product-info {
+      display: flex;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
+      border-bottom: 1px solid #eee;
+    }
+
+    .refund-product-image {
+      width: 80px;
+      height: 80px;
+      margin-right: 15px;
+    }
+
+    .refund-product-image img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 4px;
+    }
+
+    .refund-product-details h4 {
+      margin-top: 0;
+      margin-bottom: 8px;
+    }
+
+    .refund-product-details p {
+      margin: 4px 0;
+      color: #666;
+    }
+
+    .refund-reason {
+      margin-bottom: 20px;
+    }
+
+    .refund-reason textarea {
+      width: 100%;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      resize: vertical;
+    }
+
+    .refund-info {
+      background-color: #f8f9fa;
+      padding: 12px;
+      border-radius: 4px;
+      margin-bottom: 15px;
+    }
+
+    .refund-info p {
+      margin: 0;
+      font-size: 0.9rem;
+      color: #666;
+    }
+
+    .modal-footer .submit-btn {
+      background-color: #dc3545;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .modal-footer .submit-btn:disabled {
+      background-color: #e9a8af;
+      cursor: not-allowed;
+    }
   `]
 })
 export class AccountComponent implements OnInit, OnDestroy {
@@ -1566,6 +1708,11 @@ export class AccountComponent implements OnInit, OnDestroy {
   filteredOrders: Order[] = [];
   isLoadingOrders: boolean = false;
   private subscriptions = new Subscription();
+
+  // Refund functionality
+  showRefundForm: boolean = false;
+  refundingItem: any = null;
+  refundReason: string = '';
 
   constructor(
     private adminService: AdminService,
@@ -1930,5 +2077,49 @@ export class AccountComponent implements OnInit, OnDestroy {
         }
       }
     });
+  }
+
+  // Refund functionality
+  requestRefund(item: any): void {
+    this.refundingItem = item;
+    this.refundReason = '';
+    this.showRefundForm = true;
+  }
+
+  submitRefund(): void {
+    if (!this.refundingItem || !this.refundReason) {
+      return;
+    }
+
+    // Get the order ID and item ID
+    const orderId = this.selectedOrder?.id;
+    const itemId = this.refundingItem.id || (this.refundingItem.orderItemId ? this.refundingItem.orderItemId.toString() : '');
+
+    if (!orderId || !itemId) {
+      alert('Could not identify the order or item for refund');
+      return;
+    }
+
+    this.orderService.requestRefund(orderId, itemId, this.refundReason).subscribe({
+      next: (response) => {
+        alert('Refund request submitted successfully');
+        this.showRefundForm = false;
+        this.refundingItem = null;
+        this.refundReason = '';
+
+        // Reload orders to show the updated status
+        this.loadOrders();
+      },
+      error: (error) => {
+        console.error('Error requesting refund:', error);
+        alert('Failed to submit refund request. Please try again.');
+      }
+    });
+  }
+
+  cancelRefund(): void {
+    this.showRefundForm = false;
+    this.refundingItem = null;
+    this.refundReason = '';
   }
 }
