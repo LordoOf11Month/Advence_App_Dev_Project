@@ -8,6 +8,8 @@ import com.stripe.param.CustomerCreateParams;
 import com.stripe.param.CustomerUpdateParams;
 import com.stripe.param.RefundCreateParams;
 import com.stripe.param.PaymentMethodAttachParams;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +17,8 @@ import java.util.Map;
 
 @Service
 public class StripeService {
+
+    private static final Logger logger = LoggerFactory.getLogger(StripeService.class);
 
     @Value("${stripe.api.key}")
     private String stripeApiKey;
@@ -144,13 +148,19 @@ public class StripeService {
     public String confirmPaymentIntent(String paymentIntentId) throws StripeException {
         Stripe.apiKey = stripeApiKey;
         
+        logger.info("Retrieving payment intent from Stripe: {}", paymentIntentId);
         PaymentIntent paymentIntent = PaymentIntent.retrieve(paymentIntentId);
         
+        logger.info("Payment intent status: {}", paymentIntent.getStatus());
         if (!"succeeded".equals(paymentIntent.getStatus())) {
+            logger.error("Payment intent is not in succeeded state: {}", paymentIntent.getStatus());
             throw new RuntimeException("Payment intent is not in succeeded state");
         }
 
-        return paymentIntent.getLatestCharge();
+        String chargeId = paymentIntent.getLatestCharge();
+        logger.info("Retrieved charge ID from payment intent: {}", chargeId);
+        
+        return chargeId;
     }
 
     /**

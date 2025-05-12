@@ -185,26 +185,43 @@ public class CustomerOrderController {
             
             // Get current user
             String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            logger.info("Authenticated user: {}", username);
             User user = userRepository.findByEmail(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
+            logger.info("Found user with ID: {}", user.getId());
 
             // Verify the order item belongs to the user
+            logger.info("Looking up order item with ID: {}", itemId);
             OrderItem orderItem = orderRepository.findOrderItemById(itemId)
                 .orElseThrow(() -> new RuntimeException("Order item not found"));
+            logger.info("Found order item: {}, belongs to order: {}", itemId, orderItem.getOrder().getId());
 
             if (orderItem.getOrder().getUser().getId() != user.getId()) {
+                logger.error("Order item belongs to user: {}, but current user is: {}", 
+                    orderItem.getOrder().getUser().getId(), user.getId());
                 throw new RuntimeException("Order item does not belong to the current user");
             }
 
             // Verify payment intent
             String paymentIntentId = paymentConfirmation.get("paymentIntentId");
+            logger.info("Received payment intent ID: {}", paymentIntentId);
+            
+            if (paymentIntentId == null || paymentIntentId.isEmpty()) {
+                logger.error("Payment intent ID is null or empty");
+                throw new RuntimeException("Payment intent ID is required");
+            }
+            
             if (!paymentIntentId.equals(orderItem.getStripePaymentIntentId())) {
+                logger.error("Payment intent mismatch. Received: {}, Expected: {}", 
+                    paymentIntentId, orderItem.getStripePaymentIntentId());
                 throw new RuntimeException("Invalid payment intent for this order item");
             }
+            logger.info("Verified payment intent ID matches order item's payment intent ID");
 
             // Confirm payment and update order status
+            logger.info("Calling orderService.confirmPayment with paymentIntentId: {}", paymentIntentId);
             OrderDTO.OrderResponse updatedOrder = orderService.confirmPayment(paymentIntentId);
-            logger.info("Payment confirmed successfully for order: {}", orderId);
+            logger.info("Payment confirmed successfully for order: {}, new status: {}", orderId, updatedOrder.getStatus());
 
             return ResponseEntity.ok(Map.of(
                 "status", "success",

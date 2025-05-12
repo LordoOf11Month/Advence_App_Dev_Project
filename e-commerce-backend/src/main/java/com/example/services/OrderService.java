@@ -36,6 +36,8 @@ import com.example.models.PaymentMethod;
 import com.stripe.model.PaymentIntent;
 import com.example.models.Address;
 import com.example.services.NotificationService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Service
 public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.OrderResponse, OrderDTO.CreateOrderRequest, Long> {
@@ -48,6 +50,7 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
     private final UserRepository userRepository;     // For filtering by customer email/id
     private final StripeService stripeService;
     private final NotificationService notificationService;
+    private static final Logger logger = LoggerFactory.getLogger(OrderService.class);
 
     @Autowired
     public OrderService(OrderRepository orderRepository,
@@ -631,30 +634,44 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
     @Transactional
     public OrderDTO.OrderResponse confirmPayment(String paymentIntentId) {
         try {
+            logger.info("Confirming payment for paymentIntentId: {}", paymentIntentId);
             OrderItem orderItem = orderRepository.findByStripePaymentIntentId(paymentIntentId)
                     .orElseThrow(() -> new RuntimeException("Order item not found for payment intent: " + paymentIntentId));
             
+            logger.info("Found order item: {} for payment intent: {}", orderItem.getOrderItemId(), paymentIntentId);
+            
             String chargeId = stripeService.confirmPaymentIntent(paymentIntentId);
+            logger.info("Retrieved charge ID: {} from Stripe for payment intent: {}", chargeId, paymentIntentId);
+            
             orderItem.setStripeChargeId(chargeId);
+            logger.info("Set charge ID on order item: {}", orderItem.getOrderItemId());
             
             // Check if all items in the order are paid
             OrderEntity order = orderItem.getOrder();
-            boolean allItemsPaid = order.getOrderItems().stream()
-                    .allMatch(item -> item.getStripeChargeId() != null);
             
-            // If all items are paid, update order status
-            if (allItemsPaid) {
-                order.setStatus(OrderEntity.Status.processing);
+            // Also set charge ID on the order itself
+            if (order.getStripeChargeId() == null) {
                 order.setStripeChargeId(chargeId);
-                
-                // Create a notification for the user about their payment confirmation
-                String notificationMessage = String.format("Payment for order #%d has been confirmed. Your order is now being processed.", order.getId());
-                notificationService.createNotification(Long.valueOf(order.getUser().getId()), notificationMessage);
+                logger.info("Set charge ID on order: {}", order.getId());
             }
             
-            orderRepository.save(order);
-            return convertToDto(order);
+            // Force update order status to processing when payment is confirmed
+            order.setStatus(OrderEntity.Status.processing);
+            logger.info("Updated order status to PROCESSING for order: {}", order.getId());
+            
+            // Create a notification for the user about their payment confirmation
+            String notificationMessage = String.format("Payment for order #%d has been confirmed. Your order is now being processed.", order.getId());
+            notificationService.createNotification(Long.valueOf(order.getUser().getId()), notificationMessage);
+            
+            OrderEntity savedOrder = orderRepository.save(order);
+            logger.info("Saved order after payment confirmation: {}, status: {}", savedOrder.getId(), savedOrder.getStatus());
+            
+            return convertToDto(savedOrder);
         } catch (StripeException e) {
+            logger.error("Stripe exception while confirming payment: {}", e.getMessage(), e);
+            throw new RuntimeException("Failed to confirm payment: " + e.getMessage(), e);
+        } catch (Exception e) {
+            logger.error("Unexpected exception while confirming payment: {}", e.getMessage(), e);
             throw new RuntimeException("Failed to confirm payment: " + e.getMessage(), e);
         }
     }
@@ -713,6 +730,43 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
         
         if (order == null) {
             throw new RuntimeException("Order item with payment intent ID " + paymentIntentId + " has no associated order");
+        }
+        
+        // If we have a payment intent but the charge ID is missing, try to confirm the payment now
+        if (orderItem.getStripeChargeId() == null) {
+            try {
+                logger.info("Payment intent found but charge ID is missing. Attempting to fetch charge ID from Stripe.");
+                String chargeId = stripeService.confirmPaymentIntent(paymentIntentId);
+                
+                if (chargeId != null && !chargeId.isEmpty()) {
+                    logger.info("Retrieved charge ID from Stripe: {}", chargeId);
+                    orderItem.setStripeChargeId(chargeId);
+                    
+                    // Also set it on the order
+                    if (order.getStripeChargeId() == null) {
+                        order.setStripeChargeId(chargeId);
+                    }
+                    
+                    // Always update to processing status when retrieving by payment intent
+                    order.setStatus(OrderEntity.Status.processing);
+                    logger.info("Updated order status to processing for order: {}", order.getId());
+                    
+                    // Save the updated order
+                    orderRepository.save(order);
+                    logger.info("Saved order with updated charge IDs: {}", order.getId());
+                }
+            } catch (Exception e) {
+                // Log but continue - we still want to return the order even if charge ID retrieval fails
+                logger.warn("Failed to retrieve charge ID for payment intent: {}", paymentIntentId, e);
+            }
+        } else {
+            // We already have a charge ID, so payment is confirmed
+            // Make sure the order is in processing status
+            if (order.getStatus() == OrderEntity.Status.pending) {
+                order.setStatus(OrderEntity.Status.processing);
+                logger.info("Updated pending order to processing status for order with existing charge: {}", order.getId());
+                orderRepository.save(order);
+            }
         }
         
         // Initialize collections to prevent LazyInitializationException
