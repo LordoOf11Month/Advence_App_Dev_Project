@@ -1,0 +1,71 @@
+store_id,category-id,Product-id,name,price,description,stock_quantity
+2,3,1001,iPhone 14 Pro,999.99,Latest iPhone with advanced camera system            Brand: Apple,50
+2,3,1002,Samsung Galaxy S23,899.99,Premium Android smartphone            Brand: Samsung,45
+1,7,1003,MacBook Pro 14-inch,1499.99,Powerful laptop for professionals            Brand: Apple,30
+2,7,1004,Dell XPS 13,1299.99,Ultra-portable premium laptop            Brand: Dell,25
+1,33,2001,Summer Floral Dress,79.99,Light and breezy summer dress with floral pattern            Brand: Zara,100
+1,33,2002,High-Waist Jeans,89.99,Classic high-waist denim jeans            Brand: Levis,80
+1,33,2003,Classic White Shirt,49.99,Formal cotton shirt for men            Brand: Hugo Boss,120
+1,33,2004,Slim Fit Blazer,199.99,Professional blazer for modern men            Brand: Calvin Klein,60
+1,48,3001,3-Seater Sofa,899.99,Comfortable modern sofa            Brand: IKEA,20
+1,48,3002,Coffee Table,299.99,Minimalist wooden coffee table            Brand: West Elm,30
+2,69,4001,MAC Lipstick Collection,24.99,Long-lasting matte lipstick            Brand: MAC,200
+1,69,4002,Foundation SPF 30,39.99,Full coverage liquid foundation            Brand: Estee Lauder,150
+1,70,4003,Vitamin C Serum,59.99,Brightening face serum            Brand: The Ordinary,100
+2,70,4004,Night Cream,49.99,Hydrating night cream            Brand: Neutrogena,80
+2,77,5001,Pro Treadmill T1000,1299.99,Professional grade treadmill            Brand: NordicTrack,15
+2,78,5002,Adjustable Dumbbell Set,299.99,20kg adjustable dumbbell set            Brand: Bowflex,50
+1,92,6001,Premium Travel Stroller,399.99,Lightweight travel stroller            Brand: UPPAbaby,30
+2,93,6002,Convertible Car Seat,299.99,4-in-1 convertible car seat            Brand: Graco,40
+1,96,6003,Science Kit,49.99,Educational science experiment kit            Brand: National Geographic,100
+2,97,6004,Superhero Action Figure Set,29.99,Collection of popular superheroes            Brand: Marvel,150
+1,103,7001,Multivitamin Complex,34.99,Daily multivitamin supplements            Brand: NOW Foods,200
+2,104,7002,First Aid Kit,49.99,Comprehensive first aid kit            Brand: Johnson & Johnson,120
+2,110,8001,Leather Seat Cover Set,129.99,Premium leather car seat covers            Brand: AutoPro,60
+1,111,8002,4K Dash Camera,199.99,High resolution dash cam with night vision            Brand: VANTRUE,40
+2,117,9001,Organic Fruit Basket,49.99,Selection of seasonal organic fruits            Brand: Organic Farms,30
+2,118,9002,Gourmet Pasta Set,29.99,Italian pasta variety pack            Brand: Barilla,100
+1,125,10001,Best Selling Novel Collection,89.99,Set of 5 bestselling novels            Brand: Penguin Books,50
+2,126,10002,Self-Development Book Set,69.99,Popular self-help book collection            Brand: Harper Collins,40
+1,134,11001,Premium Fountain Pen Set,129.99,Luxury writing instruments collection            Brand: Mont Blanc,30
+1,135,11002,Color LaserJet Printer,399.99,Professional office printer            Brand: HP,25
+2,141,12001,Premium Dog Food 15kg,79.99,High-quality dry dog food            Brand: Royal Canin,100
+2,142,12002,Cat Tree Condo,149.99,Large cat climbing tower            Brand: PetPals,40
+2,148,13001,Diamond Pendant Necklace,999.99,18K gold diamond necklace            Brand: Tiffany & Co,10
+2,149,13002,Stainless Steel Watch,299.99,Premium mens watch            Brand: Fossil,30
+1,156,14001,Digital Microscope,799.99,Professional USB microscope            Brand: AmScope,15
+1,157,14002,Safety Gear Set,199.99,Complete workplace safety kit            Brand: 3M,50
+1,161,15001,Hardshell Spinner Luggage,199.99,Durable travel suitcase            Brand: Samsonite,60
+2,162,15002,Travel Backpack 40L,129.99,Anti-theft travel backpack            Brand: SwissGear,80
+2,13,1005,65-inch 4K OLED TV,1999.99,Premium OLED Smart TV            Brand: LG,20
+2,14,1006,Noise Cancelling Headphones,349.99,Premium wireless headphones            Brand: Sony,45
+1,34,2005,Designer High Heels,299.99,Elegant evening heels            Brand: Jimmy Choo,30
+2,39,2006,Leather Oxford Shoes,249.99,Classic formal shoes            Brand: Cole Haan,40
+1,52,3003,Modern Pendant Light,199.99,Contemporary ceiling light            Brand: Philips,40
+1,53,3004,Abstract Canvas Set,149.99,Set of 3 canvas prints            Brand: Art Gallery,25
+1,57,3005,Non-stick Pan Set,199.99,Premium cookware set            Brand: Le Creuset,35
+1,58,3006,Porcelain Dinner Set,149.99,16-piece dining set            Brand: Royal Doulton,50
+2,72,4007,Designer Perfume,129.99,Luxury women's fragrance            Brand: Chanel,60
+2,73,4008,Makeup Brush Set,79.99,Professional makeup brushes            Brand: MAC,100
+1,84,5005,Men's Running Jacket,89.99,Lightweight running jacket            Brand: Nike,75
+1,85,5006,Women's Training Shoes,129.99,Cross-training athletic shoes            Brand: Adidas,60
+1,98,6005,Interactive Baby Doll,39.99,Educational baby doll with accessories            Brand: Mattel,80
+1,99,6006,Family Board Game Set,49.99,Classic board game collection            Brand: Hasbro,70
+2,105,7003,Electric Toothbrush,89.99,Smart sonic toothbrush            Brand: Philips,90
+1,106,7004,Intimate Care Set,39.99,Personal care essentials            Brand: Durex,150
+2,112,8003,Motorcycle Helmet,199.99,DOT certified safety helmet            Brand: Bell,30
+1,113,8004,Car GPS Navigator,149.99,7-inch touchscreen GPS            Brand: Garmin,45
+2,119,9003,Premium Coffee Set,59.99,Specialty coffee collection            Brand: Starbucks,120
+2,120,9004,Gourmet Nuts Selection,34.99,Mixed premium nuts            Brand: Planters,200
+2,128,10003,4K Movie Collection,79.99,Premium movie box set            Brand: Universal Pictures,70
+1,130,10004,Vinyl Record Collection,129.99,Classic rock vinyl set            Brand: Sony Music,40
+1,136,11003,Ergonomic Office Chair,299.99,Premium mesh office chair            Brand: Herman Miller,25
+1,137,11004,Video Conference Camera,199.99,HD webcam with microphone            Brand: Logitech,40
+1,143,12003,Large Bird Cage,199.99,Spacious parrot cage            Brand: Prevue Pet,20
+1,144,12004,Aquarium Starter Kit,149.99,Complete 20-gallon setup            Brand: Tetra,30
+1,151,13003,Luxury Chronograph Watch,1499.99,Swiss-made automatic watch            Brand: TAG Heuer,15
+2,152,13004,Rose Gold Watch,899.99,Elegant women's timepiece            Brand: Michael Kors,25
+1,158,14003,Industrial Face Masks,49.99,N95 protective masks 50pc            Brand: 3M,200
+2,159,14004,Digital Caliper,79.99,Precision measuring tool            Brand: Mitutoyo,40
+1,163,15003,Travel Adapter Set,29.99,Universal power adapter            Brand: EPICKA,150
+2,164,15004,Travel Toiletry Kit,39.99,Complete grooming essentials            Brand: Victorinox,100

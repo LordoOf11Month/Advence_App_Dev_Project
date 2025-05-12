@@ -55,4 +55,18 @@ public class UserDTO {
         @Size(min = 10, message = "Ban reason must be at least 10 characters long") // Example minimum length
         private String banReason;
     }
+
+    @Data
+    public static class PasswordUpdateRequest {
+        @NotBlank(message = "Current password is required")
+        private String currentPassword;
+
+        @NotBlank(message = "New password is required")
+        @Size(min = 8, message = "Password must be at least 8 characters long")
+        @Pattern(
+            regexp = "^(?=.*[0-9])(?=.*[a-z])(?=.*[A-Z])(?=.*[@#$%^&+=])(?=\\S+$).{8,}$",
+            message = "Password must contain at least one digit, one uppercase letter, one lowercase letter, and one special character"
+        )
+        private String newPassword;
+    }
 }

@@ -9,21 +9,36 @@ let refreshTokenPromise: Promise<string> | null = null;
 
 export function authInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn): Observable<HttpEvent<unknown>> {
   const authService = inject(AuthService);
-  
+
+  console.log(`Auth interceptor handling request to: ${req.url}`);
+
   // Skip adding token for authentication requests
-  if (req.url.includes('/auth/login') || req.url.includes('/auth/register')) {
+  if (req.url.includes('/api/auth/login') || req.url.includes('/api/auth/register')) {
+    console.log('Skipping token for auth request');
     return next(req);
   }
 
   const token = localStorage.getItem('token');
-  
+
   if (token) {
+    console.log(`Adding token to request: ${req.url} (token: ${token.substring(0, 10)}...)`);
     req = addToken(req, token);
+    console.log('Request headers after adding token:', req.headers.keys());
+  } else {
+    console.warn(`No token available for request: ${req.url}`);
   }
 
   return next(req).pipe(
     catchError(error => {
-      if (error instanceof HttpErrorResponse && error.status === 401) {
+      console.error(`Error from request to ${req.url}:`, error);
+      // Check if it's a PUT request to the addresses endpoint that's failing with 401
+      if (error instanceof HttpErrorResponse && error.status === 401 &&
+          req.url.includes('/api/addresses') && req.method === 'PUT') {
+        console.log('Address update failed with 401 - trying to refresh token');
+        return handle401Error(req, next, authService);
+      }
+      else if (error instanceof HttpErrorResponse && error.status === 401) {
+        console.log('401 unauthorized error - attempting token refresh');
         return handle401Error(req, next, authService);
       }
       return throwError(() => error);
@@ -32,6 +47,36 @@ export function authInterceptor(req: HttpRequest<unknown>, next: HttpHandlerFn):
 }
 
 function addToken(request: HttpRequest<unknown>, token: string): HttpRequest<unknown> {
+  // Make sure we're not sending a malformed token
+  if (!token || token === 'undefined' || token === 'null') {
+    console.warn('Invalid token detected, not adding to request');
+    return request;
+  }
+
+  // Check for admin override
+  const adminOverride = localStorage.getItem('adminOverride') === 'true';
+
+  if (adminOverride && request.url.includes('/admin/')) {
+    console.log('Adding admin override headers to request:', request.url);
+    return request.clone({
+      setHeaders: {
+        Authorization: `Bearer ${token}`,
+        'X-Admin-Override': 'true',
+        'X-Role-Override': 'ADMIN'
+      }
+    });
+  }
+
+  // Ensure we have content-type for PUT/POST requests
+  if (request.method === 'PUT' || request.method === 'POST') {
+    return request.clone({
+      setHeaders: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
+    });
+  }
+
   return request.clone({
     setHeaders: {
       Authorization: `Bearer ${token}`

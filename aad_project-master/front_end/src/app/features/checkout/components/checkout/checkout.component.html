@@ -1,0 +1,189 @@
+<!-- features/checkout/components/checkout/checkout.component.html -->
+<div class="container mt-4">
+  <h2>Checkout</h2>
+
+  <div class="alert alert-info" *ngIf="!isLoggedIn">
+    <p>You're currently checking out as a guest. <a routerLink="/auth/login" [queryParams]="{returnUrl: '/checkout'}">Log in</a> to use your saved addresses and payment methods.</p>
+  </div>
+
+  <!-- Address and Order Summary Section - Hidden after order creation -->
+  <div class="row" *ngIf="!order">
+    <div class="col-md-8">
+      <div class="card mb-4">
+        <div class="card-header">
+          <h3 class="mb-0">Shipping Address</h3>
+        </div>
+        <div class="card-body">
+          <!-- Address Selection for Logged In Users -->
+          <div *ngIf="isLoggedIn">
+            <div class="d-flex justify-content-between mb-3">
+              <div class="form-check">
+                <input class="form-check-input" type="radio" id="useExistingAddress"
+                      [checked]="useExistingAddress"
+                      (change)="toggleAddressForm()"
+                      [disabled]="savedAddresses.length === 0">
+                <label class="form-check-label" for="useExistingAddress">
+                  Use a saved address
+                </label>
+              </div>
+              <div class="form-check">
+                <input class="form-check-input" type="radio" id="useNewAddress"
+                      [checked]="!useExistingAddress"
+                      (change)="toggleAddressForm()">
+                <label class="form-check-label" for="useNewAddress">
+                  Use a new address
+                </label>
+              </div>
+            </div>
+
+            <!-- Saved Address Selection Form -->
+            <form *ngIf="useExistingAddress" [formGroup]="checkoutForm" class="mb-3">
+              <div class="mb-3">
+                <label for="addressSelect" class="form-label">Select an address</label>
+                <select id="addressSelect" formControlName="selectedAddressId" class="form-select">
+                  <option value="">-- Select Address --</option>
+                  <option *ngFor="let address of savedAddresses" [value]="address.id">
+                    {{ address.street }}, {{ address.city }}, {{ address.state }} {{ address.zipCode }}
+                  </option>
+                </select>
+                <div *ngIf="submitted && f['selectedAddressId'].invalid" class="text-danger">
+                  Please select an address.
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- New Address Form -->
+          <form *ngIf="showAddressForm" [formGroup]="addressForm">
+            <div class="row">
+              <div class="col-md-12 mb-3">
+                <label for="street" class="form-label">Street Address</label>
+                <input id="street" formControlName="street" type="text" class="form-control">
+                <div *ngIf="submitted && a['street'].invalid" class="text-danger">
+                  Street address is required.
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="city" class="form-label">City</label>
+                <input id="city" formControlName="city" type="text" class="form-control">
+                <div *ngIf="submitted && a['city'].invalid" class="text-danger">
+                  City is required.
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="state" class="form-label">State/Province</label>
+                <input id="state" formControlName="state" type="text" class="form-control">
+                <div *ngIf="submitted && a['state'].invalid" class="text-danger">
+                  State is required.
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="zipCode" class="form-label">ZIP/Postal Code</label>
+                <input id="zipCode" formControlName="zipCode" type="text" class="form-control">
+                <div *ngIf="submitted && a['zipCode'].invalid" class="text-danger">
+                  ZIP code is required.
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label for="country" class="form-label">Country</label>
+                <input id="country" formControlName="country" type="text" class="form-control">
+                <div *ngIf="submitted && a['country'].invalid" class="text-danger">
+                  Country is required.
+                </div>
+              </div>
+
+              <!-- Option to save this address (only for logged in users) -->
+              <div class="col-md-12 mb-3" *ngIf="isLoggedIn">
+                <div class="form-check">
+                  <input class="form-check-input" type="checkbox" id="saveAddress" formControlName="saveAddress">
+                  <label class="form-check-label" for="saveAddress">
+                    Save this address for future orders
+                  </label>
+                </div>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-header">
+          <h3 class="mb-0">Order Summary</h3>
+        </div>
+        <div class="card-body">
+          <div *ngIf="cartItems.length === 0" class="alert alert-warning">
+            Your cart is empty.
+          </div>
+
+          <ul class="list-group mb-3">
+            <li *ngFor="let item of cartItems" class="list-group-item d-flex justify-content-between lh-sm">
+              <div>
+                <h6 class="my-0">{{ item.productName }} (x{{ item.quantity }})</h6>
+              </div>
+              <span class="text-muted">{{ item.price * item.quantity | currency }}</span>
+            </li>
+            <li class="list-group-item d-flex justify-content-between">
+              <span>Total</span>
+              <strong>{{ calculateTotal() | currency }}</strong>
+            </li>
+          </ul>
+
+          <button
+            (click)="onSubmit()"
+            class="btn btn-primary w-100"
+            [disabled]="cartItems.length === 0 || isProcessingPayment">
+            Continue to Payment
+          </button>
+
+          <div *ngIf="error" class="alert alert-danger mt-3">
+            {{ error }}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Payment Section - Shown only after order creation -->
+  <div class="checkout-section payment-section" *ngIf="order">
+    <div class="row">
+      <div class="col-md-8">
+        <div class="card">
+          <div class="card-header">
+            <h3>Payment Information</h3>
+          </div>
+          <div class="card-body">
+            <p>Please complete your payment to finalize order #{{order.id}}</p>
+            <form id="payment-form">
+              <div id="payment-form-container" class="payment-form-container mb-3">
+                <div id="payment-element"></div>
+              </div>
+              <div id="payment-errors" class="text-danger mb-3" role="alert"></div>
+
+              <div class="submit-section">
+                <button type="submit" class="btn btn-success w-100" [disabled]="isProcessingPayment">
+                  <span *ngIf="!isProcessingPayment">Complete Payment</span>
+                  <span *ngIf="isProcessingPayment">Processing...</span>
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
+
+      <div class="col-md-4">
+        <div class="card">
+          <div class="card-header">
+            <h3 class="mb-0">Order Details</h3>
+          </div>
+          <div class="card-body">
+            <p><strong>Order #:</strong> {{order.id}}</p>
+            <p><strong>Amount:</strong> {{order.totalAmount | currency}}</p>
+            <p><strong>Date:</strong> {{order.orderDate | date:'medium'}}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

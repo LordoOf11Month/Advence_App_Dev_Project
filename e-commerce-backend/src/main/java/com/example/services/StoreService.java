@@ -31,7 +31,7 @@ public class StoreService {
                 .collect(Collectors.toList());
     }
 
-    public StoreResponse findById(int id) {
+    public StoreResponse findById(long id) {
         Store store = storeRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Store not found with id: " + id));
         return mapToStoreResponse(store);
@@ -66,7 +66,7 @@ public class StoreService {
         return mapToStoreResponse(savedStore);
     }
 
-    public StoreResponse update(int id, @Valid StoreUpdateRequest dto) {
+    public StoreResponse update(long id, @Valid StoreUpdateRequest dto) {
         Store store = storeRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Store not found with id: " + id));
 
@@ -79,7 +79,7 @@ public class StoreService {
         return mapToStoreResponse(updatedStore);
     }
 
-    public StoreResponse updateAddress(int id, @Valid AddressUpdateRequest dto) {
+    public StoreResponse updateAddress(long id, @Valid AddressUpdateRequest dto) {
         Store store = storeRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Store not found with id: " + id));
 
@@ -93,7 +93,7 @@ public class StoreService {
     }
 
 
-    public void delete(int id) {
+    public void delete(long id) {
         if (!storeRepository.existsById(id)) {
             throw new EntityNotFoundException("Store not found with id: " + id);
         }

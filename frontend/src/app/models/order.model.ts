@@ -12,15 +12,17 @@ export interface ShippingAddress {
   phone: string;
   email: string;
   saveAddress?: boolean;
+  addressId?: number;
 }
 
 export interface PaymentMethod {
-  type: 'credit_card' | 'paypal' | 'cash_on_delivery';
+  type: 'credit_card' | 'stripe' | 'cash_on_delivery';
   cardNumber?: string;
   cardHolder?: string;
   expiryDate?: string;
   cvv?: string;
   saveCard?: boolean;
+  stripePaymentMethodId?: string;
 }
 
 export interface Order {
@@ -50,4 +52,4 @@ export interface OrderSummary {
   total: number;
 }
 
-export type CheckoutStep = 'shipping' | 'payment' | 'review' | 'confirmation'; 
+export type CheckoutStep = 'shipping' | 'payment' | 'review' | 'confirmation';

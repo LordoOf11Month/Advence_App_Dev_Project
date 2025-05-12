@@ -1,0 +1,9 @@
+<!-- shared/components/confirm-dialog/confirm-dialog.component.html -->
+<h2 mat-dialog-title>Confirm</h2>
+<div mat-dialog-content>
+  <p>{{ message }}</p>
+</div>
+<div mat-dialog-actions class="align-end">
+  <button mat-button (click)="onCancel()">{{ cancelLabel }}</button>
+  <button mat-button color="primary" (click)="onConfirm()">{{ confirmLabel }}</button>
+</div>

@@ -3,8 +3,10 @@ Users Table
     • first_name (String, 50, Not Null)
     • last_name (String, 20, Not Null)
     • email (String, 70, Not Null, Unique)
+    • phone=number (string, 12)
+    • avatar_img_url(text)
     • password_hash (String, 128, Not Null)
-    • role (Enum: customer, seller, platform_admin, Not Null)
+    • role (Enum: customer, seller, admin, Not Null)
     • created_at (Timestamp, Not Null)
     • stripe_customer_id (String, 255)
     • is_banned (Boolean, Default: false, Not Null)
@@ -15,13 +17,17 @@ Stores Table
     • seller_id (Foreign Key to Users.user_id, Not Null)
     • store_name (String, 20, Not Null)
     • description (Text)
+    • email (String, 70, Not Null, Unique)
     • created_at (Timestamp, Not Null)
     • bank_name (String, 100)
     • account_holder (String, 100)
     • account_number (String, 50)
     • is_banned (Boolean, Default: false, Not Null)
     • banned_at (OffsetDateTime)
-    • ban_reason (Text)
+    • ban_reason (Text)• city (String, 100, Not Null)
+    • state (String, 100)
+    • zip_code (String, 20)
+    • country (String, 100, Not Null)
     • average_rating (FLOAT)
     • total_sales (INT)
 Products Table
@@ -90,6 +96,7 @@ Cart Items Table
 Promo Codes Table
     • code (Primary Key, String, 50)
     • discount_percent (Integer, Not Null)
+    • End_date
 Discounts Table
     • product_id (Foreign Key to Products.product_id, Composite Primary Key)
     • banner_id (Foreign Key to Banners.id, Composite Primary Key)

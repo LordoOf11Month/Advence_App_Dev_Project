@@ -1,0 +1,17 @@
+<!-- features/seller-dashboard/components/shipments/shipment-tracking/shipment-tracking.component.html -->
+<h2>Enter Shipment Details for Order #{{ orderId }}</h2>
+<div *ngIf="orderId; else invalid">
+  <div>
+    <label>Carrier:</label>
+    <input [(ngModel)]="carrier" placeholder="e.g., DHL, FedEx" />
+  </div>
+  <div>
+    <label>Tracking Number:</label>
+    <input [(ngModel)]="trackingNumber" placeholder="Tracking number" />
+  </div>
+  <button (click)="submit()" [disabled]="loading">Submit</button>
+  <app-error-alert *ngIf="error" [errorMessage]="error"></app-error-alert>
+</div>
+<ng-template #invalid>
+  <p>Invalid order.</p>
+</ng-template>

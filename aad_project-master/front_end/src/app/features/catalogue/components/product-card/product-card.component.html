@@ -1,0 +1,15 @@
+<div class="product-card" [class.selected-for-compare]="isSelected">
+  <a [routerLink]="['/catalogue', product.id]">
+    <img [src]="product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[0] : 'assets/placeholder.png'"
+         [alt]="product.name" />
+    <h3>{{ product.name }}</h3>
+    <p>{{ product.price | money }}</p>
+    <p>Sold by: {{ product.sellerName }}</p>
+  </a>
+  <div class="actions">
+    <button (click)="onAddToCartClick()">Add to Cart</button>
+    <button (click)="onCompareClick()" [class.selected]="isSelected">
+      {{ isSelected ? 'Selected' : 'Compare' }}
+    </button>
+  </div>
+</div>

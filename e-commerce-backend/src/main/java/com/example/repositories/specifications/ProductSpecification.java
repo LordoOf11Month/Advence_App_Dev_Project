@@ -1,10 +1,14 @@
 package com.example.repositories.specifications;
-import com.example.DTO.ProductDTO.ProductFilterRequest;
-import com.example.models.Product;
-import org.springframework.data.jpa.domain.Specification;
-import jakarta.persistence.criteria.*;
+
 import java.util.ArrayList;
 import java.util.List;
+
+import org.springframework.data.jpa.domain.Specification;
+
+import com.example.DTO.ProductDTO.ProductFilterRequest;
+import com.example.models.Product;
+
+import jakarta.persistence.criteria.Predicate;
 
 public class ProductSpecification {
 
@@ -49,6 +53,18 @@ public class ProductSpecification {
             if (filter.getCategories() != null && !filter.getCategories().isEmpty()) {
                 predicate = criteriaBuilder.and(predicate,
                     root.join("category").get("name").in(filter.getCategories()));
+            }
+
+            // Free Shipping filter
+            if (filter.getFreeShipping() != null) {
+                predicate = criteriaBuilder.and(predicate,
+                    criteriaBuilder.equal(root.get("freeShipping"), filter.getFreeShipping()));
+            }
+
+            // Fast Delivery filter
+            if (filter.getFastDelivery() != null) {
+                predicate = criteriaBuilder.and(predicate,
+                    criteriaBuilder.equal(root.get("fastDelivery"), filter.getFastDelivery()));
             }
 
             return predicate;

@@ -1,468 +1,33 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChildren, QueryList, ElementRef, HostListener, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { SellerService } from '../../services/seller.service';
 import { Product } from '../../models/product.model';
-import { AdminOrder } from '../../models/admin.model';
+import { AdminOrder, AdminProduct, AdminStats, OrderStats } from '../../models/admin.model';
+import { ErrorService } from '../../services/error.service';
+import { finalize, catchError } from 'rxjs/operators';
+import { of, Subscription } from 'rxjs';
+import { LoadingSpinnerComponent } from '../../components/loading-spinner/loading-spinner.component';
+import { fadeInOut, listAnimation, slideUpDown, modalAnimation, sectionAnimation, tableRowAnimation } from '../../animations';
+import { SortConfig, sortData, toggleSort } from '../../utils/table-sort';
+import { FilterConfig, filterData, createFilter } from '../../utils/table-filter';
+import { PaginationConfig, paginateData, PaginationResult, getPageSizes, calculateVisiblePages } from '../../utils/table-pagination';
 
 @Component({
   selector: 'app-seller-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
-  template: `
-    <div class="seller-container">
-      <aside class="seller-sidebar">
-        <nav class="seller-nav">
-          <a routerLink="/seller" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
-            <span class="material-symbols-outlined">dashboard</span>
-            Dashboard
-          </a>
-          <a routerLink="/seller/products" routerLinkActive="active">
-            <span class="material-symbols-outlined">inventory_2</span>
-            Products
-          </a>
-          <a routerLink="/seller/orders" routerLinkActive="active">
-            <span class="material-symbols-outlined">local_shipping</span>
-            Orders
-          </a>
-          <a routerLink="/seller/profile" routerLinkActive="active">
-            <span class="material-symbols-outlined">store</span>
-            Store Profile
-          </a>
-        </nav>
-      </aside>
-
-      <main class="seller-content">
-        <div class="seller-header">
-          <div class="header-content">
-            <h1>Welcome back, {{storeName}}</h1>
-            <p>Here's what's happening with your store today.</p>
-          </div>
-        </div>
-
-        <div class="dashboard-stats">
-          <div class="stat-card">
-            <div class="stat-icon orders">
-              <span class="material-symbols-outlined">local_shipping</span>
-            </div>
-            <div class="stat-content">
-              <h3>Orders Today</h3>
-              <p class="stat-value">{{todayOrders}}</p>
-              <p class="stat-change positive" *ngIf="orderChange > 0">+{{orderChange}}% from yesterday</p>
-              <p class="stat-change negative" *ngIf="orderChange < 0">{{orderChange}}% from yesterday</p>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon revenue">
-              <span class="material-symbols-outlined">payments</span>
-            </div>
-            <div class="stat-content">
-              <h3>Revenue Today</h3>
-              <p class="stat-value">₺{{todayRevenue.toLocaleString()}}</p>
-              <p class="stat-change positive" *ngIf="revenueChange > 0">+{{revenueChange}}% from yesterday</p>
-              <p class="stat-change negative" *ngIf="revenueChange < 0">{{revenueChange}}% from yesterday</p>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon products">
-              <span class="material-symbols-outlined">inventory_2</span>
-            </div>
-            <div class="stat-content">
-              <h3>Active Products</h3>
-              <p class="stat-value">{{activeProducts}}</p>
-              <p class="stat-note">{{lowStockProducts}} low in stock</p>
-            </div>
-          </div>
-
-          <div class="stat-card">
-            <div class="stat-icon rating">
-              <span class="material-symbols-outlined">star</span>
-            </div>
-            <div class="stat-content">
-              <h3>Store Rating</h3>
-              <p class="stat-value">{{rating.toFixed(1)}}</p>
-              <p class="stat-note">{{totalReviews}} total reviews</p>
-            </div>
-          </div>
-        </div>
-
-        <div class="dashboard-sections">
-          <section class="recent-orders">
-            <div class="section-header">
-              <h2>Recent Orders</h2>
-              <a routerLink="/seller/orders" class="view-all">View All</a>
-            </div>
-            
-            <div class="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Order ID</th>
-                    <th>Customer</th>
-                    <th>Products</th>
-                    <th>Total</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let order of recentOrders">
-                    <td>#{{order.id}}</td>
-                    <td>{{order.userEmail}}</td>
-                    <td>{{order.items.length}} items</td>
-                    <td>₺{{order.totalAmount.toLocaleString()}}</td>
-                    <td>
-                      <span class="status-badge" [class]="order.status">
-                        {{order.status}}
-                      </span>
-                    </td>
-                    <td>{{order.dateCreated | date:'short'}}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
-
-          <section class="low-stock-products">
-            <div class="section-header">
-              <h2>Low Stock Products</h2>
-              <a routerLink="/seller/products" class="view-all">View All Products</a>
-            </div>
-            
-            <div class="products-grid">
-              <div class="product-card" *ngFor="let product of lowStockItems">
-                <img [src]="product.images[0]" [alt]="product.title">
-                <div class="product-info">
-                  <h3>{{product.title}}</h3>
-                  <p class="price">₺{{product.price.toLocaleString()}}</p>
-                  <p class="stock warning">Only {{product.stock}} left in stock</p>
-                </div>
-                <button class="update-stock-btn">Update Stock</button>
-              </div>
-            </div>
-          </section>
-        </div>
-      </main>
-    </div>
-  `,
-  styles: [`
-    .seller-container {
-      display: flex;
-      min-height: calc(100vh - 140px);
-    }
-
-    .seller-sidebar {
-      width: 250px;
-      background-color: var(--white);
-      border-right: 1px solid var(--neutral-200);
-      padding: var(--space-4);
-    }
-
-    .seller-nav {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-2);
-    }
-
-    .seller-nav a {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3);
-      padding: var(--space-3);
-      color: var(--neutral-700);
-      border-radius: var (--radius-md);
-      transition: all var(--transition-fast);
-    }
-
-    .seller-nav a:hover {
-      background-color: var(--neutral-100);
-      color: var(--primary);
-    }
-
-    .seller-nav a.active {
-      background-color: var(--primary);
-      color: var(--white);
-    }
-
-    .seller-content {
-      flex: 1;
-      padding: var(--space-6);
-      background-color: var(--neutral-50);
-    }
-
-    .seller-header {
-      background-color: var(--white);
-      border-radius: var(--radius-lg);
-      padding: var(--space-6);
-      margin-bottom: var(--space-6);
-      box-shadow: var(--shadow-sm);
-    }
-
-    .seller-header h1 {
-      font-size: 1.75rem;
-      color: var(--neutral-900);
-      margin: 0;
-    }
-
-    .seller-header p {
-      color: var(--neutral-600);
-      margin: var(--space-2) 0 0;
-    }
-
-    .dashboard-stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: var(--space-4);
-      margin-bottom: var(--space-6);
-    }
-
-    .stat-card {
-      background-color: var(--white);
-      border-radius: var(--radius-lg);
-      padding: var(--space-4);
-      display: flex;
-      gap: var(--space-4);
-      box-shadow: var(--shadow-sm);
-    }
-
-    .stat-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: var(--radius-lg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .stat-icon.orders {
-      background-color: var(--primary-light);
-      color: var(--primary);
-    }
-
-    .stat-icon.revenue {
-      background-color: var(--success-light);
-      color: var(--success);
-    }
-
-    .stat-icon.products {
-      background-color: var(--warning-light);
-      color: var(--warning);
-    }
-
-    .stat-icon.rating {
-      background-color: var(--info-light);
-      color: var (--info);
-    }
-
-    .stat-content h3 {
-      font-size: 0.875rem;
-      color: var(--neutral-600);
-      margin: 0;
-    }
-
-    .stat-value {
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: var(--neutral-900);
-      margin: var(--space-1) 0;
-    }
-
-    .stat-change {
-      font-size: 0.875rem;
-      margin: 0;
-    }
-
-    .stat-change.positive {
-      color: var(--success);
-    }
-
-    .stat-change.negative {
-      color: var(--error);
-    }
-
-    .stat-note {
-      font-size: 0.875rem;
-      color: var(--neutral-600);
-      margin: 0;
-    }
-
-    .dashboard-sections {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: var(--space-6);
-    }
-
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: var(--space-4);
-    }
-
-    .section-header h2 {
-      font-size: 1.25rem;
-      color: var(--neutral-900);
-      margin: 0;
-    }
-
-    .view-all {
-      color: var(--primary);
-      font-weight: 500;
-    }
-
-    .table-container {
-      background-color: var(--white);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-sm);
-      overflow: hidden;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    th, td {
-      padding: var(--space-4);
-      text-align: left;
-    }
-
-    th {
-      background-color: var(--neutral-50);
-      font-weight: 600;
-      color: var(--neutral-700);
-    }
-
-    td {
-      border-top: 1px solid var(--neutral-200);
-    }
-
-    .status-badge {
-      display: inline-block;
-      padding: var(--space-1) var(--space-2);
-      border-radius: var(--radius-sm);
-      font-size: 0.875rem;
-      font-weight: 500;
-    }
-
-    .status-badge.pending {
-      background-color: var(--warning-light);
-      color: var(--warning);
-    }
-
-    .status-badge.processing {
-      background-color: var(--info-light);
-      color: var(--info);
-    }
-
-    .status-badge.shipped {
-      background-color: var(--primary-light);
-      color: var(--primary);
-    }
-
-    .status-badge.delivered {
-      background-color: var(--success-light);
-      color: var(--success);
-    }
-
-    .status-badge.cancelled {
-      background-color: var(--error-light);
-      color: var(--error);
-    }
-
-    .products-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-      gap: var(--space-4);
-    }
-
-    .product-card {
-      background-color: var(--white);
-      border-radius: var(--radius-lg);
-      overflow: hidden;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .product-card img {
-      width: 100%;
-      height: 160px;
-      object-fit: cover;
-    }
-
-    .product-info {
-      padding: var(--space-3);
-    }
-
-    .product-info h3 {
-      font-size: 0.9375rem;
-      margin: 0;
-      color: var(--neutral-900);
-    }
-
-    .price {
-      font-weight: 600;
-      color: var (--primary);
-      margin: var(--space-1) 0;
-    }
-
-    .stock {
-      font-size: 0.875rem;
-      margin: 0;
-    }
-
-    .stock.warning {
-      color: var(--warning);
-    }
-
-    .update-stock-btn {
-      width: 100%;
-      padding: var(--space-2);
-      background-color: var(--neutral-100);
-      color: var(--neutral-900);
-      border: none;
-      font-weight: 500;
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-
-    .update-stock-btn:hover {
-      background-color: var(--neutral-200);
-    }
-
-    @media (max-width: 992px) {
-      .dashboard-sections {
-        grid-template-columns: 1fr;
-      }
-    }
-
-    @media (max-width: 768px) {
-      .seller-container {
-        flex-direction: column;
-      }
-
-      .seller-sidebar {
-        width: 100%;
-        border-right: none;
-        border-bottom: 1px solid var(--neutral-200);
-      }
-
-      .seller-nav {
-        flex-direction: row;
-        overflow-x: auto;
-        padding-bottom: var(--space-2);
-      }
-
-      .seller-nav a {
-        flex: 0 0 auto;
-      }
-    }
-  `]
+  imports: [CommonModule, RouterModule, FormsModule, LoadingSpinnerComponent],
+  animations: [fadeInOut, listAnimation, slideUpDown, modalAnimation, sectionAnimation, tableRowAnimation],
+  templateUrl: './seller-dashboard.component.html',
+  styleUrls: ['./seller-dashboard.component.css']
 })
-export class SellerDashboardComponent implements OnInit {
+export class SellerDashboardComponent implements OnInit, OnDestroy, AfterViewInit {
+  // Overview data
+  stats: AdminStats | null = null;
+  orderStats: OrderStats | null = null;
+  sellerId: string = '';
   storeName: string = '';
   todayOrders: number = 0;
   todayRevenue: number = 0;
@@ -472,69 +37,599 @@ export class SellerDashboardComponent implements OnInit {
   lowStockProducts: number = 0;
   rating: number = 0;
   totalReviews: number = 0;
+  lowStockItems: AdminProduct[] = [];
   recentOrders: AdminOrder[] = [];
-  lowStockItems: any[] = [];
+
+  // Product management
+  products: AdminProduct[] = [];
+  filteredProducts: AdminProduct[] = [];
+  productSearchQuery: string = '';
+  productStatusFilter: string = 'all';
+  productSortBy: string = 'title';
+  showProductForm: boolean = false;
+  editingProduct: boolean = false;
+  saving: boolean = false;
+  currentProduct: AdminProduct = {
+    id: '',
+    title: '',
+    price: 0,
+    category: '',
+    status: 'active',
+    inStock: true,
+    stock: 0,
+    sellerId: '',
+    sellerName: '',
+    dateAdded: new Date(),
+    lastUpdated: new Date(),
+    description: '',
+    imageUrl: '/assets/images/placeholder-product.svg'
+  };
+
+  // Order management
+  orders: AdminOrder[] = [];
+  filteredOrders: AdminOrder[] = [];
+  selectedOrder: AdminOrder | null = null;
+  showStatusUpdate: boolean = false;
+  allOrderStatuses: string[] = ['all', 'pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+  orderStatuses: string[] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+  selectedOrderStatus: string = 'all';
+  newOrderStatus: string = '';
+
+  // Active section tracking
+  activeSection: string = 'overview';
+
+  // Loading states
+  isLoadingStats: boolean = false;
+  isLoadingProducts: boolean = false;
+  isLoadingOrders: boolean = false;
+  isSavingProduct: boolean = false;
+
+  // Error states
+  statsError: string | null = null;
+  productsError: string | null = null;
+  ordersError: string | null = null;
+
+  // Sorting configurations
+  productSort: SortConfig = { column: 'title', direction: 'asc' };
+  orderSort: SortConfig = { column: 'createdAt', direction: 'desc' };
+
+  // Pagination configurations
+  productPagination: PaginationConfig = { pageSize: 10, currentPage: 1, totalItems: 0 };
+  orderPagination: PaginationConfig = { pageSize: 10, currentPage: 1, totalItems: 0 };
+
+  // Pagination results
+  paginatedProducts: PaginationResult<AdminProduct> | null = null;
+  paginatedOrders: PaginationResult<AdminOrder> | null = null;
+  pageSizes: number[] = [5, 10, 25, 50];
+  visibleOrderPages: number[] = [];
+  visibleProductPages: number[] = [];
+
+  // Subscription cleanup
+  private subscriptions: Subscription[] = [];
+
+  @ViewChildren('section') sections!: QueryList<ElementRef>;
+  @ViewChild('mainContent') mainContent!: ElementRef;
+  private currentSectionIndex = 0;
+  private scrolling = false;
+  private touchStartY: number = 0;
+  private touchStartX: number = 0;
+  private touchEndY: number = 0;
+  private touchEndX: number = 0;
+  private touchThreshold: number = 50;
+  private touchStartTime: number = 0;
+  private isSwiping: boolean = false;
+  private swipeCooldown: boolean = false;
+
+  // Mobile view detection
+  isMobileView: boolean = false;
 
   constructor(
+    private sellerService: SellerService,
+    private errorService: ErrorService,
     private authService: AuthService,
-    private sellerService: SellerService
-  ) {}
-
-  ngOnInit(): void {
-    // Get current seller's profile using Observable
-    this.authService.currentUser$.subscribe(currentUser => {
-      if (currentUser && currentUser.storeName) {
-        this.storeName = currentUser.storeName;
-        this.loadDashboardData(currentUser.id);
-      }
-    });
+    private router: Router
+  ) {
+    this.checkIfMobile();
   }
 
-  private loadDashboardData(sellerId: string): void {
-    // In a real application, these would be separate API calls
-    // For now, we'll use mock data
+  @HostListener('window:resize', ['$event'])
+  onResize() {
+    this.checkIfMobile();
+  }
+
+  private checkIfMobile(): void {
+    const prevMobileState = this.isMobileView;
+    this.isMobileView = window.innerWidth <= 768; // Same breakpoint as CSS
+
+    // If state changed, update UI accordingly
+    if (prevMobileState !== this.isMobileView) {
+      // Allow time for DOM to update
+      setTimeout(() => {
+        // Update active section in nav
+        const activeNavLink = document.querySelector(this.isMobileView ?
+          '.mobile-nav a.active' :
+          '.seller-nav a.active');
+
+        if (activeNavLink) {
+          activeNavLink.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'center'
+          });
+        }
+      }, 100);
+    }
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardEvent(event: KeyboardEvent) {
+    // Ignore keyboard shortcuts when user is typing in an input
+    if (event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement) {
+      return;
+    }
+
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.navigateToNextSection();
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.navigateToPreviousSection();
+        break;
+      case 'Escape':
+        event.preventDefault();
+        this.closeAllModals();
+        break;
+      case 'n':
+        if (event.ctrlKey) {
+          event.preventDefault();
+          this.openProductForm();
+        }
+        break;
+      case 's':
+        if (event.ctrlKey && this.showProductForm) {
+          event.preventDefault();
+          this.saveProduct();
+        }
+        break;
+    }
+  }
+
+  private closeAllModals(): void {
+    this.showProductForm = false;
+    this.selectedOrder = null;
+    this.showStatusUpdate = false;
+  }
+
+  ngOnInit(): void {
+    this.checkIfMobile();
+
+    // Check if user is a seller
+    const currentUser = this.authService.getCurrentUser();
+
+    if (currentUser && currentUser.role === 'seller') {
+      this.sellerId = currentUser.id;
+      this.loadDashboardData();
+      this.loadProducts();
+      this.loadOrders();
+    } else {
+      this.router.navigate(['/login'], { queryParams: { redirect: '/seller/dashboard' } });
+    }
+  }
+
+  ngOnDestroy(): void {
+    // Clean up all subscriptions
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+  }
+
+  ngAfterViewInit(): void {
+    // Initialize after view is loaded
+    setTimeout(() => {
+      this.visibleOrderPages = this.calculateVisiblePages(this.orderPagination.currentPage,
+        Math.ceil(this.orderPagination.totalItems / this.orderPagination.pageSize));
+    }, 0);
+  }
+
+  private loadDashboardData(): void {
+    this.loadSellerProfile();
+    this.loadStats();
+
     this.todayOrders = 12;
     this.todayRevenue = 4500;
     this.orderChange = 15;
     this.revenueChange = 8;
-    this.activeProducts = 45;
-    this.lowStockProducts = 3;
     this.rating = 4.8;
     this.totalReviews = 128;
+  }
 
-    // Load recent orders
-    this.recentOrders = [
-      {
-        id: '1',
-        userId: 'user1',
-        userEmail: 'customer@example.com',
-        customerName: 'John Customer',
-        items: [
-          { productId: 1, productName: 'Wireless Earbuds', quantity: 1, price: 299.99 }
-        ],
-        totalAmount: 299.99,
-        total: 299.99, // Set total equal to totalAmount
-        status: 'pending',
-        sellerId: sellerId,
-        sellerName: this.storeName,
-        dateCreated: new Date(),
-        dateUpdated: new Date(),
-        createdAt: new Date(),
-        shippingAddress: '123 Main St, Anytown, USA'
-      },
-      // Add more mock orders as needed
-    ];
+  private loadSellerProfile(): void {
+    // TODO: Implement seller profile loading
+    this.storeName = "My Store"; // Placeholder
+  }
 
-    // Load low stock products
-    this.lowStockItems = [
-      {
-        id: 1,
-        title: 'Wireless Earbuds',
-        price: 299.99,
-        images: ['https://example.com/earbuds.jpg'],
-        stock: 2
-      },
-      // Add more mock products as needed
-    ];
+  // Products management methods
+  loadProducts(): void {
+    this.isLoadingProducts = true;
+    this.productsError = null;
+
+    const productsSub = this.sellerService.getSellerProducts(this.sellerId).pipe(
+      finalize(() => this.isLoadingProducts = false),
+      catchError(error => {
+        this.productsError = 'Failed to load products';
+        this.errorService.showError('Failed to load products');
+        return of([]);
+      })
+    ).subscribe((products: any) => {
+      this.products = products;
+      this.filterProducts();
+
+      this.lowStockItems = products
+        .filter((p: AdminProduct) => p.stock && p.stock < 5)
+        .sort((a: AdminProduct, b: AdminProduct) => (a.stock || 0) - (b.stock || 0))
+        .slice(0, 5);
+
+      this.activeProducts = products.filter((p: AdminProduct) => p.status === 'active').length;
+      this.lowStockProducts = products.filter((p: AdminProduct) => p.stock < 10).length;
+    });
+    this.subscriptions.push(productsSub);
+  }
+
+  filterProducts(): void {
+    this.filteredProducts = this.products;
+
+    if (this.productSearchQuery) {
+      const query = this.productSearchQuery.toLowerCase();
+      this.filteredProducts = this.filteredProducts.filter(p =>
+        p.title.toLowerCase().includes(query) ||
+        (p.description && p.description.toLowerCase().includes(query)) ||
+        p.category.toLowerCase().includes(query)
+      );
+    }
+
+    if (this.productStatusFilter !== 'all') {
+      this.filteredProducts = this.filteredProducts.filter(p =>
+        p.status === this.productStatusFilter
+      );
+    }
+
+    this.applyProductFilters();
+  }
+
+  openProductForm(): void {
+    this.editingProduct = false;
+    this.currentProduct = {
+      id: '',
+      title: '',
+      price: 0,
+      category: '',
+      status: 'active',
+      inStock: true,
+      stock: 0,
+      sellerId: this.sellerId,
+      sellerName: this.storeName,
+      dateAdded: new Date(),
+      lastUpdated: new Date(),
+      description: '',
+      imageUrl: '/assets/images/placeholder-product.svg'
+    };
+    this.showProductForm = true;
+  }
+
+  editProduct(product: AdminProduct): void {
+    this.editingProduct = true;
+    this.currentProduct = {...product};
+    this.showProductForm = true;
+  }
+
+  closeProductForm(): void {
+    this.showProductForm = false;
+  }
+
+  saveProduct(): void {
+    if (!this.currentProduct.title) {
+      this.errorService.showError('Product title is required');
+      return;
+    }
+
+    this.isSavingProduct = true;
+    const action = this.editingProduct ? 'update' : 'create';
+
+    const saveObs = this.editingProduct
+      ? this.sellerService.updateProduct(Number(this.currentProduct.id), {
+          ...this.currentProduct,
+          id: Number(this.currentProduct.id)
+        } as unknown as Partial<Product>)
+      : this.sellerService.createProduct(this.currentProduct);
+
+    saveObs.pipe(
+      finalize(() => this.isSavingProduct = false),
+      catchError(error => {
+        this.errorService.showError(`Failed to ${action} product`);
+        return of(null);
+      })
+    ).subscribe((product: any) => {
+      if (product) {
+        if (this.editingProduct) {
+          const index = this.products.findIndex(p => p.id === product.id);
+          if (index !== -1) {
+            this.products[index] = {...product};
+          }
+        } else {
+          this.products.push({...product});
+        }
+        this.filterProducts();
+        this.showProductForm = false;
+        this.errorService.showSuccess(`Product ${action}d successfully`);
+
+        // Reload products to ensure all data is up to date
+        setTimeout(() => {
+          this.loadProducts();
+        }, 500);
+      }
+    });
+  }
+
+  deleteProduct(productId: string): void {
+    if (confirm('Are you sure you want to delete this product?')) {
+      this.sellerService.deleteProduct(Number(productId)).pipe(
+        catchError(error => {
+          this.errorService.showError('Failed to delete product');
+          return of(null);
+        })
+      ).subscribe(result => {
+        if (result !== null) {
+          this.loadProducts();
+          this.errorService.showSuccess('Product deleted successfully');
+        }
+      });
+    }
+  }
+
+  // Order management methods
+  loadOrders(): void {
+    this.isLoadingOrders = true;
+    this.ordersError = null;
+
+    const ordersSub = this.sellerService.getSellerOrders(this.sellerId).pipe(
+      finalize(() => this.isLoadingOrders = false),
+      catchError(error => {
+        this.ordersError = 'Failed to load orders';
+        this.errorService.showError('Failed to load orders');
+        return of([]);
+      })
+    ).subscribe((orders: any) => {
+      this.orders = orders;
+      this.filterByOrderStatus(this.selectedOrderStatus);
+
+      // Get recent orders for dashboard
+      this.recentOrders = [...orders]
+        .sort((a, b) => new Date(b.dateCreated).getTime() - new Date(a.dateCreated).getTime())
+        .slice(0, 5);
+    });
+    this.subscriptions.push(ordersSub);
+  }
+
+  filterByOrderStatus(status: string): void {
+    this.selectedOrderStatus = status;
+    this.filteredOrders = status === 'all'
+      ? this.orders
+      : this.orders.filter(order => order.status === status);
+    this.applyOrderFilters();
+  }
+
+  viewOrderDetails(order: AdminOrder): void {
+    this.selectedOrder = order;
+  }
+
+  closeOrderDetails(): void {
+    this.selectedOrder = null;
+  }
+
+  openStatusUpdate(order: AdminOrder): void {
+    this.selectedOrder = order;
+    this.newOrderStatus = order.status;
+    this.showStatusUpdate = true;
+  }
+
+  closeStatusUpdate(): void {
+    this.showStatusUpdate = false;
+  }
+
+  selectStatus(status: string): void {
+    this.selectedOrderStatus = status;
+  }
+
+  updateOrderStatus(): void {
+    if (!this.selectedOrder || this.newOrderStatus === 'all') return;
+
+    const previousStatus = this.selectedOrder.status;
+
+    this.sellerService.updateOrderStatus(
+      this.selectedOrder.id,
+      this.newOrderStatus as AdminOrder['status']
+    ).pipe(
+      catchError(error => {
+        this.errorService.showError('Failed to update order status');
+        return of(null);
+      })
+    ).subscribe((result: any) => {
+      if (result) {
+        this.loadOrders();
+        this.closeStatusUpdate();
+        this.selectedOrder = null;
+        this.errorService.showSuccess('Order status updated successfully');
+      } else {
+        this.selectedOrderStatus = previousStatus;
+      }
+    });
+  }
+
+  // Product sorting and pagination methods
+  sortProducts(column: string): void {
+    this.productSort = toggleSort(this.productSort, column);
+    this.applyProductFilters();
+  }
+
+  goToProductPage(page: number): void {
+    this.productPagination.currentPage = page;
+    this.applyProductFilters();
+  }
+
+  onProductPageSizeChange(): void {
+    this.productPagination.currentPage = 1;
+    this.applyProductFilters();
+  }
+
+  private applyProductFilters(): void {
+    let filtered = [...this.products];
+
+    // Apply search filter
+    if (this.productSearchQuery) {
+      const searchFilter = createFilter('title', this.productSearchQuery, 'contains');
+      filtered = filterData(filtered, [searchFilter]);
+    }
+
+    // Apply status filter
+    if (this.productStatusFilter !== 'all') {
+      const statusFilter = createFilter('status', this.productStatusFilter);
+      filtered = filterData(filtered, [statusFilter]);
+    }
+
+    // Apply sorting
+    filtered = sortData(filtered, this.productSort);
+
+    // Update pagination config
+    this.productPagination.totalItems = filtered.length;
+
+    // Apply pagination
+    this.paginatedProducts = paginateData(filtered, this.productPagination);
+    this.filteredProducts = this.paginatedProducts.items;
+  }
+
+  // Orders sorting and pagination methods
+  sortOrders(column: string): void {
+    this.orderSort = toggleSort(this.orderSort, column);
+    this.applyOrderFilters();
+  }
+
+  goToOrderPage(page: number): void {
+    this.orderPagination.currentPage = page;
+    this.applyOrderFilters();
+  }
+
+  changeOrderPageSize(): void {
+    this.orderPagination.currentPage = 1;
+    this.applyOrderFilters();
+  }
+
+  private applyOrderFilters(): void {
+    let filtered = [...this.orders];
+
+    // Apply status filter
+    if (this.selectedOrderStatus !== 'all') {
+      const statusFilter = createFilter('status', this.selectedOrderStatus);
+      filtered = filterData(filtered, [statusFilter]);
+    }
+
+    // Apply sorting
+    filtered = sortData(filtered, this.orderSort);
+
+    // Update pagination config
+    this.orderPagination.totalItems = filtered.length;
+
+    // Apply pagination
+    this.paginatedOrders = paginateData(filtered, this.orderPagination);
+    this.filteredOrders = this.paginatedOrders.items;
+
+    // Update visible pages
+    const totalPages = Math.ceil(this.orderPagination.totalItems / this.orderPagination.pageSize);
+    this.visibleOrderPages = calculateVisiblePages(this.orderPagination.currentPage, totalPages);
+  }
+
+  // Helper method for templates to access Math
+  get Math() {
+    return Math;
+  }
+
+  // Navigation methods
+  private navigateToNextSection(): void {
+    if (this.currentSectionIndex < this.sections.length - 1) {
+      this.currentSectionIndex++;
+      this.scrollToSection(this.sections.get(this.currentSectionIndex)?.nativeElement.id);
+    }
+  }
+
+  private navigateToPreviousSection(): void {
+    if (this.currentSectionIndex > 0) {
+      this.currentSectionIndex--;
+      this.scrollToSection(this.sections.get(this.currentSectionIndex)?.nativeElement.id);
+    }
+  }
+
+  scrollToSection(sectionId: string): void {
+    const section = document.getElementById(sectionId);
+    if (section) {
+      section.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
+  private loadStats(): void {
+    this.isLoadingStats = true;
+    this.statsError = null;
+
+    // Placeholder method - in a real app this would call a service
+    setTimeout(() => {
+      this.isLoadingStats = false;
+      // Populate with dummy data for now
+    }, 500);
+  }
+
+  private calculateVisiblePages(currentPage: number, totalPages: number): number[] {
+    return calculateVisiblePages(currentPage, totalPages);
+  }
+
+  // Add the missing methods
+  quickEditImage(product: AdminProduct): void {
+    this.currentProduct = { ...product };
+    // Open a simplified form or modal for quick image edit
+    this.showProductForm = true;
+  }
+
+  toggleFreeShipping(product: AdminProduct): void {
+    // Toggle the free shipping status of the product
+    product.freeShipping = !product.freeShipping;
+    // Call API to update product
+    this.saveProduct();
+  }
+
+  toggleFastDelivery(product: AdminProduct): void {
+    // Toggle the fast delivery status of the product
+    product.fastDelivery = !product.fastDelivery;
+    // Call API to update product
+    this.saveProduct();
+  }
+
+  changeProductPageSize(): void {
+    // Reset to first page when changing page size
+    this.productPagination.currentPage = 1;
+    this.applyProductFilters();
+  }
+
+  filterOrders(): void {
+    // Filter orders based on the selected status
+    if (this.selectedOrderStatus === 'all') {
+      this.filteredOrders = [...this.orders];
+    } else {
+      this.filteredOrders = this.orders.filter(order => order.status === this.selectedOrderStatus);
+    }
+
+    // Reset pagination
+    this.orderPagination.currentPage = 1;
+    this.orderPagination.totalItems = this.filteredOrders.length;
+
+    // Apply sorting and pagination
+    this.applyOrderFilters();
   }
 }

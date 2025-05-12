@@ -1,17 +1,19 @@
-import { Component, OnInit, OnDestroy, ViewChildren, QueryList, ElementRef, HostListener, ViewChild } from '@angular/core';
-import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { Component, OnInit, OnDestroy, ViewChildren, QueryList, ElementRef, HostListener, ViewChild, AfterViewInit, Renderer2, PLATFORM_ID, Inject } from '@angular/core';
+import { CommonModule, isPlatformBrowser } from '@angular/common';
+import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AdminService } from '../../services/admin.service';
-import { AdminStats, OrderStats, AdminProduct, AdminOrder, AdminUser } from '../../models/admin.model';
+import { AdminStats, OrderStats, AdminProduct, AdminOrder, AdminUser, AdminSeller } from '../../models/admin.model';
 import { ErrorService } from '../../services/error.service';
 import { finalize, catchError } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { of, Subscription } from 'rxjs';
 import { LoadingSpinnerComponent } from '../../components/loading-spinner/loading-spinner.component';
 import { fadeInOut, listAnimation, slideUpDown, modalAnimation, sectionAnimation, tableRowAnimation } from '../../animations';
 import { SortConfig, sortData, toggleSort } from '../../utils/table-sort';
 import { FilterConfig, filterData, createFilter } from '../../utils/table-filter';
 import { PaginationConfig, paginateData, PaginationResult, getPageSizes, calculateVisiblePages } from '../../utils/table-pagination';
+import { AuthService } from '../../services/auth.service';
+import { SellerService } from '../../services/seller.service';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -21,7 +23,7 @@ import { PaginationConfig, paginateData, PaginationResult, getPageSizes, calcula
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.css']
 })
-export class AdminDashboardComponent implements OnInit, OnDestroy {
+export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit {
   // Overview data
   stats: AdminStats | null = null;
   orderStats: OrderStats | null = null;
@@ -46,7 +48,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     sellerId: '',
     sellerName: '',
     dateAdded: new Date(),
-    lastUpdated: new Date()
+    lastUpdated: new Date(),
+    description: '',
+    imageUrl: '/assets/images/placeholder-product.svg'
   };
 
   // Order management
@@ -95,6 +99,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   paginatedProducts: PaginationResult<AdminProduct> | null = null;
   paginatedOrders: PaginationResult<AdminOrder> | null = null;
   paginatedUsers: PaginationResult<AdminUser> | null = null;
+
+  // Subscription cleanup
+  private subscriptions: Subscription[] = [];
 
   @ViewChildren('section') sections!: QueryList<ElementRef>;
   @ViewChild('mainContent') mainContent!: ElementRef;
@@ -251,28 +258,44 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Seller management
+  sellers: AdminSeller[] = [];
+  isLoadingSellers: boolean = false;
+  sellersError: string | null = null;
+
   constructor(
     private adminService: AdminService,
-    private errorService: ErrorService
+    private errorService: ErrorService,
+    private authService: AuthService,
+    private router: Router,
+    private sellerService: SellerService
   ) {
-    // Track active section based on scroll position
-    if (typeof window !== 'undefined') {
-      window.addEventListener('scroll', this.onScroll.bind(this));
-    }
-  }
-
-  ngOnInit(): void {
-    this.loadStats();
-    this.loadProducts();
-    this.loadOrders();
-    this.loadUsers();
     this.checkIfMobile();
   }
 
-  ngOnDestroy(): void {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('scroll', this.onScroll.bind(this));
+  ngOnInit(): void {
+    // Verify admin permissions
+    console.log('AdminDashboardComponent: Initializing');
+    console.log('Is admin:', this.authService.isAdmin());
+    
+    if (!this.authService.isAdmin()) {
+      console.error('Unauthorized access attempt to admin dashboard');
+      this.errorService.showError('You do not have permission to access this page');
+      this.router.navigate(['/']);
+      return;
     }
+    
+    console.log('Admin access verified, loading dashboard data');
+    this.loadDashboardData();
+  }
+
+  ngOnDestroy(): void {
+    // Cleanup subscriptions
+    this.subscriptions.forEach(sub => sub.unsubscribe());
+  }
+
+  ngAfterViewInit(): void {
+    // Additional initialization logic after view is initialized
   }
 
   onScroll(): void {
@@ -289,31 +312,44 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Overview methods
+  private loadDashboardData(): void {
+    this.loadStats();
+    this.loadProducts();
+    this.loadOrders();
+    this.loadUsers();
+    this.loadSellers();
+  }
+
   private loadStats(): void {
     this.isLoadingStats = true;
     this.statsError = null;
 
-    this.adminService.getAdminStats().pipe(
+    const statsSub = this.adminService.getAdminStats().pipe(
       finalize(() => this.isLoadingStats = false),
       catchError(error => {
         this.statsError = 'Failed to load dashboard statistics';
         this.errorService.showError('Failed to load dashboard statistics');
         return of(null);
       })
-    ).subscribe(stats => {
-      this.stats = stats;
+    ).subscribe((stats) => {
+      if (stats) {
+        this.stats = stats;
+      }
     });
+    this.subscriptions.push(statsSub);
 
-    this.adminService.getOrderStats().pipe(
+    const orderStatsSub = this.adminService.getOrderStats().pipe(
       catchError(error => {
         this.statsError = 'Failed to load order statistics';
         this.errorService.showError('Failed to load order statistics');
         return of(null);
       })
-    ).subscribe(stats => {
-      this.orderStats = stats;
+    ).subscribe((stats) => {
+      if (stats) {
+        this.orderStats = stats;
+      }
     });
+    this.subscriptions.push(orderStatsSub);
   }
 
   // Product management methods
@@ -321,17 +357,27 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.isLoadingProducts = true;
     this.productsError = null;
 
-    this.adminService.getProducts().pipe(
+    console.log('Admin dashboard: Starting to load products');
+    const productSub = this.adminService.getProducts().pipe(
       finalize(() => this.isLoadingProducts = false),
       catchError(error => {
-        this.productsError = 'Failed to load products';
+        console.error('Admin dashboard: Error loading products:', error);
+        if (error.status) {
+          console.error(`Status: ${error.status}, Message: ${error.message}`);
+        }
+        if (error.error) {
+          console.error('Server error:', error.error);
+        }
+        this.productsError = `Failed to load products: ${error.message || 'Unknown error'}`;
         this.errorService.showError('Failed to load products');
         return of([]);
       })
     ).subscribe(products => {
+      console.log('Admin dashboard: Products loaded successfully', products);
       this.products = products;
       this.filterProducts();
     });
+    this.subscriptions.push(productSub);
   }
 
   filterProducts(): void {
@@ -378,14 +424,35 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       sellerId: '',
       sellerName: '',
       dateAdded: new Date(),
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
+      description: '',
+      imageUrl: '/assets/images/placeholder-product.svg'
     };
+    
+    // Ensure sellers are loaded for the dropdown
+    if (this.sellers.length === 0) {
+      this.loadSellers();
+    }
+    
     this.showProductForm = true;
   }
 
   editProduct(product: AdminProduct): void {
     this.editingProduct = true;
     this.currentProduct = { ...product };
+    
+    // Ensure seller data is properly set
+    if (product.sellerId) {
+      // If sellers aren't loaded yet, load them
+      if (this.sellers.length === 0) {
+        this.loadSellers();
+      }
+    }
+    
+    console.log('[EDIT] Current image URL before opening form:', this.currentProduct.imageUrl);
+    console.log('[EDIT] Current seller ID:', this.currentProduct.sellerId);
+    console.log('[EDIT] Current seller name:', this.currentProduct.sellerName);
+    
     this.showProductForm = true;
   }
 
@@ -396,35 +463,94 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
   saveProduct(): void {
     if (this.isSavingProduct) return;
     
+    // Clean the image URL by removing any timestamp parameters
+    if (this.currentProduct && this.currentProduct.imageUrl && this.currentProduct.imageUrl.includes('?')) {
+      this.currentProduct.imageUrl = this.currentProduct.imageUrl.split('?')[0];
+      console.log('[SAVE] Cleaned image URL for saving:', this.currentProduct.imageUrl);
+    }
+    
+    console.log('[SAVE] Before API call - Image URL:', this.currentProduct.imageUrl);
     this.isSavingProduct = true;
     const action = this.editingProduct ? 'update' : 'create';
-
-    const request$ = this.editingProduct 
+    
+    // Special handling for image updates when editing an existing product
+    if (this.editingProduct && this.currentProduct.imageUrl) {
+      // Find the original product to check if image changed
+      const originalProduct = this.products.find(p => p.id === this.currentProduct.id);
+      const originalImageUrl = originalProduct?.imageUrl?.split('?')[0];
+      const newImageUrl = this.currentProduct.imageUrl.split('?')[0];
+      
+      // If image URL changed, handle it separately
+      if (originalImageUrl !== newImageUrl) {
+        console.log('[SAVE] Image URL changed, handling it separately');
+        console.log('[SAVE] Original:', originalImageUrl);
+        console.log('[SAVE] New:', newImageUrl);
+        
+        // First update just the image
+        this.adminService.updateProductImageDirect(this.currentProduct.id, newImageUrl)
+          .pipe(
+            catchError(error => {
+              console.error('[SAVE] Error updating image:', error);
+              // Continue with normal update even if image update fails
+              return of(null);
+            })
+          )
+          .subscribe(imageResult => {
+            if (imageResult) {
+              console.log('[SAVE] Image updated successfully:', imageResult.imageUrl);
+              // Update our current product with the new image URL
+              this.currentProduct.imageUrl = imageResult.imageUrl;
+            }
+            
+            // Now proceed with the regular product update
+            this.performProductUpdate(action);
+          });
+      } else {
+        // No image change, proceed with normal update
+        this.performProductUpdate(action);
+      }
+    } else {
+      // New product or no image, proceed with normal update
+      this.performProductUpdate(action);
+    }
+  }
+  
+  // Helper method to perform the actual product update/create operation
+  private performProductUpdate(action: 'update' | 'create'): void {
+    const request$ = action === 'update'
       ? this.adminService.updateProduct(this.currentProduct)
-      : this.adminService.updateProduct({
-          ...this.currentProduct,
-          id: Math.random().toString(36).substr(2, 9)
-        });
+      : this.adminService.createProduct(this.currentProduct);
 
     request$.pipe(
       finalize(() => this.isSavingProduct = false),
       catchError(error => {
+        console.error('[SAVE] API error:', error);
         this.errorService.showError(`Failed to ${action} product`);
         return of(null);
       })
     ).subscribe(product => {
       if (product) {
-        if (this.editingProduct) {
+        console.log('[SAVE] API response product:', JSON.stringify(product));
+        console.log('[SAVE] API response image URL:', product.imageUrl);
+        
+        if (action === 'update') {
           const index = this.products.findIndex(p => p.id === product.id);
           if (index !== -1) {
-            this.products[index] = product;
+            // Update all fields including the imageUrl
+            this.products[index] = {...product};
+            console.log('[SAVE] Product updated in array', this.products[index].imageUrl);
           }
         } else {
-          this.products.push(product);
+          this.products.push({...product});
         }
         this.filterProducts();
         this.showProductForm = false;
         this.errorService.showSuccess(`Product ${action}d successfully`);
+        
+        // Add delay and reload products to ensure the image changes are reflected
+        setTimeout(() => {
+          this.loadProducts();
+        }, 500);
       }
     });
   }
@@ -445,12 +571,75 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     }
   }
 
+  toggleProductApproval(product: AdminProduct): void {
+    const newApprovalStatus = product.status === 'inactive';
+    this.adminService.approveProduct(product.id, newApprovalStatus).pipe(
+      catchError(error => {
+        this.errorService.showError(`Failed to ${newApprovalStatus ? 'approve' : 'disapprove'} product`);
+        return of(null);
+      })
+    ).subscribe(updatedProduct => {
+      if (updatedProduct) {
+        const index = this.products.findIndex(p => p.id === product.id);
+        if (index !== -1) {
+          this.products[index] = updatedProduct;
+        }
+        this.filterProducts();
+        this.errorService.showSuccess(`Product ${newApprovalStatus ? 'approved' : 'disapproved'} successfully`);
+      }
+    });
+  }
+
+  toggleFreeShipping(product: AdminProduct): void {
+    const newFreeShipping = !product.freeShipping;
+    this.adminService.toggleFreeShipping(product.id, newFreeShipping).pipe(
+      catchError(error => {
+        this.errorService.showError(`Failed to ${newFreeShipping ? 'enable' : 'disable'} free shipping`);
+        return of(null);
+      })
+    ).subscribe(updatedProduct => {
+      if (updatedProduct) {
+        const index = this.products.findIndex(p => p.id === product.id);
+        if (index !== -1) {
+          this.products[index] = {
+            ...this.products[index],
+            freeShipping: updatedProduct.freeShipping
+          };
+        }
+        this.filterProducts();
+        this.errorService.showSuccess(`Free shipping ${newFreeShipping ? 'enabled' : 'disabled'} successfully`);
+      }
+    });
+  }
+
+  toggleFastDelivery(product: AdminProduct): void {
+    const newFastDelivery = !product.fastDelivery;
+    this.adminService.toggleFastDelivery(product.id, newFastDelivery).pipe(
+      catchError(error => {
+        this.errorService.showError(`Failed to ${newFastDelivery ? 'enable' : 'disable'} fast delivery`);
+        return of(null);
+      })
+    ).subscribe(updatedProduct => {
+      if (updatedProduct) {
+        const index = this.products.findIndex(p => p.id === product.id);
+        if (index !== -1) {
+          this.products[index] = {
+            ...this.products[index],
+            fastDelivery: updatedProduct.fastDelivery
+          };
+        }
+        this.filterProducts();
+        this.errorService.showSuccess(`Fast delivery ${newFastDelivery ? 'enabled' : 'disabled'} successfully`);
+      }
+    });
+  }
+
   // Order management methods
   loadOrders(): void {
     this.isLoadingOrders = true;
     this.ordersError = null;
 
-    this.adminService.getOrders().pipe(
+    const ordersSub = this.adminService.getOrders().pipe(
       finalize(() => this.isLoadingOrders = false),
       catchError(error => {
         this.ordersError = 'Failed to load orders';
@@ -461,6 +650,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       this.orders = orders;
       this.filterByOrderStatus(this.selectedOrderStatus);
     });
+    this.subscriptions.push(ordersSub);
   }
 
   filterByOrderStatus(status: string): void {
@@ -541,7 +731,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
     this.isLoadingUsers = true;
     this.usersError = null;
 
-    this.adminService.getUsers().pipe(
+    const usersSub = this.adminService.getUsers().pipe(
       finalize(() => this.isLoadingUsers = false),
       catchError(error => {
         this.usersError = 'Failed to load users';
@@ -552,41 +742,49 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       this.users = users;
       this.applyUserFilters();
     });
+    this.subscriptions.push(usersSub);
   }
 
   banUser(userId: string): void {
-    this.adminService.banUser(userId).pipe(
-      catchError(error => {
-        this.errorService.showError('Failed to ban user');
-        return of(null);
-      })
-    ).subscribe(result => {
-      if (result !== null) {
-        this.loadUsers();
-        this.errorService.showSuccess('User banned successfully');
-      }
-    });
+    if (confirm('Are you sure you want to ban this user?')) {
+      const banSub = this.adminService.banUser(userId).pipe(
+        catchError(error => {
+          this.errorService.showError('Failed to ban user');
+          return of(null);
+        })
+      ).subscribe(user => {
+        if (user) {
+          this.loadUsers(); // Reload data
+          this.errorService.showSuccess('User banned successfully');
+        }
+      });
+      this.subscriptions.push(banSub);
+    }
   }
 
   unbanUser(userId: string): void {
-    this.adminService.unbanUser(userId).pipe(
-      catchError(error => {
-        this.errorService.showError('Failed to unban user');
-        return of(null);
-      })
-    ).subscribe(result => {
-      if (result !== null) {
-        this.loadUsers();
-        this.errorService.showSuccess('User unbanned successfully');
-      }
-    });
+    if (confirm('Are you sure you want to unban this user?')) {
+      const unbanSub = this.adminService.unbanUser(userId).pipe(
+        catchError(error => {
+          this.errorService.showError('Failed to unban user');
+          return of(null);
+        })
+      ).subscribe(user => {
+        if (user) {
+          this.loadUsers(); // Reload data
+          this.errorService.showSuccess('User unbanned successfully');
+        }
+      });
+      this.subscriptions.push(unbanSub);
+    }
   }
 
   viewUserTransactions(userId: string): void {
     this.isLoadingTransactions = true;
     this.transactionsError = null;
-    
-    this.adminService.getUserTransactions(userId).pipe(
+    this.showTransactions = true;
+
+    const txSub = this.adminService.getUserTransactions(userId).pipe(
       finalize(() => this.isLoadingTransactions = false),
       catchError(error => {
         this.transactionsError = 'Failed to load user transactions';
@@ -595,8 +793,8 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
       })
     ).subscribe(transactions => {
       this.userTransactions = transactions;
-      this.showTransactions = true;
     });
+    this.subscriptions.push(txSub);
   }
 
   closeTransactions(): void {
@@ -722,5 +920,191 @@ export class AdminDashboardComponent implements OnInit, OnDestroy {
 
   calculateVisiblePages(currentPage: number, totalPages: number): number[] {
     return calculateVisiblePages(currentPage, totalPages);
+  }
+
+  // Preview image URL in the form by adding a timestamp to force refresh
+  previewImage(): void {
+    if (this.currentProduct && this.currentProduct.imageUrl) {
+      // Store the original URL without timestamp
+      const originalUrl = this.currentProduct.imageUrl.includes('?') 
+        ? this.currentProduct.imageUrl.split('?')[0]
+        : this.currentProduct.imageUrl;
+      
+      // Add timestamp to force image refresh but keep the original URL for saving
+      this.currentProduct.imageUrl = originalUrl + '?t=' + new Date().getTime();
+      console.log('[PREVIEW] Updated image URL with timestamp:', this.currentProduct.imageUrl);
+    }
+  }
+  
+  // Update only the image URL of the product
+  updateImageOnly(): void {
+    if (!this.currentProduct || !this.currentProduct.id || !this.currentProduct.imageUrl) {
+      this.errorService.showError('Product ID or image URL is missing');
+      return;
+    }
+    
+    // Store the user-entered image URL directly
+    const enteredImageUrl = this.currentProduct.imageUrl;
+    
+    // Clean the URL by removing only timestamp parameters, preserve other query params
+    let cleanImageUrl = enteredImageUrl;
+    if (cleanImageUrl.includes('?t=')) {
+      cleanImageUrl = cleanImageUrl.split('?t=')[0];
+    } else if (cleanImageUrl.includes('&t=')) {
+      cleanImageUrl = cleanImageUrl.split('&t=')[0];
+    }
+    
+    console.log('[SAVE] Cleaned image URL for saving:', cleanImageUrl);
+    console.log('[SAVE] Before API call - Image URL:', cleanImageUrl);
+    
+    this.isSavingProduct = true;
+    
+    this.adminService.updateProductImageDirect(this.currentProduct.id, cleanImageUrl)
+      .pipe(
+        finalize(() => {
+          this.isSavingProduct = false;
+        }),
+        catchError(error => {
+          this.errorService.showError('Failed to update product image');
+          console.error('[SAVE] Error updating image:', error);
+          return of(null);
+        })
+      )
+      .subscribe(updatedProduct => {
+        if (updatedProduct) {
+          console.log('[SAVE] API response product:', JSON.stringify(updatedProduct));
+          console.log('[SAVE] API response image URL:', updatedProduct.imageUrl);
+          
+          this.errorService.showSuccess('Product image updated successfully');
+          
+          // Update the product in our list
+          const index = this.products.findIndex(p => p.id === updatedProduct.id);
+          if (index !== -1) {
+            // Update the product with the response
+            this.products[index] = {
+              ...this.products[index],
+              imageUrl: updatedProduct.imageUrl // Service already adds timestamp 
+            };
+            
+            // Also update current product if we're editing it
+            if (this.editingProduct && this.currentProduct.id === updatedProduct.id) {
+              this.currentProduct.imageUrl = updatedProduct.imageUrl;
+            }
+            
+            console.log('[SAVE] Product updated in array', updatedProduct.imageUrl);
+          }
+          
+          // Refresh all products after a short delay
+          setTimeout(() => {
+            this.loadProducts();
+          }, 500);
+        }
+      });
+  }
+  
+  // Quick edit for product images directly from the products table
+  quickEditImage(product: AdminProduct): void {
+    // Prompt for the new image URL, defaulting to current image if available
+    const currentImage = product.imageUrl 
+      ? product.imageUrl.includes('?t=') || product.imageUrl.includes('&t=') 
+         ? product.imageUrl.split(/[?&]t=/)[0] 
+         : product.imageUrl
+      : '';
+    const newImageUrl = prompt('Enter new image URL:', currentImage);
+    
+    if (!newImageUrl || newImageUrl.trim() === '') {
+      return; // User cancelled or entered empty URL
+    }
+    
+    // Show loading state
+    this.isSavingProduct = true;
+    
+    console.log('[QUICK-EDIT] Updating image for product:', product.id);
+    console.log('[QUICK-EDIT] New image URL:', newImageUrl);
+    
+    this.adminService.updateProductImageDirect(product.id, newImageUrl)
+      .pipe(
+        finalize(() => {
+          this.isSavingProduct = false;
+        }),
+        catchError(error => {
+          this.errorService.showError('Failed to update product image');
+          console.error('[QUICK-EDIT] Error updating image:', error);
+          return of(null);
+        })
+      )
+      .subscribe(updatedProduct => {
+        if (updatedProduct) {
+          console.log('[QUICK-EDIT] Image updated successfully:', updatedProduct.imageUrl);
+          
+          // Update the product in the list
+          const index = this.products.findIndex(p => p.id === product.id);
+          if (index !== -1) {
+            this.products[index].imageUrl = updatedProduct.imageUrl;
+          }
+          
+          this.errorService.showSuccess('Product image updated successfully');
+          
+          // Refresh the product list
+          setTimeout(() => {
+            this.loadProducts();
+          }, 300);
+        }
+      });
+  }
+
+  // Seller management methods
+  loadSellers(): void {
+    this.isLoadingSellers = true;
+    this.sellersError = null;
+
+    const sellersSub = this.sellerService.getAllSellers().pipe(
+      finalize(() => this.isLoadingSellers = false),
+      catchError(error => {
+        console.error('Admin dashboard: Error loading sellers:', error);
+        this.sellersError = `Failed to load sellers: ${error.message || 'Unknown error'}`;
+        this.errorService.showError('Failed to load sellers');
+        return of([]);
+      })
+    ).subscribe(sellers => {
+      console.log('Admin dashboard: Sellers loaded successfully', sellers);
+      // Map SellerProfile to AdminSeller
+      this.sellers = sellers.map(seller => ({
+        id: seller.id,
+        userId: seller.userId,
+        email: '',
+        firstName: '',
+        lastName: '',
+        storeName: seller.storeName,
+        storeDescription: seller.storeDescription || '',
+        status: seller.status,
+        dateJoined: seller.dateJoined,
+        lastActive: new Date(),
+        totalProducts: seller.productCount,
+        totalOrders: 0,
+        totalRevenue: 0,
+        productCount: seller.productCount,
+        totalSales: seller.totalSales,
+        rating: seller.rating,
+        reviewCount: 0,
+        commissionRate: 0
+      }));
+    });
+    this.subscriptions.push(sellersSub);
+  }
+
+  // Helper method to select a seller
+  onSellerSelect(sellerId: string): void {
+    if (!sellerId) {
+      this.currentProduct.sellerId = '';
+      this.currentProduct.sellerName = '';
+      return;
+    }
+    
+    const selectedSeller = this.sellers.find(s => s.id === sellerId);
+    if (selectedSeller) {
+      this.currentProduct.sellerId = selectedSeller.id;
+      this.currentProduct.sellerName = selectedSeller.storeName;
+    }
   }
 }

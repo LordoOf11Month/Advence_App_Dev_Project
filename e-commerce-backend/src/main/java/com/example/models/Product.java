@@ -1,14 +1,32 @@
 package com.example.models;
 
-import jakarta.persistence.*;
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+import com.fasterxml.jackson.annotation.JsonIdentityInfo;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.ObjectIdGenerators;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.JoinColumn;
+import jakarta.persistence.ManyToOne;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
+import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
-import java.math.BigDecimal;
-import java.util.List;
 
 @Entity
 @Table(name = "products")
 @Getter @Setter
+@JsonIdentityInfo(generator = ObjectIdGenerators.PropertyGenerator.class, property = "id")
 public class Product {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -17,10 +35,12 @@ public class Product {
 
     @ManyToOne
     @JoinColumn(name = "store_id", nullable = false)
+    @JsonIgnoreProperties({"products", "orders", "handler"})
     private Store store;
 
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "category_id")
+    @JsonIgnoreProperties({"products", "handler"})
     private Category category;
 
     @Column(name = "name", length = 80, nullable = false)
@@ -35,6 +55,15 @@ public class Product {
     @Column(name = "stock_quantity", nullable = false)
     private Integer stockQuantity;
 
+    @Column(name = "approved", nullable = false)
+    private boolean approved = false;
+
+    @Column(name = "free_shipping", nullable = false)
+    private boolean freeShipping = false;
+
+    @Column(name = "fast_delivery", nullable = false)
+    private boolean fastDelivery = false;
+
     // pre-calculated rating values for removing useless join queries
     @Column(name = "average_rating")
     private Float averageRating;
@@ -46,19 +75,40 @@ public class Product {
     @Column(name = "total_rating")
     private Integer totalRating;
 
-  //pre-calcuated total sales for dashboards
+    //pre-calcuated total sales for dashboards
     @Column(name = "total_sales")
     private Integer totalSales;
+    
+    @Column(name = "created_at")
+    private LocalDateTime createdAt;
+    
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "product")
+    @JsonIgnoreProperties({"product", "handler"})
     private List<ProductImage> images;
 
     @OneToMany(mappedBy = "product")
+    @JsonIgnoreProperties({"product", "handler"})
     private List<OrderItem> orderItems;
 
     @OneToMany(mappedBy = "product")
+    @JsonIgnoreProperties({"product", "handler"})
     private List<Discount> discounts;
 
     @OneToMany(mappedBy = "product")
+    @JsonIgnoreProperties({"product", "user", "handler"})
     private List<Review> reviews;
+    
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
 }

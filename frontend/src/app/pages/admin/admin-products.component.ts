@@ -93,6 +93,9 @@ import { AdminProduct } from '../../models/admin.model';
                   <button class="action-btn edit" (click)="editProduct(product)">
                     <span class="material-symbols-outlined">edit</span>
                   </button>
+                  <a [routerLink]="['/product', product.id]" target="_blank" class="action-btn view">
+                    <span class="material-symbols-outlined">visibility</span>
+                  </a>
                   <button class="action-btn delete" (click)="deleteProduct(product.id)">
                     <span class="material-symbols-outlined">delete</span>
                   </button>
@@ -124,6 +127,17 @@ import { AdminProduct } from '../../models/admin.model';
                 >
               </div>
 
+              <div class="form-group">
+                <label for="description">Description</label>
+                <textarea 
+                  id="description" 
+                  name="description"
+                  [(ngModel)]="currentProduct.description"
+                  required
+                  rows="3"
+                ></textarea>
+              </div>
+
               <div class="form-row">
                 <div class="form-group">
                   <label for="price">Price</label>
@@ -148,6 +162,35 @@ import { AdminProduct } from '../../models/admin.model';
                     required
                     min="0"
                   >
+                </div>
+              </div>
+
+              <div class="form-group">
+                <label for="imageUrl">Image URL</label>
+                <div class="image-url-container">
+                  <input 
+                    type="text" 
+                    id="imageUrl" 
+                    name="imageUrl"
+                    [(ngModel)]="currentProduct.imageUrl"
+                    required
+                    placeholder="/assets/images/placeholder-product.svg"
+                  >
+                  <button type="button" class="preview-image-btn" (click)="updateImagePreview()">
+                    <span class="material-symbols-outlined">preview</span>
+                    Preview
+                  </button>
+                </div>
+                <div class="image-url-actions">
+                  <small class="image-url-note">Enter the full URL to the image (including https://)</small>
+                  <button type="button" class="save-image-btn" (click)="updateImageOnly()">
+                    <span class="material-symbols-outlined">save</span>
+                    Save Image Only
+                  </button>
+                </div>
+                <div class="image-preview" *ngIf="currentProduct.imageUrl">
+                  <img [src]="currentProduct.imageUrl" alt="Product image preview" class="preview-image">
+                  <span class="image-url-loading" *ngIf="currentProduct.imageUrl.includes('?t=')">Loading...</span>
                 </div>
               </div>
 
@@ -365,6 +408,16 @@ import { AdminProduct } from '../../models/admin.model';
       color: var(--white);
     }
 
+    .action-btn.view {
+      background-color: rgba(54, 179, 126, 0.1);
+      color: var(--success);
+    }
+
+    .action-btn.view:hover {
+      background-color: var(--success);
+      color: var(--white);
+    }
+
     .action-btn.delete {
       background-color: rgba(255, 86, 48, 0.1);
       color: var(--error);
@@ -373,6 +426,48 @@ import { AdminProduct } from '../../models/admin.model';
     .action-btn.delete:hover {
       background-color: var(--error);
       color: var(--white);
+    }
+
+    .image-url-container {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    .image-url-container input {
+      flex: 1;
+    }
+
+    .preview-image-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 8px 12px;
+      background-color: var(--secondary);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .preview-image-btn:hover {
+      background-color: var(--secondary-dark);
+    }
+
+    .image-preview {
+      margin-top: 10px;
+      max-width: 100%;
+      text-align: center;
+      border: 1px solid #ddd;
+      padding: 10px;
+      border-radius: 4px;
+    }
+
+    .preview-image {
+      max-width: 100%;
+      max-height: 200px;
+      object-fit: contain;
     }
 
     .modal {
@@ -452,7 +547,16 @@ import { AdminProduct } from '../../models/admin.model';
       font-size: 0.9375rem;
     }
 
-    input:focus, select:focus {
+    textarea {
+      width: 100%;
+      padding: var(--space-2) var(--space-3);
+      border: 1px solid var(--neutral-300);
+      border-radius: var(--radius-md);
+      font-size: 0.9375rem;
+      resize: vertical;
+    }
+
+    input:focus, select:focus, textarea:focus {
       outline: none;
       border-color: var(--primary);
     }
@@ -528,6 +632,56 @@ import { AdminProduct } from '../../models/admin.model';
         min-width: 800px;
       }
     }
+
+    .image-url-loading {
+      display: inline-block;
+      margin-top: 8px;
+      font-size: 0.8rem;
+      color: var(--secondary);
+      background: rgba(0, 102, 255, 0.1);
+      padding: 4px 8px;
+      border-radius: 4px;
+      animation: pulse 1.5s infinite;
+    }
+
+    .image-url-note {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--neutral-600);
+      margin-top: 4px;
+      margin-bottom: 8px;
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+
+    .image-url-actions {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 4px;
+      margin-bottom: 8px;
+    }
+
+    .save-image-btn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 6px 12px;
+      background-color: var(--success);
+      color: white;
+      font-size: 0.8rem;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+
+    .save-image-btn:hover {
+      background-color: var(--success-dark, #2e7d32);
+    }
   `]
 })
 export class AdminProductsComponent implements OnInit {
@@ -551,7 +705,9 @@ export class AdminProductsComponent implements OnInit {
     sellerId: '',
     sellerName: '',
     dateAdded: new Date(),
-    lastUpdated: new Date()
+    lastUpdated: new Date(),
+    description: 'Product description',
+    imageUrl: '/assets/images/placeholder-product.svg'
   };
 
   constructor(private adminService: AdminService) {}
@@ -613,7 +769,9 @@ export class AdminProductsComponent implements OnInit {
       sellerId: '',
       sellerName: '',
       dateAdded: new Date(),
-      lastUpdated: new Date()
+      lastUpdated: new Date(),
+      description: 'Product description',
+      imageUrl: '/assets/images/placeholder-product.jpg'
     };
     this.showProductForm = true;
   }
@@ -630,18 +788,38 @@ export class AdminProductsComponent implements OnInit {
 
   saveProduct(): void {
     this.saving = true;
+    
+    // Clean the image URL by removing any timestamp parameters
+    if (this.currentProduct && this.currentProduct.imageUrl && this.currentProduct.imageUrl.includes('?')) {
+      this.currentProduct.imageUrl = this.currentProduct.imageUrl.split('?')[0];
+      console.log('Cleaned image URL for saving:', this.currentProduct.imageUrl);
+    }
 
     if (this.editingProduct) {
       // Keep existing ID when editing
       this.adminService.updateProduct(this.currentProduct).subscribe({
         next: (product) => {
+          console.log('Product updated successfully:', product);
           const index = this.products.findIndex(p => p.id === product.id);
           if (index !== -1) {
-            this.products[index] = product;
+            // Force image refresh by adding timestamp to prevent caching
+            if (product.imageUrl) {
+              product.imageUrl = product.imageUrl.includes('?') 
+                ? product.imageUrl.split('?')[0] + '?t=' + new Date().getTime() 
+                : product.imageUrl + '?t=' + new Date().getTime();
+            }
+            
+            // Make sure to update all properties including imageUrl
+            this.products[index] = { ...product };
           }
           this.filterProducts();
           this.showProductForm = false;
           this.saving = false;
+          
+          // Add delay and reload products to ensure the image changes are reflected
+          setTimeout(() => {
+            this.loadProducts();
+          }, 500);
         },
         error: (error) => {
           console.error('Error updating product:', error);
@@ -649,14 +827,17 @@ export class AdminProductsComponent implements OnInit {
         }
       });
     } else {
-      // Generate a new ID for new products
-      const newProduct = {
-        ...this.currentProduct,
-        id: Math.random().toString(36).substr(2, 9)
-      };
-      
-      this.adminService.updateProduct(newProduct).subscribe({
+      // Create new product
+      this.adminService.createProduct(this.currentProduct).subscribe({
         next: (product) => {
+          console.log('Product created successfully:', product);
+          // Force image refresh
+          if (product.imageUrl) {
+            product.imageUrl = product.imageUrl.includes('?') 
+              ? product.imageUrl.split('?')[0] + '?t=' + new Date().getTime() 
+              : product.imageUrl + '?t=' + new Date().getTime();
+          }
+          
           this.products.push(product);
           this.filterProducts();
           this.showProductForm = false;
@@ -681,5 +862,65 @@ export class AdminProductsComponent implements OnInit {
         }
       });
     }
+  }
+
+  updateImagePreview(): void {
+    if (this.currentProduct?.imageUrl) {
+      // Store the original URL without timestamp
+      const originalUrl = this.currentProduct.imageUrl.includes('?') 
+        ? this.currentProduct.imageUrl.split('?')[0]
+        : this.currentProduct.imageUrl;
+      
+      // Add timestamp to force image refresh but keep the original URL for saving
+      this.currentProduct.imageUrl = originalUrl + '?t=' + new Date().getTime();
+      console.log('Updated image URL with timestamp for preview:', this.currentProduct.imageUrl);
+    }
+  }
+
+  updateImageOnly(): void {
+    if (!this.currentProduct.id || !this.currentProduct.imageUrl) {
+      console.error('Product ID or image URL is missing');
+      return;
+    }
+    
+    // Clean the URL by removing only timestamp parameters, preserve other query params
+    let cleanImageUrl = this.currentProduct.imageUrl;
+    if (cleanImageUrl.includes('?t=')) {
+      cleanImageUrl = cleanImageUrl.split('?t=')[0];
+    } else if (cleanImageUrl.includes('&t=')) {
+      cleanImageUrl = cleanImageUrl.split('&t=')[0];
+    }
+    
+    console.log(`Updating image for product ${this.currentProduct.id} to: ${cleanImageUrl}`);
+    this.saving = true;
+    
+    this.adminService.updateProductImageDirect(this.currentProduct.id, cleanImageUrl)
+      .subscribe({
+        next: (response: any) => {
+          console.log('Image updated successfully:', response);
+          
+          // Update the product in the products array
+          const index = this.products.findIndex(p => p.id === this.currentProduct.id);
+          if (index !== -1) {
+            this.products[index].imageUrl = response.imageUrl;
+            console.log('Updated image URL in products array');
+          }
+          
+          // Force refresh of the image with a timestamp
+          this.currentProduct.imageUrl = response.imageUrl;
+          
+          this.saving = false;
+          this.filterProducts();
+          
+          // Reload products to ensure changes are reflected
+          setTimeout(() => {
+            this.loadProducts();
+          }, 300);
+        },
+        error: (error: any) => {
+          console.error('Error updating image:', error);
+          this.saving = false;
+        }
+      });
   }
 }

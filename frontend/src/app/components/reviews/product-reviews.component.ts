@@ -182,7 +182,15 @@ import { StarRatingComponent } from '../star-rating/star-rating.component';
                   </button>
                 </div>
                 
-                <div class="review-report">
+                <div class="review-actions-right">
+                  <button 
+                    *ngIf="isCurrentUserReview(review.userId)" 
+                    class="delete-button" 
+                    (click)="confirmDeleteReview(review.id)"
+                  >
+                    <span class="material-symbols-outlined">delete</span>
+                    Delete
+                  </button>
                   <button class="link-button" (click)="reportReview(review.id)">Report</button>
                 </div>
               </div>
@@ -193,6 +201,24 @@ import { StarRatingComponent } from '../star-rating/star-rating.component';
             <button class="load-more-button" (click)="loadMoreReviews()">
               {{isLoadingMore ? 'Loading...' : 'Load More Reviews'}}
             </button>
+          </div>
+        </div>
+      </div>
+      
+      <!-- Delete Confirmation Modal -->
+      <div class="modal" *ngIf="showDeleteConfirmation">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2>Confirm Delete</h2>
+            <button class="close-btn" (click)="cancelDeleteReview()">×</button>
+          </div>
+          <div class="modal-body">
+            <p>Are you sure you want to delete this review?</p>
+            <p class="warning">This action cannot be undone.</p>
+          </div>
+          <div class="modal-footer">
+            <button class="btn secondary" (click)="cancelDeleteReview()">Cancel</button>
+            <button class="btn danger" (click)="deleteReview()">Delete</button>
           </div>
         </div>
       </div>
@@ -587,6 +613,121 @@ import { StarRatingComponent } from '../star-rating/star-rating.component';
       .review-report {
         margin-top: var(--space-2);
       }
+      
+      .review-actions-right {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+      }
+    }
+    
+    .delete-button {
+      display: flex;
+      align-items: center;
+      gap: var(--space-1);
+      background-color: rgba(255, 86, 48, 0.1);
+      color: var(--error);
+      border: 1px solid var(--error);
+      border-radius: var(--radius-md);
+      padding: var(--space-1) var(--space-2);
+      font-size: 0.875rem;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+    
+    .delete-button:hover {
+      background-color: var(--error);
+      color: var(--white);
+    }
+    
+    .delete-button .material-symbols-outlined {
+      font-size: 1rem;
+    }
+    
+    .modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: rgba(0, 0, 0, 0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+    }
+    
+    .modal-content {
+      background-color: var(--white);
+      border-radius: var(--radius-md);
+      width: 100%;
+      max-width: 400px;
+      box-shadow: var(--shadow-lg);
+    }
+    
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-4);
+      border-bottom: 1px solid var(--neutral-200);
+    }
+    
+    .modal-header h2 {
+      font-size: 1.25rem;
+      margin: 0;
+    }
+    
+    .close-btn {
+      background: none;
+      border: none;
+      font-size: 1.5rem;
+      color: var(--neutral-500);
+      cursor: pointer;
+    }
+    
+    .modal-body {
+      padding: var(--space-4);
+    }
+    
+    .warning {
+      color: var(--error);
+      font-weight: 500;
+    }
+    
+    .modal-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-3);
+      padding: var(--space-4);
+      border-top: 1px solid var(--neutral-200);
+    }
+    
+    .btn {
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      border: none;
+    }
+    
+    .btn.secondary {
+      background-color: var(--neutral-200);
+      color: var(--neutral-700);
+    }
+    
+    .btn.secondary:hover {
+      background-color: var(--neutral-300);
+    }
+    
+    .btn.danger {
+      background-color: var(--error);
+      color: var(--white);
+    }
+    
+    .btn.danger:hover {
+      background-color: var(--error-dark, #d32f2f);
     }
   `]
 })
@@ -607,6 +748,10 @@ export class ProductReviewsComponent implements OnInit {
   currentUrl = '';
   totalReviews = 0;
   pageSize = 5;
+  
+  // Delete review confirmation
+  showDeleteConfirmation = false;
+  reviewToDelete: string | null = null;
   
   constructor(
     private reviewService: ReviewService,
@@ -631,41 +776,70 @@ export class ProductReviewsComponent implements OnInit {
   }
   
   loadReviews(): void {
-    this.reviewService.getReviewsByProductId(this.productId, this.sortOption, this.currentPage, this.pageSize).subscribe(result => {
-      // For demo purposes, we're adding userLiked/userDisliked properties to the reviews
-      const mappedReviews = result.reviews.map(review => ({
-        ...review,
-        userLiked: false,
-        userDisliked: false
-      }));
-      
-      // If loading more, append to existing reviews, otherwise replace them
-      if (this.currentPage > 1) {
-        this.reviews = [...this.reviews, ...mappedReviews];
-      } else {
-        this.reviews = mappedReviews;
+    this.reviewService.getReviewsByProductId(
+      this.productId, 
+      this.sortOption, 
+      this.currentPage, 
+      this.pageSize
+    ).subscribe({
+      next: (response) => {
+        if (this.currentPage === 1) {
+          this.reviews = response.reviews.map(review => ({
+            ...review,
+            userLiked: false,
+            userDisliked: false
+          }));
+        } else {
+          // Append to existing reviews when loading more
+          this.reviews = [
+            ...this.reviews, 
+            ...response.reviews.map(review => ({
+              ...review,
+              userLiked: false,
+              userDisliked: false
+            }))
+          ];
+        }
+        
+        this.totalReviews = response.total;
+        this.hasMoreReviews = (this.currentPage * this.pageSize) < response.total;
+        this.isLoadingMore = false;
+      },
+      error: (error) => {
+        console.error('Error loading reviews:', error);
+        this.isLoadingMore = false;
       }
-      
-      this.totalReviews = result.total;
-      this.hasMoreReviews = this.reviews.length < this.totalReviews;
     });
   }
   
   loadReviewStats(): void {
-    this.reviewService.getReviewStats(this.productId).subscribe(stats => {
-      this.reviewStats = stats;
-      
-      // Calculate percentages for rating breakdown
-      const total = stats.totalReviews || 1; // Avoid division by zero
-      this.ratingBreakdown = [5, 4, 3, 2, 1].map(stars => {
-        const count = stats.ratingCounts[stars] || 0;
-        return {
-          stars,
-          count,
-          percentage: (count / total) * 100
-        };
-      });
+    this.reviewService.getReviewStats(this.productId).subscribe({
+      next: (stats) => {
+        this.reviewStats = stats;
+        this.generateRatingBreakdown();
+      },
+      error: (error) => {
+        console.error('Error loading review stats:', error);
+      }
     });
+  }
+  
+  generateRatingBreakdown(): void {
+    if (!this.reviewStats) return;
+    
+    this.ratingBreakdown = [];
+    for (let i = 5; i >= 1; i--) {
+      const count = this.reviewStats.ratingCounts[i] || 0;
+      const percentage = this.reviewStats.totalReviews > 0 
+        ? (count / this.reviewStats.totalReviews) * 100 
+        : 0;
+      
+      this.ratingBreakdown.push({
+        stars: i,
+        count,
+        percentage
+      });
+    }
   }
   
   sortReviews(): void {
@@ -686,7 +860,8 @@ export class ProductReviewsComponent implements OnInit {
   }
   
   onRatingChange(rating: number): void {
-    this.reviewForm.patchValue({ rating });
+    this.reviewForm.get('rating')?.setValue(rating);
+    this.reviewForm.get('rating')?.markAsTouched();
   }
   
   submitReview(): void {
@@ -726,7 +901,7 @@ export class ProductReviewsComponent implements OnInit {
       },
       error: (error) => {
         this.isSubmitting = false;
-        console.error('Error submitting review:', error);
+        alert(error.message || 'Error submitting review');
       }
     });
   }
@@ -737,13 +912,13 @@ export class ProductReviewsComponent implements OnInit {
     
     if (review.userLiked) {
       // If already liked, undo the like
-      review.likes!--;
+      review.likes = (review.likes || 0) - 1;
       review.userLiked = false;
     } else {
       // Add like and remove dislike if present
-      review.likes!++;
+      review.likes = (review.likes || 0) + 1;
       if (review.userDisliked) {
-        review.dislikes!--;
+        review.dislikes = (review.dislikes || 0) - 1;
         review.userDisliked = false;
       }
       review.userLiked = true;
@@ -759,13 +934,13 @@ export class ProductReviewsComponent implements OnInit {
     
     if (review.userDisliked) {
       // If already disliked, undo the dislike
-      review.dislikes!--;
+      review.dislikes = (review.dislikes || 0) - 1;
       review.userDisliked = false;
     } else {
       // Add dislike and remove like if present
-      review.dislikes!++;
+      review.dislikes = (review.dislikes || 0) + 1;
       if (review.userLiked) {
-        review.likes!--;
+        review.likes = (review.likes || 0) - 1;
         review.userLiked = false;
       }
       review.userDisliked = true;
@@ -777,11 +952,53 @@ export class ProductReviewsComponent implements OnInit {
   
   reportReview(reviewId: string): void {
     // In a real app, implement report functionality
+    this.reviewService.reportReview(reviewId, 'inappropriate').subscribe();
     alert('Review reported! Thank you for your feedback.');
   }
   
   enlargeImage(imageUrl: string): void {
     // In a real app, implement image lightbox/modal
     window.open(imageUrl, '_blank');
+  }
+  
+  isCurrentUserReview(userId: string): boolean {
+    if (!this.isAuthenticated) return false;
+    
+    // Get current user ID from auth service
+    const currentUserId = this.authService.getCurrentUserId();
+    return userId === currentUserId;
+  }
+  
+  confirmDeleteReview(reviewId: string): void {
+    this.reviewToDelete = reviewId;
+    this.showDeleteConfirmation = true;
+  }
+  
+  cancelDeleteReview(): void {
+    this.reviewToDelete = null;
+    this.showDeleteConfirmation = false;
+  }
+  
+  deleteReview(): void {
+    if (!this.reviewToDelete) return;
+    
+    // The deleteReview method in ReviewService expects a productId
+    this.reviewService.deleteReview(this.productId).subscribe({
+      next: () => {
+        // Remove the deleted review from the list
+        this.reviews = this.reviews.filter(review => review.id !== this.reviewToDelete);
+        
+        // Update review stats
+        this.loadReviewStats();
+        
+        // Close the confirmation dialog
+        this.cancelDeleteReview();
+      },
+      error: (error) => {
+        console.error('Error deleting review:', error);
+        alert(error.message || 'Failed to delete review. Please try again.');
+        this.cancelDeleteReview();
+      }
+    });
   }
 }

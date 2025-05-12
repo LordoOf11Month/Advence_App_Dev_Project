@@ -10,6 +10,10 @@ export interface AdminProduct {
   sellerName: string;
   dateAdded: Date;
   lastUpdated: Date;
+  description?: string;
+  imageUrl?: string;
+  freeShipping?: boolean;
+  fastDelivery?: boolean;
 }
 
 export interface AdminOrder {
@@ -25,7 +29,7 @@ export interface AdminOrder {
   }>;
   totalAmount: number;
   total: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'refunded';
   sellerId: string;
   sellerName: string;
   dateCreated: Date;
@@ -62,11 +66,19 @@ export interface AdminStats {
   totalRevenue: number;
   totalUsers: number;
   totalProducts: number;
-  totalSellers: number;
-  activeUsers: number;
   activeProducts: number;
-  pendingOrders: number;
-  lowStockProducts: number;
+  monthlySales: number[];
+  topSellingCategories: Array<{
+    name: string;
+    count: number;
+  }>;
+  recentOrders: Array<{
+    id: string;
+    customerName: string;
+    date: Date;
+    total: number;
+    status: AdminOrder['status'];
+  }>;
 }
 
 export interface OrderTracking {
@@ -108,4 +120,18 @@ export interface AdminSeller {
     accountHolder: string;
     accountNumber: string;
   };
+}
+
+export interface AdminReview {
+  id?: string;
+  productId: number;
+  userId: number;
+  productName: string;
+  userName: string;
+  rating: number;
+  comment: string;
+  dateCreated?: Date;
+  createdAt: Date;
+  approved: boolean;
+  status?: 'approved' | 'pending';
 }

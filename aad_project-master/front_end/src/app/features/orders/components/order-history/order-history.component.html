@@ -1,0 +1,26 @@
+<!-- features/orders/components/order-history/order-history.component.html -->
+<h2>My Orders</h2>
+<app-loading-spinner *ngIf="loading"></app-loading-spinner>
+<app-error-alert *ngIf="error" [errorMessage]="error"></app-error-alert>
+<table *ngIf="!loading && orders.length" class="order-table">
+  <tr><th>Order #</th><th>Date</th><th>Total</th><th>Payment Status</th><th>Shipment Status</th></tr>
+  <tr *ngFor="let order of orders" (click)="viewOrder(order)" class="clickable">
+    <td>{{ order.id }}</td>
+    <td>{{ order.orderDate | date:'short' }}</td>
+    <td>{{ order.totalAmount | money }}</td>
+    <td>{{ order.status }}</td>
+    <td>
+      <span
+        [ngClass]="{
+          'badge bg-warning': order.shipmentStatus === 'PENDING',
+          'badge bg-info': order.shipmentStatus === 'CONFIRMED',
+          'badge bg-primary': order.shipmentStatus === 'SHIPPED',
+          'badge bg-success': order.shipmentStatus === 'DELIVERED',
+          'badge bg-danger': order.shipmentStatus === 'CANCELLED'
+        }">
+        {{ order.shipmentStatus }}
+      </span>
+    </td>
+  </tr>
+</table>
+<p *ngIf="!loading && !orders.length">You have not placed any orders yet.</p>

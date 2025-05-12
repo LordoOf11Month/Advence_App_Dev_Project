@@ -4,6 +4,7 @@ import { ActivatedRoute, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../services/product.service';
 import { CartService } from '../../services/cart.service';
+import { CompareService } from '../../services/compare.service';
 import { Product } from '../../models/product.model';
 import { ProductCarouselComponent } from '../../components/product-carousel/product-carousel.component';
 import { ProductReviewsComponent } from '../../components/reviews/product-reviews.component';
@@ -19,11 +20,11 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
     ProductReviewsComponent
   ],
   template: `
-    <div class="container mx-auto px-4" *ngIf="product">
+    <div class="container mx-auto px-4" *ngIf="product && !isLoading && !hasError">
       <!-- Breadcrumbs with Tailwind -->
       <div class="text-sm text-neutral-600 mb-4">
         <a routerLink="/" class="text-neutral-600 hover:text-primary">Home</a> / 
-        <a [routerLink]="['/category', product.category]" class="text-neutral-600 hover:text-primary">{{categoryName}}</a> / 
+        <a [routerLink]="['/category', categorySlug]" class="text-neutral-600 hover:text-primary">{{categoryName}}</a> / 
         <span>{{product.title}}</span>
       </div>
       
@@ -40,7 +41,7 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
               [class.active]="selectedImage === image"
               (click)="selectedImage = image"
             >
-              <img [src]="image" [alt]="product.title + ' image ' + (i+1)">
+              <img [src]="image" [alt]="product.title + ' image ' + (i+1)" (error)="handleImageError($event)">
             </div>
           </div>
           
@@ -93,10 +94,10 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
           
           <div class="product-price">
             <span class="current-price">{{product.price | currency:'TRY':'₺'}}</span>
-            <span class="original-price" *ngIf="product.originalPrice">
+            <span class="original-price" *ngIf="product.originalPrice && product.originalPrice > product.price">
               {{product.originalPrice | currency:'TRY':'₺'}}
             </span>
-            <span class="discount-badge" *ngIf="product.discountPercentage">
+            <span class="discount-badge" *ngIf="product.discountPercentage && product.discountPercentage > 0">
               {{product.discountPercentage}}% OFF
             </span>
           </div>
@@ -106,34 +107,6 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
             <span class="tag out-of-stock" *ngIf="!product.inStock">Out of Stock</span>
             <span class="tag free-shipping" *ngIf="product.freeShipping">Free Shipping</span>
             <span class="tag fast-delivery" *ngIf="product.fastDelivery">Fast Delivery</span>
-          </div>
-          
-          <div class="product-variants" *ngIf="product.colors?.length">
-            <h3 class="variant-title">Colors</h3>
-            <div class="color-options">
-              <div 
-                *ngFor="let color of product.colors" 
-                class="color-option"
-                [class.selected]="selectedColor === color"
-                (click)="selectedColor = color"
-              >
-                {{color}}
-              </div>
-            </div>
-          </div>
-          
-          <div class="product-variants" *ngIf="product.sizes?.length">
-            <h3 class="variant-title">Sizes</h3>
-            <div class="size-options">
-              <div 
-                *ngFor="let size of product.sizes" 
-                class="size-option"
-                [class.selected]="selectedSize === size"
-                (click)="selectedSize = size"
-              >
-                {{size}}
-              </div>
-            </div>
           </div>
           
           <div class="quantity-selector">
@@ -155,6 +128,15 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
               Add to Cart
             </button>
             
+            <button 
+              class="compare-btn" 
+              (click)="toggleCompare()"
+              [class.is-comparing]="isInCompare"
+            >
+              <span class="material-symbols-outlined">{{isInCompare ? 'compare_check' : 'compare'}}</span>
+              {{isInCompare ? 'Remove from Compare' : 'Add to Compare'}}
+            </button>
+            
             <button class="buy-now-btn" [disabled]="!product.inStock">
               <span class="material-symbols-outlined">bolt</span>
               Buy Now
@@ -168,24 +150,54 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
         </div>
       </div>
       
-      <div class="related-products">
+      <!-- Related Products Section -->
+      <div class="related-products" *ngIf="!loadingRelated && !relatedError && relatedProducts.length > 0">
         <app-product-carousel
           [products]="relatedProducts"
           title="You May Also Like"
         ></app-product-carousel>
       </div>
+      
+      <!-- Loading state for related products -->
+      <div *ngIf="loadingRelated" class="flex justify-center items-center py-8">
+        <div class="w-8 h-8 border-4 border-neutral-200 border-t-primary rounded-full animate-spin"></div>
+      </div>
+      
+      <!-- Error state for related products -->
+      <div *ngIf="relatedError" class="bg-red-50 border border-red-200 rounded-md p-4 my-8">
+        <p class="text-red-600 text-sm">Unable to load related products.</p>
+      </div>
     </div>
     
     <!-- Loading state with Tailwind -->
-    <div class="container mx-auto px-4 flex flex-col items-center justify-center py-8" *ngIf="!product">
-      <div class="w-12 h-12 border-4 border-neutral-200 border-t-primary rounded-full animate-spin mb-4"></div>
-      <p class="text-neutral-600">Loading product details...</p>
+    <div class="container mx-auto px-4 flex flex-col items-center justify-center py-16" *ngIf="isLoading">
+      <div class="w-16 h-16 border-4 border-neutral-200 border-t-primary rounded-full animate-spin mb-6"></div>
+      <p class="text-lg text-neutral-600">Loading product details...</p>
+    </div>
+    
+    <!-- Error state with Tailwind -->
+    <div class="container mx-auto px-4 flex flex-col items-center justify-center py-16" *ngIf="hasError">
+      <div class="text-center max-w-md">
+        <div class="text-5xl mb-4 text-error">
+          <span class="material-symbols-outlined" style="font-size: 4rem;">error</span>
+        </div>
+        <h2 class="text-2xl font-semibold mb-2 text-neutral-800">Product Not Found</h2>
+        <p class="text-neutral-600 mb-6">The product you're looking for doesn't exist or there was an error loading it.</p>
+        <div class="flex justify-center gap-4">
+          <a routerLink="/" class="px-6 py-2 bg-primary text-white rounded-md hover:bg-primary-dark transition-colors">
+            Go to Homepage
+          </a>
+          <button (click)="loadProduct()" class="px-6 py-2 border border-neutral-300 text-neutral-700 rounded-md hover:border-primary hover:text-primary transition-colors">
+            Try Again
+          </button>
+        </div>
+      </div>
     </div>
     
     <!-- Reviews Section -->
-    <section class="mt-8 pt-8 border-t border-neutral-200">
+    <section class="mt-8 pt-8 border-t border-neutral-200" *ngIf="product && !isLoading && !hasError">
       <div class="container mx-auto px-4">
-        <app-product-reviews [productId]="product?.id || 0"></app-product-reviews>
+        <app-product-reviews [productId]="product!.id || 0"></app-product-reviews>
       </div>
     </section>
   `,
@@ -386,46 +398,6 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
       color: var(--white);
     }
     
-    .product-variants {
-      margin-bottom: var(--space-4);
-    }
-    
-    .variant-title {
-      font-size: 0.875rem;
-      font-weight: 600;
-      color: var(--neutral-700);
-      margin-bottom: var(--space-2);
-    }
-    
-    .color-options,
-    .size-options {
-      display: flex;
-      flex-wrap: wrap;
-      gap: var(--space-2);
-    }
-    
-    .color-option,
-    .size-option {
-      padding: var(--space-1) var(--space-3);
-      border: 1px solid var(--neutral-300);
-      border-radius: var(--radius-md);
-      font-size: 0.875rem;
-      cursor: pointer;
-      transition: all var(--transition-fast);
-    }
-    
-    .color-option:hover,
-    .size-option:hover {
-      border-color: var(--primary);
-    }
-    
-    .color-option.selected,
-    .size-option.selected {
-      background-color: var(--primary);
-      border-color: var(--primary);
-      color: var(--white);
-    }
-    
     .quantity-selector {
       margin-bottom: var(--space-4);
     }
@@ -475,7 +447,8 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
     }
     
     .add-to-cart-btn,
-    .buy-now-btn {
+    .buy-now-btn,
+    .compare-btn {
       display: flex;
       align-items: center;
       justify-content: center;
@@ -494,6 +467,18 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
       border: 1px solid var(--primary);
     }
     
+    .compare-btn {
+      background-color: var(--white);
+      color: var(--neutral-700);
+      border: 1px solid var(--neutral-300);
+    }
+    
+    .compare-btn.is-comparing {
+      background-color: var(--primary-light);
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+    
     .buy-now-btn {
       background-color: var(--primary);
       color: var(--white);
@@ -505,11 +490,16 @@ import { ProductReviewsComponent } from '../../components/reviews/product-review
       color: var(--white);
     }
     
+    .compare-btn:hover:not(:disabled) {
+      background-color: var(--neutral-100);
+    }
+    
     .buy-now-btn:hover:not(:disabled) {
       background-color: var(--primary-dark);
     }
     
-    .add-to-cart-btn:disabled, .buy-now-btn:disabled {
+    .add-to-cart-btn:disabled, 
+    .buy-now-btn:disabled {
       background-color: var(--neutral-200);
       border-color: var(--neutral-300);
       color: var(--neutral-500);
@@ -598,65 +588,120 @@ export class ProductDetailComponent implements OnInit {
   product: Product | undefined;
   relatedProducts: Product[] = [];
   selectedImage: string = '';
-  selectedColor: string = '';
-  selectedSize: string = '';
   quantity: number = 1;
-  categoryName: string = '';
+  // UI state management
   Math = Math;
+  isInCompare: boolean = false;
+  categoryName: string = '';
+  categorySlug: string = '';
   
+  // Loading and error states
+  isLoading: boolean = true;
+  hasError: boolean = false;
+  loadingRelated: boolean = false;
+  relatedError: boolean = false;
+
   constructor(
     private route: ActivatedRoute,
     private productService: ProductService,
-    private cartService: CartService
+    private cartService: CartService,
+    private compareService: CompareService
   ) {}
   
   ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
-      const id = params.get('productId');
-      if (id) {
-        this.productId = +id;
+      const idParam = params.get('productId') || params.get('id');
+      if (idParam) {
+        this.productId = +idParam;
         this.loadProduct();
+      } else {
+        this.hasError = true;
+        this.isLoading = false;
       }
     });
   }
   
   loadProduct(): void {
-    this.productService.getProductById(this.productId).subscribe(product => {
-      if (product) {
-        this.product = product;
-        this.selectedImage = product.images[0];
-        
-        if (product.colors && product.colors.length > 0) {
-          this.selectedColor = product.colors[0];
+    this.isLoading = true;
+    this.hasError = false;
+    
+    this.productService.getProductById(this.productId).subscribe({
+      next: (product) => {
+        if (product) {
+          this.product = product;
+          this.selectedImage = this.getFirstValidImage(product);
+          
+          this.setCategoryName();
+          this.loadRelatedProducts();
+          
+          this.isInCompare = this.compareService.isInCompare(product.id);
+        } else {
+          this.hasError = true;
         }
-        
-        if (product.sizes && product.sizes.length > 0) {
-          this.selectedSize = product.sizes[0];
-        }
-        
-        this.setCategoryName();
-        this.loadRelatedProducts();
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error(`Error loading product with ID ${this.productId}:`, error);
+        this.hasError = true;
+        this.isLoading = false;
       }
     });
   }
   
+  getFirstValidImage(product: Product): string {
+    if (product.images && product.images.length > 0) {
+      return product.images[0];
+    }
+    return '/assets/images/placeholder-product.svg';
+  }
+  
+  handleImageError(event: any): void {
+    event.target.src = '/assets/images/placeholder-product.svg';
+  }
+  
   setCategoryName(): void {
-    if (this.product) {
-      // Convert slug to display name
-      this.categoryName = this.product.category
+    if (!this.product) return;
+
+    if (typeof this.product.category === 'object' && this.product.category) {
+      // If category is a proper Category object
+      this.categoryName = this.product.category.name;
+      this.categorySlug = this.product.category.slug;
+    } else if (typeof this.product.category === 'string') {
+      // If category is just a slug string
+      this.categorySlug = this.product.category;
+      this.categoryName = this.categorySlug
         .split('-')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
+    } else {
+      // Fallback to 'All Products' if no category info
+      this.categoryName = 'All Products';
+      this.categorySlug = 'all';
     }
   }
   
   loadRelatedProducts(): void {
-    if (this.product) {
-      this.productService.getProductsByCategory(this.product.category).subscribe(products => {
+    if (!this.product) return;
+
+    this.loadingRelated = true;
+    this.relatedError = false;
+    
+    const categorySlug = typeof this.product.category === 'object' 
+      ? this.product.category.slug 
+      : (typeof this.product.category === 'string' ? this.product.category : 'all');
+
+    this.productService.getProductsByCategory(categorySlug).subscribe({
+      next: (products) => {
         // Filter out the current product
         this.relatedProducts = products.filter(p => p.id !== this.productId);
-      });
-    }
+        this.loadingRelated = false;
+      },
+      error: (error) => {
+        console.error('Error loading related products:', error);
+        this.relatedError = true;
+        this.loadingRelated = false;
+      }
+    });
   }
   
   increaseQuantity(): void {
@@ -675,20 +720,32 @@ export class ProductDetailComponent implements OnInit {
     if (this.product) {
       this.cartService.addToCart(
         this.product, 
-        this.quantity, 
-        this.selectedSize, 
-        this.selectedColor
+        this.quantity
       );
     }
   }
   
   toggleFavorite(): void {
     if (this.product) {
-      this.productService.toggleFavorite(this.product.id).subscribe(isFavorite => {
+      this.productService.toggleFavorite(this.product.id).subscribe((isFavorite: boolean) => {
         if (this.product) {
-          this.product.isFavorite = isFavorite;
+          this.product.isFavorite = !this.product.isFavorite;
         }
       });
+    }
+  }
+  
+  toggleCompare(): void {
+    if (!this.product) return;
+    
+    if (this.isInCompare) {
+      this.compareService.removeFromCompare(this.product?.id || 0);
+      this.isInCompare = false;
+    } else {
+      if (this.product) {
+        const added = this.compareService.addToCompare(this.product);
+        this.isInCompare = added;
+      }
     }
   }
 }

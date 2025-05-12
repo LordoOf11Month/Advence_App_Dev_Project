@@ -1,0 +1,576 @@
+# Spring Boot ve Angular E-ticaret Projesi için Rol Bazlı Generic API Katmanı Şablonu
+
+Bu şablon, e-ticaret projenizdeki tüm varlıklar (entity) için kullanabileceğiniz rol bazlı (Admin, Seller, User) generic bir API katmanı yapısını içermektedir.
+
+## 1. Generic Repository Interface
+
+```java
+package com.example.repositories.generic;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.repository.NoRepositoryBean;
+
+import java.io.Serializable;
+
+@NoRepositoryBean
+public interface GenericRepository<T, ID extends Serializable> extends JpaRepository<T, ID>, JpaSpecificationExecutor<T> {
+    // Varsayılan olarak JpaRepository ve JpaSpecificationExecutor metodları
+}
+```
+
+## 2. Generic Service Interface
+
+```java
+package com.example.services.generic;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+
+import java.io.Serializable;
+import java.util.List;
+import java.util.Optional;
+
+public interface GenericService<T, D, C, ID extends Serializable> {
+    List<D> findAll();
+    Page<D> findAll(Pageable pageable);
+    Page<D> findAll(Specification<T> spec, Pageable pageable);
+    Optional<D> findById(ID id);
+    D save(C createDto);
+    D update(ID id, C updateDto);
+    void delete(ID id);
+    boolean exists(ID id);
+    long count();
+}
+```
+
+## 3. Generic Service Implementation
+
+```java
+package com.example.services.generic;
+
+import com.example.repositories.generic.GenericRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.io.Serializable;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+public abstract class GenericServiceImpl<T, D, C, ID extends Serializable> implements GenericService<T, D, C, ID> {
+    
+    protected final GenericRepository<T, ID> repository;
+    
+    public GenericServiceImpl(GenericRepository<T, ID> repository) {
+        this.repository = repository;
+    }
+    
+    @Override
+    public List<D> findAll() {
+        return repository.findAll().stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public Page<D> findAll(Pageable pageable) {
+        return repository.findAll(pageable)
+                .map(this::convertToDto);
+    }
+    
+    @Override
+    public Page<D> findAll(Specification<T> spec, Pageable pageable) {
+        return repository.findAll(spec, pageable)
+                .map(this::convertToDto);
+    }
+    
+    @Override
+    public Optional<D> findById(ID id) {
+        return repository.findById(id)
+                .map(this::convertToDto);
+    }
+    
+    @Override
+    @Transactional
+    public D save(C createDto) {
+        T entity = convertToEntity(createDto);
+        T savedEntity = repository.save(entity);
+        return convertToDto(savedEntity);
+    }
+    
+    @Override
+    @Transactional
+    public D update(ID id, C updateDto) {
+        if (!repository.existsById(id)) {
+            throw new RuntimeException("Entity not found with id: " + id);
+        }
+        
+        T entity = convertToEntityForUpdate(id, updateDto);
+        T updatedEntity = repository.save(entity);
+        return convertToDto(updatedEntity);
+    }
+    
+    @Override
+    @Transactional
+    public void delete(ID id) {
+        repository.deleteById(id);
+    }
+    
+    @Override
+    public boolean exists(ID id) {
+        return repository.existsById(id);
+    }
+    
+    @Override
+    public long count() {
+        return repository.count();
+    }
+    
+    // Alt sınıfların uygulaması gereken abstract metodlar
+    protected abstract D convertToDto(T entity);
+    protected abstract T convertToEntity(C createDto);
+    protected abstract T convertToEntityForUpdate(ID id, C updateDto);
+}
+```
+
+## 4. Generic Controller Base Class
+
+```java
+package com.example.controllers.generic;
+
+import com.example.services.generic.GenericService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import jakarta.validation.Valid;
+import java.io.Serializable;
+import java.util.List;
+
+public abstract class GenericController<T, D, C, ID extends Serializable> {
+    
+    protected final GenericService<T, D, C, ID> service;
+    
+    public GenericController(GenericService<T, D, C, ID> service) {
+        this.service = service;
+    }
+    
+    @GetMapping
+    public ResponseEntity<Page<D>> getAll(Pageable pageable) {
+        return ResponseEntity.ok(service.findAll(pageable));
+    }
+    
+    @GetMapping("/all")
+    public ResponseEntity<List<D>> getAll() {
+        return ResponseEntity.ok(service.findAll());
+    }
+    
+    @GetMapping("/{id}")
+    public ResponseEntity<D> getById(@PathVariable ID id) {
+        return service.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+    
+    @PostMapping
+    public ResponseEntity<D> create(@Valid @RequestBody C createDto) {
+        return ResponseEntity.ok(service.save(createDto));
+    }
+    
+    @PutMapping("/{id}")
+    public ResponseEntity<D> update(@PathVariable ID id, @Valid @RequestBody C updateDto) {
+        return ResponseEntity.ok(service.update(id, updateDto));
+    }
+    
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> delete(@PathVariable ID id) {
+        service.delete(id);
+        return ResponseEntity.noContent().build();
+    }
+}
+```
+
+## 5. Rol Bazlı Controller Yapısı
+
+### 5.1 PublicController (Herkes tarafından erişilebilen API'ler)
+
+```java
+package com.example.controllers.public;
+
+import com.example.controllers.generic.GenericController;
+import com.example.models.EntityName;
+import com.example.services.EntityNameService;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/public/entity-names")
+public class PublicEntityNameController extends GenericController<EntityName, EntityNameDTO.Response, EntityNameDTO.Request, Long> {
+    
+    public PublicEntityNameController(EntityNameService service) {
+        super(service);
+    }
+    
+    // Sadece public endpoint'ler
+}
+```
+
+### 5.2 UserController (Giriş yapmış kullanıcılar için)
+
+```java
+package com.example.controllers.user;
+
+import com.example.controllers.generic.GenericController;
+import com.example.models.EntityName;
+import com.example.services.EntityNameService;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/entity-names")
+@PreAuthorize("isAuthenticated()")
+public class EntityNameController extends GenericController<EntityName, EntityNameDTO.Response, EntityNameDTO.Request, Long> {
+    
+    private final EntityNameService entityNameService;
+    
+    public EntityNameController(EntityNameService entityNameService) {
+        super(entityNameService);
+        this.entityNameService = entityNameService;
+    }
+    
+    // Giriş yapmış kullanıcılar için endpoint'ler
+}
+```
+
+### 5.3 SellerController (Satıcı rolüne sahip kullanıcılar için)
+
+```java
+package com.example.controllers.seller;
+
+import com.example.controllers.generic.GenericController;
+import com.example.models.EntityName;
+import com.example.services.EntityNameService;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/seller/entity-names")
+@PreAuthorize("hasRole('SELLER')")
+public class SellerEntityNameController extends GenericController<EntityName, EntityNameDTO.Response, EntityNameDTO.Request, Long> {
+    
+    private final EntityNameService entityNameService;
+    
+    public SellerEntityNameController(EntityNameService entityNameService) {
+        super(entityNameService);
+        this.entityNameService = entityNameService;
+    }
+    
+    // Satıcıya özel endpoint'ler
+}
+```
+
+### 5.4 AdminController (Admin rolüne sahip kullanıcılar için)
+
+```java
+package com.example.controllers.admin;
+
+import com.example.controllers.generic.GenericController;
+import com.example.models.EntityName;
+import com.example.services.EntityNameService;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+@RestController
+@RequestMapping("/api/admin/entity-names")
+@PreAuthorize("hasRole('ADMIN')")
+public class AdminEntityNameController extends GenericController<EntityName, EntityNameDTO.Response, EntityNameDTO.Request, Long> {
+    
+    private final EntityNameService entityNameService;
+    
+    public AdminEntityNameController(EntityNameService entityNameService) {
+        super(entityNameService);
+        this.entityNameService = entityNameService;
+    }
+    
+    // Admin'e özel endpoint'ler
+}
+```
+
+## 6. Rol Bazlı Controller Örnekleri ve Endpoint'leri
+
+### 6.1 Product Controller Endpoints
+
+#### PublicProductController (/api/public/products)
+- GET / - Ürünleri sayfalı listele (filtreleme ve sıralama destekli)
+- GET /{id} - ID'ye göre ürün detayı getir
+- GET /category/{categoryId} - Kategoriye göre ürünleri getir
+- GET /search - Arama kriterleriyle ürün ara
+
+#### ProductController (/api/products)
+- GET /favorites - Kullanıcının favori ürünlerini getir
+- POST /favorites/{id} - Ürünü favorilere ekle
+- DELETE /favorites/{id} - Ürünü favorilerden çıkar
+- POST /{id}/review - Ürüne yorum ekle
+
+#### SellerProductController (/api/seller/products)
+- GET / - Satıcının ürünlerini listele
+- GET /stats - Ürün satış istatistiklerini getir
+- GET /low-stock - Stok seviyesi düşük ürünleri getir
+- POST / - Yeni ürün ekle
+- PUT /{id} - Ürün bilgilerini güncelle
+- PUT /{id}/stock - Stok bilgisini güncelle
+- DELETE /{id} - Ürünü kaldır
+
+#### AdminProductController (/api/admin/products)
+- GET / - Tüm ürünleri yönet
+- PUT /{id}/approve - Ürün onayı/reddi
+- PUT /{id}/featured - Ürünü öne çıkar/kaldır
+- DELETE /{id} - Ürünü tamamen sil
+
+### 6.2 Order Controller Endpoints
+
+#### OrderController (/api/orders)
+- GET / - Kullanıcının siparişlerini getir
+- GET /{id} - Sipariş detayı
+- POST / - Yeni sipariş oluştur
+- DELETE /{id} - Sipariş iptal
+
+#### SellerOrderController (/api/seller/orders)
+- GET / - Satıcıya ait siparişleri getir
+- GET /pending - Bekleyen siparişleri getir
+- GET /shipping - Kargodaki siparişleri getir
+- PUT /{id}/status - Sipariş durumunu güncelle
+
+#### AdminOrderController (/api/admin/orders)
+- GET / - Tüm siparişleri yönet
+- GET /by-user/{userId} - Kullanıcıya göre siparişleri getir
+- PUT /{id}/status - Sipariş durumunu güncelle
+- DELETE /{id} - Siparişi tamamen sil
+
+### 6.3 Dashboard Controller Endpoints
+
+#### SellerDashboardController (/api/seller/dashboard)
+- GET /sales - Satıcının satış istatistiklerini getir
+- GET /products - Satıcının ürün istatistiklerini getir
+- GET /orders - Satıcının sipariş istatistiklerini getir
+- GET /revenue - Satıcının gelir istatistiklerini getir
+- GET /best-selling - En çok satan ürünleri getir
+- GET /low-stock - Stok seviyesi düşük ürünleri getir
+- GET /customer-insights - Müşteri öngörülerini getir
+
+#### AdminDashboardController (/api/admin/dashboard)
+- GET /sales - Tüm satış istatistiklerini getir
+- GET /products - Ürün istatistiklerini getir
+- GET /users - Kullanıcı istatistiklerini getir
+- GET /orders - Tüm sipariş istatistiklerini getir
+- GET /revenue - Genel gelir istatistiklerini getir
+- GET /reports/monthly - Aylık raporları getir
+- GET /reports/yearly - Yıllık raporları getir
+- GET /store-performance - Mağaza performans karşılaştırması
+
+### 6.4 User Controller Endpoints
+
+#### UserController (/api/users)
+- GET /profile - Kullanıcı profilini getir
+- PUT /profile - Profil bilgilerini güncelle
+- PUT /password - Şifre güncelle
+- GET /addresses - Kullanıcı adreslerini getir
+- POST /addresses - Yeni adres ekle
+- PUT /addresses/{id} - Adres güncelle
+- DELETE /addresses/{id} - Adres sil
+
+#### AdminUserController (/api/admin/users)
+- GET / - Tüm kullanıcıları yönet
+- GET /{id} - Kullanıcı detayını getir
+- PUT /{id}/role - Kullanıcı rolünü güncelle
+- PUT /{id}/status - Kullanıcı durumunu güncelle (aktif/pasif)
+- DELETE /{id} - Kullanıcı sil
+
+### 6.5 Store Controller Endpoints
+
+#### PublicStoreController (/api/public/stores)
+- GET / - Mağazaları listele
+- GET /{id} - Mağaza detayı
+
+#### SellerStoreController (/api/seller/stores)
+- GET /my-store - Satıcının mağazasını getir
+- PUT /my-store - Mağaza bilgilerini güncelle
+- PUT /my-store/logo - Mağaza logosu güncelle
+
+#### AdminStoreController (/api/admin/stores)
+- GET / - Tüm mağazaları yönet
+- PUT /{id}/approve - Mağaza onayı/reddi
+- PUT /{id}/status - Mağaza durumunu güncelle
+- DELETE /{id} - Mağazayı sil
+
+## 7. Tüm Controller'lar ve Endpoint'ler Listesi
+
+1. **Auth Controller** (`/api/auth`)
+   - POST /login - Kullanıcı girişi
+   - POST /register - Kullanıcı kaydı
+   - POST /refresh-token - Token yenileme
+   - POST /logout - Çıkış yapma
+   - POST /reset-password - Şifre sıfırlama
+
+2. **Public Product Controller** (`/api/public/products`)
+   - GET / - Ürünleri sayfalı listele
+   - GET /{id} - Ürün detayı
+   - GET /category/{categoryId} - Kategoriye göre ürünler
+   - GET /search - Ürün arama
+
+3. **Product Controller** (`/api/products`)
+   - GET /favorites - Favori ürünler
+   - POST /favorites/{id} - Favorilere ekle
+   - DELETE /favorites/{id} - Favorilerden çıkar
+   - POST /{id}/review - Ürüne yorum ekle
+
+4. **Seller Product Controller** (`/api/seller/products`)
+   - GET / - Satıcının ürünlerini listele
+   - GET /stats - Ürün istatistikleri
+   - GET /low-stock - Stok seviyesi düşük ürünler
+   - POST / - Yeni ürün ekle
+   - PUT /{id} - Ürün güncelle
+   - PUT /{id}/stock - Stok güncelle
+   - DELETE /{id} - Ürün kaldır
+
+5. **Admin Product Controller** (`/api/admin/products`)
+   - GET / - Tüm ürünleri yönet
+   - PUT /{id}/approve - Ürün onayı
+   - PUT /{id}/featured - Öne çıkar/kaldır
+   - DELETE /{id} - Ürün sil
+
+6. **Public Category Controller** (`/api/public/categories`)
+   - GET / - Kategorileri listele
+   - GET /{id} - Kategori detayı
+
+7. **Admin Category Controller** (`/api/admin/categories`)
+   - GET / - Kategorileri yönet
+   - POST / - Yeni kategori ekle
+   - PUT /{id} - Kategori güncelle
+   - DELETE /{id} - Kategori sil
+
+8. **Cart Controller** (`/api/cart`)
+   - GET / - Sepeti getir
+   - POST /items - Sepete ürün ekle
+   - PUT /items/{id} - Sepet ürünü güncelle
+   - DELETE /items/{id} - Sepetten ürün çıkar
+   - DELETE / - Sepeti temizle
+
+9. **Order Controller** (`/api/orders`)
+   - GET / - Siparişleri listele
+   - GET /{id} - Sipariş detayı
+   - POST / - Sipariş oluştur
+   - DELETE /{id} - Sipariş iptal
+
+10. **Seller Order Controller** (`/api/seller/orders`)
+    - GET / - Satıcının siparişlerini listele
+    - GET /pending - Bekleyen siparişler
+    - GET /shipping - Kargodaki siparişler
+    - PUT /{id}/status - Sipariş durumu güncelle
+    - PUT /{id}/tracking - Kargo takip bilgisi güncelle
+
+11. **Admin Order Controller** (`/api/admin/orders`)
+    - GET / - Tüm siparişleri yönet
+    - GET /by-user/{userId} - Kullanıcıya göre siparişler
+    - PUT /{id}/status - Sipariş durumu güncelle
+    - DELETE /{id} - Sipariş sil
+
+12. **User Controller** (`/api/users`)
+    - GET /profile - Profil bilgisi
+    - PUT /profile - Profil güncelle
+    - PUT /password - Şifre güncelle
+    - GET /addresses - Adresler
+    - POST /addresses - Adres ekle
+    - PUT /addresses/{id} - Adres güncelle
+    - DELETE /addresses/{id} - Adres sil
+
+13. **Admin User Controller** (`/api/admin/users`)
+    - GET / - Kullanıcıları yönet
+    - GET /{id} - Kullanıcı detayı
+    - PUT /{id}/role - Rol güncelle
+    - DELETE /{id} - Kullanıcı sil
+
+14. **Payment Method Controller** (`/api/payment-methods`)
+    - GET / - Ödeme yöntemlerini listele
+    - POST / - Ödeme yöntemi ekle
+    - DELETE /{id} - Ödeme yöntemi sil
+
+15. **Payment Controller** (`/api/payments`)
+    - POST /process - Ödeme işlemi
+    - GET /{id} - Ödeme durumu
+    - POST /{id}/refund - İade talebi
+
+16. **Public Store Controller** (`/api/public/stores`)
+    - GET / - Mağazaları listele
+    - GET /{id} - Mağaza detayı
+
+17. **Seller Store Controller** (`/api/seller/stores`)
+    - GET /my-store - Mağaza bilgisi
+    - PUT /my-store - Mağaza güncelle
+    - PUT /my-store/logo - Logo güncelle
+
+18. **Admin Store Controller** (`/api/admin/stores`)
+    - GET / - Mağazaları yönet
+    - PUT /{id}/approve - Mağaza onayı
+    - PUT /{id}/status - Durum güncelle
+    - DELETE /{id} - Mağaza sil
+
+19. **Review Controller** (`/api/reviews`)
+    - GET /product/{productId} - Ürün yorumları
+    - POST / - Yorum ekle
+    - PUT /{id} - Yorum güncelle
+    - DELETE /{id} - Yorum sil
+
+20. **Admin Review Controller** (`/api/admin/reviews`)
+    - GET / - Tüm yorumları yönet
+    - PUT /{id}/approve - Yorum onayı/reddi
+    - DELETE /{id} - Yorum sil
+
+21. **Seller Dashboard Controller** (`/api/seller/dashboard`)
+    - GET /sales - Satış istatistikleri
+    - GET /products - Ürün istatistikleri
+    - GET /orders - Sipariş istatistikleri
+    - GET /revenue - Gelir istatistikleri
+    - GET /best-selling - En çok satanlar
+    - GET /low-stock - Düşük stoklu ürünler
+    - GET /customer-insights - Müşteri analizleri
+
+22. **Admin Dashboard Controller** (`/api/admin/dashboard`)
+    - GET /sales - Tüm satış istatistikleri
+    - GET /products - Ürün istatistikleri
+    - GET /users - Kullanıcı istatistikleri
+    - GET /orders - Sipariş istatistikleri
+    - GET /revenue - Gelir istatistikleri
+    - GET /reports/monthly - Aylık raporlar
+    - GET /reports/yearly - Yıllık raporlar
+    - GET /store-performance - Mağaza performansları
+
+## 8. Projeyi Entegre Etme Adımları
+
+1. **Generic yapıları oluşturma**
+   - Generic Repository, Service ve Controller sınıflarını oluşturun
+
+2. **Entity ve DTO sınıflarını hazırlama**
+   - Her entity için DTO sınıflarını oluşturun (Response, Request, Filter)
+
+3. **Rol bazlı Controller'lar oluşturma**
+   - Public, User, Seller ve Admin bazlı controller sınıflarını oluşturun
+
+4. **Güvenlik yapılandırması**
+   - Spring Security yapılandırmasıyla rol bazlı erişim kurallarını tanımlayın
+
+5. **Frontend entegrasyonu**
+   - Angular servislerini rol bazlı API endpoint'lerine göre güncelleme
+
+Bu şablon, e-ticaret uygulamanızı geliştirirken multi-tenant ve rol bazlı bir mimari oluşturmanıza yardımcı olacaktır. Spring Boot'un güçlü özelliklerinden faydalanarak, hem generic yapılar hem de rol bazlı erişim kontrolleriyle esnek ve güvenli bir API katmanı oluşturabilirsiniz. 

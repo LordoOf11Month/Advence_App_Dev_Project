@@ -1,28 +1,29 @@
 package com.example.security;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
-import io.jsonwebtoken.security.Keys;
-import io.jsonwebtoken.SignatureAlgorithm;
-import jakarta.servlet.http.Cookie;
-import jakarta.servlet.http.HttpServletRequest;
+import java.security.Key;
+import java.util.Date;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.security.Key;
-import java.util.Date;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.JwtException;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.security.Keys;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 
 @Component
 public class JwtUtils {
 
-    @Value("${jwt.secret}")
+    @Value("${security.jwt.token.secret-key}")
     private String jwtSecret;
 
-    @Value("${jwt.expirationMs}")
+    @Value("${security.jwt.token.expire-length}")
     private int jwtExpirationMs;
 
-    @Value("${jwt.cookieName:jwt_token}")
+    @Value("${security.jwt.token.cookie-name}")
     private String jwtCookieName;
 
     private Key getSigningKey() {

@@ -1,0 +1,4 @@
+/* features/seller-dashboard/components/dashboard/dashboard.component.scss */
+.stats-grid { display: flex; gap: 1rem; margin-bottom: 2rem; }
+.stat-card { background: #fafafa; padding: 1rem; flex: 1; text-align: center; border: 1px solid #ddd; }
+.chart-section ul { list-style: none; padding: 0; }

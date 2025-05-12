@@ -1,7 +1,8 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input, Output, EventEmitter, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 import { Product } from '../../models/product.model';
+import { CompareService } from '../../services/compare.service';
 
 @Component({
   selector: 'app-product-card',
@@ -15,37 +16,45 @@ import { Product } from '../../models/product.model';
         </span>
       </div>
       
+      <div class="compare-button" (click)="onCompareClick($event)" [class.is-comparing]="isInCompare">
+        <span class="material-symbols-outlined">
+          {{isInCompare ? 'compare_check' : 'compare'}}
+        </span>
+        <span class="compare-tooltip" *ngIf="isInCompare">In Compare</span>
+        <span class="compare-counter" *ngIf="compareCount > 0 && isInCompare">{{compareCount}}/4</span>
+      </div>
+      
       <a [routerLink]="['/product', product.id]" class="product-link">
         <div class="image-container">
-          <img [src]="product.images[0]" [alt]="product.title" class="product-image">
+          <img [src]="getProductImage()" [alt]="product.title" class="product-image" (error)="handleImageError($event)">
           
-          <div class="discount-badge" *ngIf="product.discountPercentage">
+          <div class="discount-badge" *ngIf="product.discountPercentage && product.discountPercentage > 0">
             {{product.discountPercentage}}% OFF
           </div>
         </div>
         
         <div class="product-info">
-          <h3 class="product-title">{{product.title}}</h3>
+          <h3 class="product-title">{{product.title || 'Product Title'}}</h3>
           
           <a [routerLink]="['/store', product.sellerId]" class="seller-link" (click)="$event.stopPropagation()">
             <span class="material-symbols-outlined">store</span>
-            {{product.sellerName}}
+            {{product.sellerName || 'Store'}}
           </a>
           
           <div class="product-rating">
-            <div class="stars" [attr.data-rating]="product.rating">
-              <span class="material-symbols-outlined">star</span>
-              <span class="material-symbols-outlined">star</span>
-              <span class="material-symbols-outlined">star</span>
-              <span class="material-symbols-outlined">star</span>
-              <span class="material-symbols-outlined">star</span>
+            <div class="stars" [attr.data-rating]="product.rating || 0">
+              <span 
+                *ngFor="let i of [1,2,3,4,5]" 
+                class="material-symbols-outlined"
+                [ngStyle]="{'color': i <= (product.rating || 0) ? 'var(--warning)' : 'var(--neutral-300)'}"
+              >star</span>
             </div>
-            <span class="rating-count">({{product.reviewCount}})</span>
+            <span class="rating-count">({{product.reviewCount || 0}})</span>
           </div>
           
           <div class="product-price">
             <span class="current-price">{{product.price | currency:'TRY':'₺'}}</span>
-            <span class="original-price" *ngIf="product.originalPrice">
+            <span class="original-price" *ngIf="product.originalPrice && product.originalPrice > product.price">
               {{product.originalPrice | currency:'TRY':'₺'}}
             </span>
           </div>
@@ -53,14 +62,24 @@ import { Product } from '../../models/product.model';
           <div class="product-tags">
             <span class="tag free-shipping" *ngIf="product.freeShipping">Free Shipping</span>
             <span class="tag fast-delivery" *ngIf="product.fastDelivery">Fast Delivery</span>
+            <span class="tag in-stock" *ngIf="product.inStock">In Stock</span>
+            <span class="tag out-of-stock" *ngIf="!product.inStock">Out of Stock</span>
           </div>
         </div>
       </a>
       
-      <button class="add-to-cart-btn" (click)="onAddToCart($event)">
-        <span class="material-symbols-outlined">shopping_cart</span>
-        Add to Cart
-      </button>
+      <div class="card-actions">
+        <button class="add-to-cart-btn" (click)="onAddToCart($event)" [disabled]="!product.inStock">
+          <span class="material-symbols-outlined">shopping_cart</span>
+          Add to Cart
+        </button>
+        
+        <button class="add-to-compare-btn" (click)="onCompareClick($event)" [class.is-comparing]="isInCompare">
+          <span class="material-symbols-outlined">{{isInCompare ? 'compare_check' : 'compare'}}</span>
+          {{isInCompare ? 'Remove from Compare' : 'Add to Compare'}}
+          <span class="bottom-counter" *ngIf="compareCount > 0 && isInCompare">{{compareCount}}/4</span>
+        </button>
+      </div>
     </div>
   `,
   styles: [`
@@ -81,10 +100,8 @@ import { Product } from '../../models/product.model';
       box-shadow: var(--shadow-md);
     }
     
-    .favorite-button {
+    .favorite-button, .compare-button {
       position: absolute;
-      top: var(--space-2);
-      right: var(--space-2);
       z-index: 2;
       background-color: var(--white);
       border-radius: 50%;
@@ -98,17 +115,68 @@ import { Product } from '../../models/product.model';
       transition: all var(--transition-fast);
     }
     
-    .favorite-button:hover {
+    .favorite-button {
+      top: var(--space-2);
+      right: var(--space-2);
+    }
+    
+    .compare-button {
+      top: var(--space-2);
+      left: var(--space-2);
+    }
+    
+    .favorite-button:hover, .compare-button:hover {
       transform: scale(1.1);
     }
     
-    .favorite-button .material-symbols-outlined {
+    .favorite-button .material-symbols-outlined,
+    .compare-button .material-symbols-outlined {
       color: var(--neutral-500);
       transition: color var(--transition-fast);
     }
     
     .favorite-button .is-favorite {
       color: var(--error);
+    }
+    
+    .compare-button.is-comparing .material-symbols-outlined {
+      color: var(--primary);
+    }
+    
+    .compare-tooltip {
+      position: absolute;
+      top: -25px;
+      left: 50%;
+      transform: translateX(-50%);
+      background-color: var(--primary);
+      color: white;
+      padding: 3px 8px;
+      border-radius: var(--radius-sm);
+      font-size: 0.7rem;
+      white-space: nowrap;
+      opacity: 0;
+      transition: opacity var(--transition-fast);
+      pointer-events: none;
+    }
+    
+    .compare-button.is-comparing:hover .compare-tooltip {
+      opacity: 1;
+    }
+    
+    .compare-counter {
+      position: absolute;
+      bottom: -10px;
+      right: -10px;
+      background-color: var(--primary);
+      color: white;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      font-size: 0.7rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
     }
     
     .product-link {
@@ -234,46 +302,131 @@ import { Product } from '../../models/product.model';
     }
     
     .tag {
-      font-size: 0.6875rem;
-      padding: var(--space-1) var(--space-2);
+      display: inline-block;
+      font-size: 0.75rem;
+      padding: 2px 6px;
       border-radius: var(--radius-sm);
-      font-weight: 500;
+      margin-right: 4px;
     }
     
-    .free-shipping {
-      background-color: rgba(54, 179, 126, 0.1);
-      color: var(--success);
+    .tag.free-shipping {
+      background-color: #E3F2FD;
+      color: #1976D2;
     }
     
-    .fast-delivery {
-      background-color: rgba(0, 102, 255, 0.1);
-      color: var(--secondary);
+    .tag.fast-delivery {
+      background-color: #E8F5E9;
+      color: #388E3C;
     }
     
-    .add-to-cart-btn {
+    .tag.in-stock {
+      background-color: #E8F5E9;
+      color: #388E3C;
+    }
+    
+    .tag.out-of-stock {
+      background-color: #FFEBEE;
+      color: #D32F2F;
+    }
+    
+    .card-actions {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+      padding: 0 var(--space-3) var(--space-3);
+    }
+    
+    .add-to-cart-btn, .add-to-compare-btn {
       width: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
       gap: var(--space-2);
-      background-color: var(--primary);
-      color: var(--white);
-      border: none;
       padding: var(--space-2);
       font-weight: 500;
       transition: background-color var(--transition-fast);
-      border-radius: 0;
+      border-radius: var(--radius-sm);
+      cursor: pointer;
+    }
+    
+    .add-to-cart-btn {
+      background-color: var(--primary);
+      color: var(--white);
+      border: none;
     }
     
     .add-to-cart-btn:hover {
       background-color: var(--primary-dark);
     }
+    
+    .add-to-compare-btn {
+      background-color: var(--white);
+      color: var(--neutral-700);
+      border: 1px solid var(--neutral-300);
+    }
+    
+    .add-to-compare-btn:hover {
+      background-color: var(--neutral-100);
+    }
+    
+    .add-to-compare-btn.is-comparing {
+      background-color: var(--primary-light);
+      color: var(--primary);
+      border-color: var(--primary);
+    }
+    
+    .bottom-counter {
+      background-color: var(--primary-dark);
+      color: white;
+      font-size: 0.7rem;
+      padding: 1px 5px;
+      border-radius: var(--radius-sm);
+      margin-left: var(--space-1);
+      font-weight: bold;
+    }
+    
+    .add-to-cart-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
   `]
 })
-export class ProductCardComponent {
+export class ProductCardComponent implements OnInit {
   @Input() product!: Product;
   @Output() addToCart = new EventEmitter<Product>();
   @Output() toggleFavorite = new EventEmitter<number>();
+  @Output() toggleCompare = new EventEmitter<Product>();
+  
+  isInCompare = false;
+  compareCount = 0;
+  
+  constructor(private compareService: CompareService) {}
+  
+  ngOnInit(): void {
+    if (this.product && this.product.id) {
+      // Check if product is in compare list
+      this.isInCompare = this.compareService.isInCompare(this.product.id);
+      this.compareCount = this.compareService.getCompareCount();
+      
+      // Subscribe to changes in the compare list to update UI accordingly
+      this.compareService.getCompareProducts().subscribe(products => {
+        this.isInCompare = products.some(p => p.id === this.product.id);
+        this.compareCount = products.length;
+      });
+    }
+  }
+  
+  getProductImage(): string {
+    if (this.product && this.product.images && this.product.images.length > 0) {
+      return this.product.images[0];
+    }
+    return '/assets/images/placeholder-product.svg';
+  }
+  
+  handleImageError(event: Event): void {
+    const target = event.target as HTMLImageElement;
+    target.src = '/assets/images/placeholder-product.svg';
+  }
   
   onAddToCart(event: Event): void {
     event.preventDefault();
@@ -285,5 +438,26 @@ export class ProductCardComponent {
     event.preventDefault();
     event.stopPropagation();
     this.toggleFavorite.emit(this.product.id);
+  }
+  
+  onCompareClick(event: Event): void {
+    event.preventDefault();
+    event.stopPropagation();
+    
+    if (this.isInCompare) {
+      this.compareService.removeFromCompare(this.product.id);
+      this.isInCompare = false;
+    } else {
+      const added = this.compareService.addToCompare(this.product);
+      this.isInCompare = added;
+      
+      // If product wasn't added (e.g., comparison limit reached), we could show a message
+      if (!added) {
+        console.log('Comparison limit reached (max 4 products)');
+        // Could integrate with notification service here if available
+      }
+    }
+    
+    this.toggleCompare.emit(this.product);
   }
 }

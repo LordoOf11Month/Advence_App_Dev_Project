@@ -1,0 +1,24 @@
+<!-- features/auth/components/register/register.component.html -->
+<h2>Register</h2>
+<form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
+  <div>
+    <label>Name</label>
+    <input formControlName="name" type="text" />
+    <div class="error" *ngIf="f['name'].touched && f['name'].invalid">Name is required.</div>
+  </div>
+  <div>
+    <label>Email</label>
+    <input formControlName="email" type="email" />
+    <div class="error" *ngIf="f['email'].touched && f['email'].invalid">Valid email is required.</div>
+  </div>
+  <div>
+    <label>Password</label>
+    <input formControlName="password" type="password" />
+    <div class="error" *ngIf="f['password'].touched && f['password'].invalid">
+      Password is required (min 6 characters).
+    </div>
+  </div>
+  <button type="submit" [disabled]="loading">Register</button>
+  <app-error-alert *ngIf="error" [errorMessage]="error"></app-error-alert>
+</form>
+<p>Already have an account? <a routerLink="/auth/login">Login here</a>.</p>

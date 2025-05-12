@@ -1,12 +1,21 @@
 package com.example.controllers;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.DTO.AuthDTO.JwtResponse;
+import com.example.DTO.AuthDTO.LoginRequest;
+import com.example.DTO.AuthDTO.RegisterRequest;
 import com.example.services.AuthService;
-import com.example.DTO.AuthDTO.*;
+
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.*;
-import org.springframework.web.bind.annotation.*;
 
 // import com.example.models.LoginRequest;
 @RestController
@@ -19,12 +28,16 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest req, HttpServletResponse res) {
         JwtResponse jwt = authService.authenticate(req);
+        
+        // Set JWT token in cookie (for applications using cookies)
         ResponseCookie cookie = ResponseCookie.from("jwt", jwt.getToken())
                 .httpOnly(true)
                 .path("/")
                 .maxAge(7 * 24 * 60 * 60)
                 .build();
         res.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+        
+        // Return JWT in response body (for applications using Authorization header)
         return ResponseEntity.ok(jwt);
     }
 

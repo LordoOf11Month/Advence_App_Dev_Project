@@ -1,11 +1,11 @@
 export interface Product {
   id: number;
   title: string;
+  slug?: string;
   description: string;
   price: number;
   originalPrice?: number;
   discountPercentage?: number;
-  category: string;
   brand: string;
   rating: number;
   reviewCount: number;
@@ -15,10 +15,16 @@ export interface Product {
   freeShipping?: boolean;
   fastDelivery?: boolean;
   inStock: boolean;
+  stockQuantity?: number;
   sellerId: string;
   sellerName: string;
   variants?: ProductVariant[];
   isFavorite?: boolean;
+  storeId?: number;
+  storeName?: string;
+  addedToCart?: boolean;
+  quantity?: number;
+  category?: string | Category;
 }
 
 export interface ProductVariant {
@@ -36,6 +42,8 @@ export interface Category {
   slug: string;
   imageUrl?: string;
   subcategories?: Category[];
+  parentCategory?: Category;
+  parentCategoryId?: number;
 }
 
 export interface Banner {

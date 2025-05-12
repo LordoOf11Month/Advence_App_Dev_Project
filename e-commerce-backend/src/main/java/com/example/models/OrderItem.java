@@ -29,5 +29,13 @@ public class OrderItem {
     @Column(name = "price_at_purchase", precision = 10, scale = 2, nullable = false)
     private BigDecimal priceAtPurchase;
 
+    @Column(name = "stripe_payment_intent_id")
+    private String stripePaymentIntentId;
+
+    @Column(name = "stripe_charge_id")
+    private String stripeChargeId;
+
+    @OneToOne(mappedBy = "orderItem", cascade = CascadeType.ALL)
+    private Refund refund;
 }
 

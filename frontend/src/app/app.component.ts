@@ -3,20 +3,26 @@ import { CommonModule } from '@angular/common';
 import { RouterOutlet } from '@angular/router';
 import { HeaderComponent } from './components/header/header.component';
 import { FooterComponent } from './components/footer/footer.component';
+import { CompareBarComponent } from './components/compare-bar/compare-bar.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterOutlet, HeaderComponent, FooterComponent],
+  imports: [
+    CommonModule,
+    RouterOutlet,
+    HeaderComponent,
+    FooterComponent,
+    CompareBarComponent
+  ],
   template: `
     <div class="app-container">
       <app-header></app-header>
-      
-      <main>
+      <main class="app-content">
         <router-outlet></router-outlet>
       </main>
-      
       <app-footer></app-footer>
+      <app-compare-bar></app-compare-bar>
     </div>
   `,
   styles: [`
@@ -34,5 +40,5 @@ import { FooterComponent } from './components/footer/footer.component';
   `]
 })
 export class AppComponent {
-  title = 'E-Commerce App';
+  title = 'Trendway';
 }

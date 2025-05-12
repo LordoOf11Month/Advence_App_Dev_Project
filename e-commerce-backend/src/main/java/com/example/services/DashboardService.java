@@ -1,6 +1,6 @@
 package com.example.services;
 
-import com.example.DTO.ProductDTO;
+import com.example.DTO.ProductDTO.CreateProductRequest;
 import com.example.DTO.SellerDashboardDTO.*;
 import com.example.models.OrderEntity;
 import com.example.models.OrderItem;
@@ -107,15 +107,15 @@ public class DashboardService {
                 : null;
         dto.setCustomerName(customerName);
 
-        dto.setItems(orderEntity.getOrderItems().stream()
-                .map(this::mapToOrderItemDTO)
-                .collect(Collectors.toList()));
+        // dto.setItems(orderEntity.getOrderItems().stream()
+        //         .map(this::mapToOrderItemDTO)
+        //         .collect(Collectors.toList()));
 
         BigDecimal totalAmount = orderEntity.getOrderItems().stream()
                 .map(item -> item.getPriceAtPurchase().multiply(BigDecimal.valueOf(item.getQuantity())))
                 .reduce(BigDecimal.ZERO, BigDecimal::add);
 
-        dto.setTotalAmount(totalAmount.doubleValue());
+        dto.setTotalAmount(totalAmount);
         dto.setStatus(orderEntity.getStatus() != null ? orderEntity.getStatus().name() : null);
         dto.setSellerName("Seller Store Name");
         dto.setDateUpdated(orderEntity.getUpdatedAt() != null ? new java.util.Date(orderEntity.getUpdatedAt().getTime()) : null);
@@ -133,16 +133,16 @@ public class DashboardService {
         return dto;
     }
 
-    private OrderItemDTO mapToOrderItemDTO(OrderItem orderItem) {
-        OrderItemDTO dto = new OrderItemDTO();
-        dto.setProduct(mapToCreateProductDTO(orderItem.getProduct()));
-        dto.setQuantity(orderItem.getQuantity() != null ? orderItem.getQuantity() : 0);
-        dto.setPriceAtPurchase(orderItem.getPriceAtPurchase() != null ? orderItem.getPriceAtPurchase().doubleValue() : 0.0);
-        return dto;
-    }
+    // private OrderItemDTO mapToOrderItemDTO(OrderItem orderItem) {
+    //     OrderItemDTO dto = new OrderItemDTO();
+    //     dto.setProduct(mapToCreateProductDTO(orderItem.getProduct()));
+    //     dto.setQuantity(orderItem.getQuantity() != null ? orderItem.getQuantity() : 0);
+    //     dto.setPriceAtPurchase(orderItem.getPriceAtPurchase() != null ? orderItem.getPriceAtPurchase() : BigDecimal.ZERO);
+    //     return dto;
+    // }
 
-    private ProductDTO.CreateProductRequest mapToCreateProductDTO(Product product) {
-        ProductDTO.CreateProductRequest dto = new ProductDTO.CreateProductRequest();
+    private CreateProductRequest mapToCreateProductDTO(Product product) {
+        CreateProductRequest dto = new CreateProductRequest();
         dto.setTitle(product.getName());
         dto.setDescription(product.getDescription());
         dto.setPrice(product.getPrice());
