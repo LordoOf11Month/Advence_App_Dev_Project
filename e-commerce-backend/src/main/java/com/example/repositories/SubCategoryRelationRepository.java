@@ -11,7 +11,7 @@ import com.example.models.SubCategoryRelation;
 import java.util.List;
 
 @Repository
-public interface SubCategoryRelationRepository extends JpaRepository<SubCategoryRelation, Integer> {
+public interface SubCategoryRelationRepository extends JpaRepository<SubCategoryRelation, Long> {
     
     // Find all direct subcategories (depth=1) of a given category
     List<SubCategoryRelation> findByAncestorAndDepth(Category ancestor, int depth);

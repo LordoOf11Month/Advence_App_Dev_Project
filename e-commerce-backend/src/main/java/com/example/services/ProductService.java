@@ -12,6 +12,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -287,6 +289,28 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
                 .map(ProductImage::getImageUrl)
                 .collect(Collectors.toList());
             response.setImages(imageUrls);
+        }
+        
+        // Check if product is in user's favorites
+        try {
+            Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+            if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
+                String email = auth.getName();
+                if (email != null && !email.isEmpty()) {
+                    // If the product has favoriteUsers, check if current user is in that list
+                    if (product.getFavoriteUsers() != null) {
+                        boolean isFavorite = product.getFavoriteUsers().stream()
+                            .anyMatch(user -> user.getEmail().equals(email));
+                        response.setFavorite(isFavorite);
+                    } else {
+                        response.setFavorite(false);
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Log exception but don't fail the whole response
+            System.err.println("Error determining favorite status: " + e.getMessage());
+            response.setFavorite(false);
         }
         
         return response;

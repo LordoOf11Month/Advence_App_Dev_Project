@@ -1,12 +1,33 @@
 package com.example.DTO.admin;
 
-import lombok.Data;
-import org.springframework.data.domain.Pageable; // Assuming pagination
-import jakarta.validation.constraints.NotBlank;
-
 import java.time.LocalDateTime;
+import java.util.ArrayList; // Assuming pagination
+import java.util.List;
 
+import jakarta.validation.constraints.NotBlank;
+import lombok.Data;
+
+@Data
 public class AdminOrderDTO {
+    private String id;
+    private String customerId;
+    private String customerName;
+    private String orderDate;
+    private String status;
+    private double totalAmount;
+    private String shippingAddress;
+    private String paymentMethod;
+    private boolean paymentResolved;
+    private boolean issueResolved;
+    private List<OrderItemDTO> items = new ArrayList<>();
+
+    @Data
+    public static class OrderItemDTO {
+        private String productId;
+        private String productName;
+        private int quantity;
+        private double price;
+    }
 
     @Data
     public static class AdminOrderFilterRequest {

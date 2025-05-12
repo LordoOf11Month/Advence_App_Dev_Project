@@ -15,6 +15,8 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.OneToMany;
 import jakarta.persistence.PrePersist;
@@ -63,9 +65,6 @@ public class Product {
 
     @Column(name = "fast_delivery", nullable = false)
     private boolean fastDelivery = false;
-    
-    @Column(name = "featured", nullable = false)
-    private boolean featured = false;
 
     // pre-calculated rating values for removing useless join queries
     @Column(name = "average_rating")
@@ -103,6 +102,15 @@ public class Product {
     @OneToMany(mappedBy = "product")
     @JsonIgnoreProperties({"product", "user", "handler"})
     private List<Review> reviews;
+    
+    @ManyToMany
+    @JoinTable(
+        name = "user_favorite_products",
+        joinColumns = @JoinColumn(name = "product_id"),
+        inverseJoinColumns = @JoinColumn(name = "user_id")
+    )
+    @JsonIgnoreProperties({"favoriteProducts", "handler"})
+    private List<User> favoriteUsers;
     
     @PrePersist
     protected void onCreate() {

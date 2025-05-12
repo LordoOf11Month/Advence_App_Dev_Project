@@ -1,12 +1,13 @@
 package com.example.security;
 
-import com.example.models.User;
+import java.util.Collection;
+import java.util.List;
+
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
-import java.util.Collection;
-import java.util.List;
+import com.example.models.User;
 
 public class CustomUserDetails implements UserDetails {
 
@@ -18,8 +19,19 @@ public class CustomUserDetails implements UserDetails {
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        // Map your single Role enum to Spring Security's GrantedAuthority
-        return List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name().toUpperCase()));
+        // Standard role
+        String roleName = "ROLE_" + user.getRole().name().toUpperCase();
+        
+        // For customer role, also add ROLE_USER for compatibility
+        if (user.getRole() == User.Role.customer) {
+            return List.of(
+                new SimpleGrantedAuthority(roleName),
+                new SimpleGrantedAuthority("ROLE_USER")
+            );
+        }
+        
+        // For other roles, just return the standard role
+        return List.of(new SimpleGrantedAuthority(roleName));
     }
 
     @Override

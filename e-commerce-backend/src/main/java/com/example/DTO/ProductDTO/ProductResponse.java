@@ -28,6 +28,7 @@ public class ProductResponse {
     private String storeName;
     private Long sellerId;
     private String sellerName;
-
+    private boolean favorite;
+    
     // Lombok's @Getter and @Setter at class level should cover all fields.
 } 
