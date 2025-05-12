@@ -63,6 +63,9 @@ public class Product {
 
     @Column(name = "fast_delivery", nullable = false)
     private boolean fastDelivery = false;
+    
+    @Column(name = "featured", nullable = false)
+    private boolean featured = false;
 
     // pre-calculated rating values for removing useless join queries
     @Column(name = "average_rating")
