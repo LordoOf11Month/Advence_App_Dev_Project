@@ -1,14 +1,15 @@
 package com.example.services;
 
-import com.example.DTO.CategoryDTO;
-import com.example.models.Category;
-import com.example.repositories.CategoryRepository;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.example.DTO.CategoryDTO;
+import com.example.models.Category;
+import com.example.repositories.CategoryRepository;
 
 @Service
 public class CategoryService {
@@ -38,6 +39,15 @@ public class CategoryService {
         return categoryRepository.findById(id)
                 .map(CategoryDTO::fromEntity);
     }
+
+    public Optional<Category> findBySlug(String slug) {
+        return categoryRepository.findBySlug(slug);
+    }
+
+    public Optional<CategoryDTO> findBySlugAsDTO(String slug) {
+        return categoryRepository.findBySlug(slug)
+                .map(CategoryDTO::fromEntity);
+    }
     
     public List<Category> findRootCategories() {
         return categoryRepository.findAll().stream()
@@ -49,6 +59,24 @@ public class CategoryService {
         return findRootCategories().stream()
                 .map(CategoryDTO::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Find a category by slug and include its subcategories and products.
+     */
+    @Transactional(readOnly = true)
+    public Optional<CategoryDTO> findBySlugWithSubcategories(String slug) {
+        return categoryRepository.findBySlug(slug)
+                .map(category -> {
+                    CategoryDTO dto = CategoryDTO.fromEntity(category);
+                    // Include subcategories
+                    if (category.getSubcategories() != null) {
+                        dto.setSubcategories(category.getSubcategories().stream()
+                                .map(CategoryDTO::fromEntity)
+                                .collect(Collectors.toList()));
+                    }
+                    return dto;
+                });
     }
 
     @Transactional
@@ -142,6 +170,39 @@ public class CategoryService {
     }
     
     // Helper method to generate a URL-friendly slug from a name
+    
+    @Transactional(readOnly = true)
+    public java.util.Set<Integer> getAllDescendantIds(String slug) {
+        java.util.Set<Integer> ids = new java.util.HashSet<>();
+        Optional<Category> categoryOpt = findBySlug(slug);
+        if (categoryOpt.isPresent()) {
+            collectDescendantIds(categoryOpt.get(), ids);
+        }
+        return ids;
+    }
+
+    @Transactional(readOnly = true)
+    public Optional<CategoryDTO> findByNameAsDTO(String categoryName) {
+        // The categoryName parameter from the URL will be URL-decoded by Spring MVC
+        // e.g., "Living%20Room%20Furniture" becomes "Living Room Furniture"
+        List<Category> categories = categoryRepository.findByNameContainingIgnoreCase(categoryName);
+        
+        // Prioritize exact match on name
+        return categories.stream()
+                .filter(c -> c.getName().equalsIgnoreCase(categoryName))
+                .findFirst()
+                .map(CategoryDTO::fromEntity);
+    }
+
+    private void collectDescendantIds(Category category, java.util.Set<Integer> ids) {
+        ids.add(category.getId());
+        if (category.getSubcategories() != null) {
+            for (Category subCategory : category.getSubcategories()) {
+                collectDescendantIds(subCategory, ids);
+            }
+        }
+    }
+
     private String generateSlug(String name) {
         if (name == null || name.isEmpty()) {
             return "";

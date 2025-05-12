@@ -5,12 +5,13 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import com.example.models.Category;
+import com.example.repositories.generic.GenericRepository;
 
 import java.util.List;
 import java.util.Optional;
 
 @Repository
-public interface CategoryRepository extends JpaRepository<Category, Integer> {
+public interface CategoryRepository extends GenericRepository<Category, Integer> {
     
     // Find a category by its slug
     Optional<Category> findBySlug(String slug);

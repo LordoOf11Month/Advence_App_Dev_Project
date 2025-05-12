@@ -1,0 +1,528 @@
+<div class="admin-container">
+  <!-- Desktop sidebar -->
+  <aside class="admin-sidebar">
+    <nav class="admin-nav">
+      <a [class.active]="activeSection === 'overview'" (click)="scrollToSection('overview')">
+        Overview
+      </a>
+      <a [class.active]="activeSection === 'products'" (click)="scrollToSection('products')">
+        Products
+      </a>
+      <a [class.active]="activeSection === 'orders'" (click)="scrollToSection('orders')">
+        Orders
+      </a>
+    </nav>
+
+    <div class="keyboard-shortcuts">
+      <h3>Keyboard Shortcuts</h3>
+      <div class="shortcut">
+        <kbd>↑</kbd>
+        <span>Previous section</span>
+      </div>
+      <div class="shortcut">
+        <kbd>↓</kbd>
+        <span>Next section</span>
+      </div>
+      <div class="shortcut">
+        <kbd>Ctrl</kbd> + <kbd>N</kbd>
+        <span>New product</span>
+      </div>
+      <div class="shortcut">
+        <kbd>Esc</kbd>
+        <span>Close modal</span>
+      </div>
+    </div>
+  </aside>
+
+  <main class="admin-content" #mainContent>
+    <!-- Mobile navigation (only displayed on mobile) -->
+    <nav class="mobile-nav" *ngIf="isMobileView">
+      <a [class.active]="activeSection === 'overview'" (click)="scrollToSection('overview')">
+        Overview
+      </a>
+      <a [class.active]="activeSection === 'products'" (click)="scrollToSection('products')">
+        Products
+      </a>
+      <a [class.active]="activeSection === 'orders'" (click)="scrollToSection('orders')">
+        Orders
+      </a>
+    </nav>
+    
+    <!-- Sections wrapper to prevent layout shifts -->
+    <div class="sections-wrapper">
+      <!-- Overview Section -->
+      <section id="overview" #section>
+        <h2>Store Overview</h2>
+        
+        <div *ngIf="isLoadingStats">
+          <app-loading-spinner></app-loading-spinner>
+        </div>
+
+        <div *ngIf="statsError" class="error-message">
+          {{ statsError }}
+        </div>
+
+        <div *ngIf="stats && !isLoadingStats" class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon revenue">
+              <span class="material-symbols-outlined">payments</span>
+            </div>
+            <div class="stat-info">
+              <h3>Total Revenue</h3>
+              <div class="stat-value">₺{{ stats.totalRevenue | number:'1.0-0' }}</div>
+              <small>Past 30 days</small>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon products">
+              <span class="material-symbols-outlined">inventory_2</span>
+            </div>
+            <div class="stat-info">
+              <h3>Active Products</h3>
+              <div class="stat-value">{{ stats.activeProducts }}</div>
+              <small>{{ stats.totalProducts }} total</small>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon orders">
+              <span class="material-symbols-outlined">local_shipping</span>
+            </div>
+            <div class="stat-info">
+              <h3>Pending Orders</h3>
+              <div class="stat-value">{{ orderStats?.pending || 0 }}</div>
+              <small>{{ stats.totalOrders }} total</small>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon rating">
+              <span class="material-symbols-outlined">star</span>
+            </div>
+            <div class="stat-info">
+              <h3>Store Rating</h3>
+              <div class="stat-value">{{ rating?.toFixed(1) }}</div>
+              <small>{{ totalReviews }} reviews</small>
+            </div>
+          </div>
+        </div>
+
+        <div class="daily-stats">
+          <div class="today-stats">
+            <h3>Today's Performance</h3>
+            <div class="today-metrics">
+              <div class="metric">
+                <span class="metric-label">Orders</span>
+                <span class="metric-value">{{ todayOrders }}</span>
+                <span class="metric-change" [class.positive]="orderChange > 0" [class.negative]="orderChange < 0">
+                  {{ orderChange > 0 ? '+' : '' }}{{ orderChange }}%
+                </span>
+              </div>
+              <div class="metric">
+                <span class="metric-label">Revenue</span>
+                <span class="metric-value">₺{{ todayRevenue.toLocaleString() }}</span>
+                <span class="metric-change" [class.positive]="revenueChange > 0" [class.negative]="revenueChange < 0">
+                  {{ revenueChange > 0 ? '+' : '' }}{{ revenueChange }}%
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Products Section -->
+      <section id="products" #section>
+        <h2>Your Products</h2>
+        
+        <div *ngIf="isLoadingProducts">
+          <app-loading-spinner></app-loading-spinner>
+        </div>
+
+        <div *ngIf="productsError" class="error-message">
+          {{ productsError }}
+        </div>
+
+        <div *ngIf="!isLoadingProducts && !productsError">
+          <div class="table-actions">
+            <button (click)="openProductForm()">Add Product</button>
+            <button (click)="loadProducts()" title="Reload Products">
+              <span class="material-symbols-outlined">refresh</span>
+              Refresh
+            </button>
+            
+            <div class="filters">
+              <input 
+                type="text" 
+                [(ngModel)]="productSearchQuery" 
+                (ngModelChange)="filterProducts()"
+                placeholder="Search products..."
+              >
+              
+              <select [(ngModel)]="productStatusFilter" (ngModelChange)="filterProducts()">
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+                <option value="out-of-stock">Out of Stock</option>
+              </select>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Image</th>
+                <th (click)="sortProducts('title')">
+                  Title
+                  <span *ngIf="productSort.column === 'title'" [class]="productSort.direction">↕</span>
+                </th>
+                <th (click)="sortProducts('price')">
+                  Price
+                  <span *ngIf="productSort.column === 'price'" [class]="productSort.direction">↕</span>
+                </th>
+                <th (click)="sortProducts('stock')">
+                  Stock
+                  <span *ngIf="productSort.column === 'stock'" [class]="productSort.direction">↕</span>
+                </th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let product of paginatedProducts?.items">
+                <td>
+                  <div class="product-image">
+                    <img [src]="product.imageUrl || 'assets/images/placeholder-product.png'" alt="{{ product.title }}">
+                    <button class="image-edit-btn" (click)="quickEditImage(product)" title="Edit Image">
+                      <span class="material-symbols-outlined">edit_photo</span>
+                    </button>
+                  </div>
+                </td>
+                <td>{{ product.title }}</td>
+                <td>₺{{ product.price }}</td>
+                <td>{{ product.stock }}</td>
+                <td>
+                  <span [class]="'status-badge ' + product.status">
+                    {{ product.status }}
+                  </span>
+                </td>
+                <td>
+                  <button (click)="editProduct(product)">Edit</button>
+                  <a [routerLink]="['/product', product.id]" target="_blank"><button>View</button></a>
+                  <button (click)="toggleFreeShipping(product)" [class]="product.freeShipping ? 'warning' : 'success'">
+                    {{ product.freeShipping ? 'Remove Free Shipping' : 'Add Free Shipping' }}
+                  </button>
+                  <button (click)="toggleFastDelivery(product)" [class]="product.fastDelivery ? 'warning' : 'success'">
+                    {{ product.fastDelivery ? 'Remove Fast Delivery' : 'Add Fast Delivery' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="pagination">
+            <button [disabled]="productPagination.currentPage === 1" (click)="goToProductPage(1)">First</button>
+            <button [disabled]="productPagination.currentPage === 1" (click)="goToProductPage(productPagination.currentPage - 1)">Previous</button>
+            
+            <div class="page-numbers">
+              <button 
+                *ngFor="let page of visibleProductPages" 
+                [class.active]="page === productPagination.currentPage" 
+                (click)="goToProductPage(page)">
+                {{ page }}
+              </button>
+            </div>
+            
+            <button [disabled]="productPagination.currentPage >= Math.ceil(productPagination.totalItems / productPagination.pageSize)" (click)="goToProductPage(productPagination.currentPage + 1)">Next</button>
+            <button [disabled]="productPagination.currentPage >= Math.ceil(productPagination.totalItems / productPagination.pageSize)" (click)="goToProductPage(Math.ceil(productPagination.totalItems / productPagination.pageSize))">Last</button>
+            
+            <select [(ngModel)]="productPagination.pageSize" (change)="changeProductPageSize()">
+              <option *ngFor="let size of pageSizes" [value]="size">{{ size }} per page</option>
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Orders Section -->
+      <section id="orders" #section>
+        <h2>Your Orders</h2>
+        
+        <div *ngIf="isLoadingOrders">
+          <app-loading-spinner></app-loading-spinner>
+        </div>
+
+        <div *ngIf="ordersError" class="error-message">
+          {{ ordersError }}
+        </div>
+
+        <div *ngIf="!isLoadingOrders && !ordersError">
+          <div class="table-actions">
+            <button (click)="loadOrders()" title="Reload Orders">
+              <span class="material-symbols-outlined">refresh</span>
+              Refresh
+            </button>
+            
+            <div class="filters">
+              <select [(ngModel)]="selectedOrderStatus" (change)="filterOrders()">
+                <option *ngFor="let status of allOrderStatuses" [value]="status">
+                  {{ status === 'all' ? 'All Orders' : (status | titlecase) + ' Orders' }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <table>
+            <thead>
+              <tr>
+                <th>Order #</th>
+                <th>Customer</th>
+                <th>Date</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let order of paginatedOrders?.items">
+                <td>#{{ order.id }}</td>
+                <td>{{ order.userEmail }}</td>
+                <td>{{ order.dateCreated | date:'short' }}</td>
+                <td>{{ order.items.length }} items</td>
+                <td>₺{{ order.totalAmount.toLocaleString() }}</td>
+                <td>
+                  <span class="status-badge {{ order.status }}">{{ order.status }}</span>
+                </td>
+                <td>
+                  <button (click)="viewOrderDetails(order)">View Details</button>
+                  <button (click)="openStatusUpdate(order)" *ngIf="order.status !== 'delivered' && order.status !== 'cancelled'">
+                    Update Status
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div class="pagination">
+            <button [disabled]="orderPagination.currentPage === 1" (click)="goToOrderPage(1)">First</button>
+            <button [disabled]="orderPagination.currentPage === 1" (click)="goToOrderPage(orderPagination.currentPage - 1)">Previous</button>
+            
+            <div class="page-numbers">
+              <button 
+                *ngFor="let page of visibleOrderPages" 
+                [class.active]="page === orderPagination.currentPage" 
+                (click)="goToOrderPage(page)">
+                {{ page }}
+              </button>
+            </div>
+            
+            <button [disabled]="orderPagination.currentPage >= Math.ceil(orderPagination.totalItems / orderPagination.pageSize)" (click)="goToOrderPage(orderPagination.currentPage + 1)">Next</button>
+            <button [disabled]="orderPagination.currentPage >= Math.ceil(orderPagination.totalItems / orderPagination.pageSize)" (click)="goToOrderPage(Math.ceil(orderPagination.totalItems / orderPagination.pageSize))">Last</button>
+            
+            <select [(ngModel)]="orderPagination.pageSize" (change)="changeOrderPageSize()">
+              <option *ngFor="let size of pageSizes" [value]="size">{{ size }} per page</option>
+            </select>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- Modals -->
+<!-- Product Form Modal -->
+<div class="modal" *ngIf="showProductForm">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>{{ editingProduct ? 'Edit Product' : 'Add New Product' }}</h2>
+      <button class="close-btn" (click)="closeProductForm()">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group">
+          <label for="productTitle">Product Title*</label>
+          <input type="text" id="productTitle" [(ngModel)]="currentProduct.title" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="productPrice">Price (₺)*</label>
+          <input type="number" id="productPrice" [(ngModel)]="currentProduct.price" min="0" step="1" required>
+        </div>
+        
+        <div class="form-group">
+          <label for="productCategory">Category*</label>
+          <select id="productCategory" [(ngModel)]="currentProduct.category" required>
+            <option value="">Select a category</option>
+            <option value="electronics">Electronics</option>
+            <option value="clothing">Clothing</option>
+            <option value="home">Home</option>
+            <option value="beauty">Beauty</option>
+            <option value="sports">Sports</option>
+            <option value="books">Books</option>
+            <option value="toys">Toys</option>
+            <option value="food">Food</option>
+            <option value="other">Other</option>
+          </select>
+        </div>
+        
+        <div class="form-group">
+          <label for="productStock">Stock*</label>
+          <input type="number" id="productStock" [(ngModel)]="currentProduct.stock" min="0" required>
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="currentProduct.inStock">
+            In Stock
+          </label>
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="currentProduct.freeShipping">
+            Free Shipping
+          </label>
+        </div>
+        
+        <div class="form-group checkbox-group">
+          <label>
+            <input type="checkbox" [(ngModel)]="currentProduct.fastDelivery">
+            Fast Delivery
+          </label>
+        </div>
+        
+        <div class="form-group full-width">
+          <label for="productDescription">Description*</label>
+          <textarea id="productDescription" [(ngModel)]="currentProduct.description" rows="4" required></textarea>
+        </div>
+        
+        <div class="form-group full-width">
+          <label for="productImageUrl">Image URL*</label>
+          <input type="text" id="productImageUrl" [(ngModel)]="currentProduct.imageUrl" required>
+          <div class="image-preview" *ngIf="currentProduct.imageUrl">
+            <img [src]="currentProduct.imageUrl" alt="Product image preview">
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button (click)="closeProductForm()" class="secondary">Cancel</button>
+      <button (click)="saveProduct()" [disabled]="isSavingProduct">
+        <span *ngIf="isSavingProduct">Saving...</span>
+        <span *ngIf="!isSavingProduct">Save Product</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Order Details Modal -->
+<div class="modal" *ngIf="selectedOrder">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Order Details</h2>
+      <button class="close-btn" (click)="selectedOrder = null">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <div class="order-details">
+        <div class="order-info">
+          <p><strong>Order ID:</strong> #{{ selectedOrder.id }}</p>
+          <p><strong>Date:</strong> {{ selectedOrder.dateCreated | date:'medium' }}</p>
+          <p><strong>Status:</strong> 
+            <span class="status-badge {{ selectedOrder.status }}">{{ selectedOrder.status }}</span>
+          </p>
+          <p><strong>Customer:</strong> {{ selectedOrder.userEmail }}</p>
+          <p><strong>Shipping Address:</strong> {{ selectedOrder.shippingAddress }}</p>
+        </div>
+        
+        <div class="order-items">
+          <h3>Items</h3>
+          <table>
+            <thead>
+              <tr>
+                <th>Product</th>
+                <th>Quantity</th>
+                <th>Price</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of selectedOrder.items">
+                <td>
+                  <div class="item-info">
+                    <img [src]="item.image || 'assets/images/placeholder-product.png'" alt="{{ item.name }}">
+                    <span>{{ item.name }}</span>
+                  </div>
+                </td>
+                <td>{{ item.quantity }}</td>
+                <td>₺{{ item.price }}</td>
+                <td>₺{{ item.price * item.quantity }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        
+        <div class="order-summary">
+          <div class="summary-item">
+            <span>Subtotal</span>
+            <span>₺{{ selectedOrder.subtotal || selectedOrder.totalAmount }}</span>
+          </div>
+          <div class="summary-item" *ngIf="selectedOrder.shipping">
+            <span>Shipping</span>
+            <span>₺{{ selectedOrder.shipping }}</span>
+          </div>
+          <div class="summary-item" *ngIf="selectedOrder.tax">
+            <span>Tax</span>
+            <span>₺{{ selectedOrder.tax }}</span>
+          </div>
+          <div class="summary-item" *ngIf="selectedOrder.discount">
+            <span>Discount</span>
+            <span>-₺{{ selectedOrder.discount }}</span>
+          </div>
+          <div class="summary-item total">
+            <span>Total</span>
+            <span>₺{{ selectedOrder.totalAmount }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button (click)="selectedOrder = null" class="secondary">Close</button>
+      <button (click)="openStatusUpdate(selectedOrder)" *ngIf="selectedOrder.status !== 'delivered' && selectedOrder.status !== 'cancelled'">
+        Update Status
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Status Update Modal -->
+<div class="modal" *ngIf="showStatusUpdate">
+  <div class="modal-content">
+    <div class="modal-header">
+      <h2>Update Order Status</h2>
+      <button class="close-btn" (click)="showStatusUpdate = false">×</button>
+    </div>
+    
+    <div class="modal-body">
+      <p>Order #{{ selectedOrder?.id }}</p>
+      <p>Current Status: <span class="status-badge {{ selectedOrder?.status }}">{{ selectedOrder?.status }}</span></p>
+      
+      <div class="form-group">
+        <label for="newStatus">New Status</label>
+        <select id="newStatus" [(ngModel)]="newOrderStatus">
+          <option *ngFor="let status of orderStatuses" [value]="status" [disabled]="status === selectedOrder?.status">
+            {{ status | titlecase }}
+          </option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="modal-footer">
+      <button (click)="showStatusUpdate = false" class="secondary">Cancel</button>
+      <button (click)="updateOrderStatus()" [disabled]="newOrderStatus === selectedOrder?.status">Update Status</button>
+    </div>
+  </div>
+</div>

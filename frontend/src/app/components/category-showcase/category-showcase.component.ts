@@ -217,13 +217,14 @@ export class CategoryShowcaseComponent implements OnInit {
     event.target.src = '/assets/images/placeholder-24.png';
   }
 
-  getCategorySlug(category: any): string {
-    if (category.slug) {
+  getCategorySlug(category: Category): string {
+    if (!category) return 'all';
+
+    // If a slug is already defined in the database, use it
+    if (category.slug && typeof category.slug === 'string' && category.slug.trim() !== '') {
       return category.slug;
     }
-    if (category.name) {
-      return category.name.toLowerCase().replace(/ /g, '-');
-    }
+
     return 'all';
   }
 }

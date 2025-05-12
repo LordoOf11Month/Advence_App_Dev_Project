@@ -1,14 +1,24 @@
 package com.example.controllers.Public;
 
-import com.example.services.ProductService;
-import com.example.DTO.ProductDTO.ProductResponse;
-import com.example.DTO.ProductDTO.ProductFilterRequest;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Optional;
+
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
+import com.example.DTO.ProductDTO.ProductFilterRequest;
+import com.example.DTO.ProductDTO.ProductResponse;
+import com.example.services.ProductService;
+import com.example.models.Product;
+import com.example.models.Category;
 
 @RestController
 @RequestMapping("/api/public/products")
@@ -74,8 +84,8 @@ public class PublicProductController {
     /**
      * Fetch products by category ID.
      */
-    @GetMapping("/category/{categoryId}")
-    public ResponseEntity<List<ProductResponse>> getByCategory(@PathVariable Long categoryId) {
+    @GetMapping("/category/id/{categoryId}")
+    public ResponseEntity<List<ProductResponse>> getByCategory(@PathVariable Integer categoryId) {
         System.out.println("Fetching products for category ID: " + categoryId);
         List<ProductResponse> products = productService.findByCategoryId(categoryId);
         System.out.println("Found " + products.size() + " products for category ID: " + categoryId);
@@ -85,20 +95,59 @@ public class PublicProductController {
     /**
      * Fetch products by category slug.
      */
-    @GetMapping("/category/slug/{slug}")
+    @GetMapping("/category/{slug}")
     public ResponseEntity<List<ProductResponse>> getByCategorySlug(@PathVariable String slug) {
-        System.out.println("Fetching products for category slug: " + slug);
-        List<ProductResponse> products = productService.findByCategorySlug(slug);
-        System.out.println("Found " + products.size() + " products for category slug: " + slug);
-        return ResponseEntity.ok(products);
+        return ResponseEntity.ok(productService.findByCategorySlug(slug));
     }
 
     /**
      * Search products by name or description.
      */
     @GetMapping("/search")
-    public ResponseEntity<List<ProductResponse>> search(@RequestParam String keyword) {
-        return ResponseEntity.ok(productService.searchByKeyword(keyword));
+    public ResponseEntity<List<ProductResponse>> search(@RequestParam(required = false) String search, 
+                                                      @RequestParam(required = false) String keyword) {
+        String query = search != null ? search : keyword;
+        if (query == null || query.trim().isEmpty()) {
+            return ResponseEntity.badRequest().build();
+        }
+        return ResponseEntity.ok(productService.searchByKeyword(query));
+    }
+
+    /**
+     * Search products by both category and keyword.
+     * This endpoint allows searching for products within a specific category and its subcategories.
+     */
+    @GetMapping("/category/{slug}/search")
+    public ResponseEntity<List<ProductResponse>> searchInCategory(
+            @PathVariable String slug,
+            @RequestParam(required = false) String keyword) {
+        return ResponseEntity.ok(productService.searchByCategoryAndKeyword(slug, keyword));
+    }
+
+    /**
+     * Get category information for a specific product.
+     * This endpoint returns the category URL information for product-to-category navigation.
+     */
+    @GetMapping("/{id}/category-url")
+    public ResponseEntity<Map<String, String>> getProductCategoryUrl(@PathVariable Long id) {
+        ProductResponse product = productService.findById(id).orElse(null);
+        if (product == null) {
+            return ResponseEntity.notFound().build();
+        }
+
+        Map<String, String> response = new HashMap<>();
+        
+        if (product.getCategorySlug() == null || product.getCategorySlug().isEmpty()) {
+            response.put("url", "/category/all");
+            response.put("slug", "all");
+            response.put("name", "All Products");
+        } else {
+            response.put("url", "/category/" + product.getCategorySlug());
+            response.put("slug", product.getCategorySlug());
+            response.put("name", product.getCategoryName());
+        }
+        
+        return ResponseEntity.ok(response);
     }
 
     // According to the template, PublicProductController could also have:

@@ -75,26 +75,46 @@ import { Category } from '../../models/product.model';
         </div>
         
         <div class="search-bar">
+          <form (ngSubmit)="onSearch()" #searchForm="ngForm">
           <input 
             type="text" 
             placeholder="Search products, brands, and categories" 
             [(ngModel)]="searchQuery"
+              name="searchQuery"
             (focus)="showSearchSuggestions = true"
             (blur)="onSearchBlur()"
+              (keyup)="onSearchInput()"
+              (keyup.enter)="onSearch()"
           />
-          <button class="search-button">
+            <button type="submit" class="search-button">
             <span class="material-symbols-outlined">search</span>
           </button>
+          </form>
           
-          <div class="search-suggestions" *ngIf="showSearchSuggestions">
-            <div class="suggestion-group">
-              <h4>Popular Searches</h4>
+          <div class="search-suggestions" *ngIf="showSearchSuggestions && searchQuery">
+            <div class="suggestion-group" *ngIf="searchResults.length > 0">
+              <h4>Quick Results</h4>
               <ul>
-                <li><a routerLink="/category/summer-dresses">summer dresses</a></li>
-                <li><a routerLink="/category/smartphones">smartphones</a></li>
-                <li><a routerLink="/category/running-shoes">running shoes</a></li>
-                <li><a routerLink="/category/wireless-headphones">wireless headphones</a></li>
+                <li *ngFor="let result of searchResults">
+                  <a [routerLink]="['/product', result.id]" (click)="onSearchResultClick()">
+                    <div class="search-result-item">
+                      <img [src]="result.images[0]" *ngIf="result.images?.length > 0" alt="{{result.title}}">
+                      <div class="search-result-details">
+                        <span class="result-title">{{result.title}}</span>
+                        <span class="result-category">{{result.category}}</span>
+                        <span class="result-price">{{result.price | currency:'TRY':'₺'}}</span>
+                      </div>
+                    </div>
+                  </a>
+                </li>
               </ul>
+              <div class="view-all-results">
+                <a (click)="onSearch()">View all results for "{{searchQuery}}"</a>
+              </div>
+            </div>
+            <div class="suggestion-group" *ngIf="searchResults.length === 0 && searchQuery">
+              <h4>No results found</h4>
+              <p>Try searching for something else</p>
             </div>
           </div>
         </div>
@@ -259,80 +279,118 @@ import { Category } from '../../models/product.model';
     }
     
     .search-bar {
-      flex: 1;
       position: relative;
+      flex: 1;
       max-width: 600px;
-      margin: 0 var(--space-4);
+      margin: 0 20px;
+    }
+
+    .search-bar form {
+      display: flex;
+      align-items: center;
     }
     
     .search-bar input {
       width: 100%;
-      padding: var(--space-3);
-      padding-right: var(--space-6);
+      padding: 10px 15px;
       border: 1px solid var(--neutral-300);
-      border-radius: var(--radius-md);
-      font-size: 1rem;
-    }
-    
-    .search-bar input:focus {
-      outline: none;
-      border-color: var(--primary);
-      box-shadow: 0 0 0 2px rgba(255, 96, 0, 0.1);
+      border-radius: 4px;
+      font-size: 14px;
     }
     
     .search-button {
       position: absolute;
-      right: var(--space-2);
+      right: 10px;
       top: 50%;
       transform: translateY(-50%);
-      background-color: transparent;
+      background: none;
+      border: none;
+      cursor: pointer;
       color: var(--neutral-600);
-      padding: var(--space-1);
-      border-radius: 50%;
-    }
-    
-    .search-button:hover {
-      color: var(--primary);
-      background-color: rgba(255, 96, 0, 0.1);
     }
     
     .search-suggestions {
       position: absolute;
       top: 100%;
       left: 0;
-      width: 100%;
-      background-color: var(--white);
+      right: 0;
+      background: var(--white);
       border-radius: var(--radius-md);
-      box-shadow: var(--shadow-md);
+      box-shadow: var(--shadow-lg);
+      margin-top: var(--space-2);
+      z-index: 1000;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .suggestion-group {
       padding: var(--space-3);
-      margin-top: var(--space-1);
-      z-index: 100;
     }
     
     .suggestion-group h4 {
       font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--neutral-700);
+      margin-bottom: var(--space-2);
+    }
+    
+    .search-result-item {
+      display: flex;
+      align-items: center;
+      gap: var(--space-3);
+      padding: var(--space-2);
+      border-radius: var(--radius-sm);
+      transition: background-color var(--transition-fast);
+    }
+
+    .search-result-item:hover {
+      background-color: var(--neutral-100);
+    }
+    
+    .search-result-item img {
+      width: 50px;
+      height: 50px;
+      object-fit: cover;
+      border-radius: var(--radius-sm);
+    }
+
+    .search-result-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-1);
+    }
+    
+    .result-title {
+      font-weight: 500;
+      color: var(--neutral-900);
+    }
+
+    .result-category {
+      font-size: 0.75rem;
       color: var(--neutral-600);
-      margin-bottom: var(--space-2);
+    }
+
+    .result-price {
+      font-weight: 600;
+      color: var(--primary);
     }
     
-    .suggestion-group ul {
-      list-style: none;
-      padding: 0;
-      margin: 0;
+    .view-all-results {
+      padding: var(--space-2);
+      border-top: 1px solid var(--neutral-200);
+      text-align: center;
     }
-    
-    .suggestion-group li {
-      margin-bottom: var(--space-2);
+
+    .view-all-results a {
+      color: var(--primary);
+      text-decoration: none;
+      font-weight: 500;
+      cursor: pointer;
     }
-    
-    .suggestion-group a {
-      color: var(--neutral-800);
-      font-size: 0.9375rem;
-      transition: color var(--transition-fast);
-    }
-    
-    .suggestion-group a:hover {
-      color: var (--primary);
+
+    .view-all-results a:hover {
+      text-decoration: underline;
     }
     
     .cart-link {
@@ -722,7 +780,7 @@ import { Category } from '../../models/product.model';
       color: var(--color-text-dark);
       border-bottom: 1px solid var(--neutral-200);
       padding-bottom: 8px;
-      
+    }
 
     
     .submenu-list {
@@ -886,6 +944,7 @@ import { Category } from '../../models/product.model';
 export class HeaderComponent {
   searchQuery: string = '';
   showSearchSuggestions: boolean = false;
+  searchResults: any[] = [];
   categories: Category[] = [];
   showMobileMenu: boolean = false;
   isScrolled: boolean = false;
@@ -956,8 +1015,25 @@ export class HeaderComponent {
     this.router.navigate(['/category', 'all']);
   }
   
+  onSearch(): void {
+    if (this.searchQuery.trim()) {
+      // Navigate to search results page with the query
+      this.router.navigate(['/search'], { 
+        queryParams: { q: this.searchQuery.trim() }
+      });
+      this.showSearchSuggestions = false;
+      this.searchQuery = '';
+    }
+  }
+
+  onSearchResultClick(): void {
+    this.showSearchSuggestions = false;
+    this.searchQuery = '';
+    this.searchResults = [];
+  }
+  
   onSearchBlur(): void {
-    // Delay hiding the suggestions to allow for clicking on them
+    // Delay hiding suggestions to allow for clicks
     setTimeout(() => {
       this.showSearchSuggestions = false;
     }, 200);
@@ -969,18 +1045,38 @@ export class HeaderComponent {
   }
 
   // Helper method to get category slug
-  getCategorySlug(category: any): string {
-    if (category.slug) {
+  getCategorySlug(category: Category): string {
+    if (!category) return 'all';
+
+    // If a slug is already defined in the database, use it
+    if (category.slug && typeof category.slug === 'string' && category.slug.trim() !== '') {
       return category.slug;
     }
-    if (category.name) {
-      return category.name.toLowerCase().replace(/ /g, '-');
-    }
+
     return 'all';
   }
   
   // Helper method to safely check if a category has subcategories
   hasSubcategories(category: any): boolean {
     return category && category.subcategories && category.subcategories.length > 0;
+  }
+
+  // Add method to handle search input changes
+  onSearchInput(): void {
+    if (this.searchQuery.trim().length >= 2) {
+      this.productService.searchProducts(this.searchQuery).subscribe({
+        next: (results) => {
+          this.searchResults = results;
+          this.showSearchSuggestions = true;
+        },
+        error: (error) => {
+          console.error('Search error:', error);
+          this.searchResults = [];
+        }
+      });
+    } else {
+      this.searchResults = [];
+      this.showSearchSuggestions = false;
+    }
   }
 }

@@ -15,24 +15,24 @@ VALUES
 INSERT INTO categories (category_id, name, slug, image_url, description, is_active, parent_category_id) VALUES
 (1, 'Electronics', 'electronics', 'https://images.unsplash.com/photo-1498049794561-7780e7231661?auto=format&fit=crop&q=60', 'All electronic devices and accessories', true, NULL),
 (31, 'Fashion', 'fashion', 'https://images.unsplash.com/photo-1445205170230-053b83016050?auto=format&fit=crop&q=60', 'Clothing and accessories for all', true, NULL),
-(46, 'Home & Living', 'home-living', 'https://images.unsplash.com/photo-1484101403633-562f891dc89a?auto=format&fit=crop&q=60', 'Everything for your home', true, NULL),
-(68, 'Beauty & Personal Care', 'beauty-personal-care', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=60', 'Beauty and personal care products', true, NULL),
-(75, 'Sports & Outdoors', 'sports-outdoors', 'https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&q=60', 'Sports equipment and outdoor gear', true, NULL),
-(90, 'Baby & Kids', 'baby-kids', 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&q=60', 'Products for babies and children', true, NULL),
-(100, 'Health & Wellness', 'health-wellness', 'https://images.unsplash.com/photo-1505576399279-565b52d4ac71?auto=format&fit=crop&q=60', 'Health and wellness products', true, NULL),
+(46, 'Home & Living', 'home-and-living', 'https://images.unsplash.com/photo-1484101403633-562f891dc89a?auto=format&fit=crop&q=60', 'Everything for your home', true, NULL),
+(68, 'Beauty & Personal Care', 'beauty-and-personal-care', 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&q=60', 'Beauty and personal care products', true, NULL),
+(75, 'Sports & Outdoors', 'sports-and-outdoors', 'https://images.unsplash.com/photo-1517466787929-bc90951d0974?auto=format&fit=crop&q=60', 'Sports equipment and outdoor gear', true, NULL),
+(90, 'Baby & Kids', 'baby-and-kids', 'https://images.unsplash.com/photo-1515488042361-ee00e0ddd4e4?auto=format&fit=crop&q=60', 'Products for babies and children', true, NULL),
+(100, 'Health & Wellness', 'health-and-wellness', 'https://images.unsplash.com/photo-1505576399279-565b52d4ac71?auto=format&fit=crop&q=60', 'Health and wellness products', true, NULL),
 (110, 'Automotive', 'automotive', 'https://images.unsplash.com/photo-1511919884226-fd3cad34687c?auto=format&fit=crop&q=60', 'Automotive parts and accessories', true, NULL),
-(120, 'Grocery & Food', 'grocery-food', 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60', 'Food and grocery items', true, NULL),
-(123, 'Books & Entertainment', 'books-entertainment', 'https://images.unsplash.com/photo-1524578271613-d550eacf6090?auto=format&fit=crop&q=60', 'Books, movies, and entertainment', true, NULL),
+(120, 'Grocery & Food', 'grocery-and-food', 'https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&q=60', 'Food and grocery items', true, NULL),
+(123, 'Books & Entertainment', 'books-and-entertainment', 'https://images.unsplash.com/photo-1524578271613-d550eacf6090?auto=format&fit=crop&q=60', 'Books, movies, and entertainment', true, NULL),
 (130, 'Office Products', 'office-products', 'https://images.unsplash.com/photo-1497366216548-37526070297c?auto=format&fit=crop&q=60', 'Office supplies and equipment', true, NULL),
 (140, 'Pet Supplies', 'pet-supplies', 'https://images.unsplash.com/photo-1450778869180-41d0601e046e?auto=format&fit=crop&q=60', 'Supplies for pets', true, NULL),
-(150, 'Jewelry & Watches', 'jewelry-watches', 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&q=60', 'Jewelry and watches', true, NULL);
+(150, 'Jewelry & Watches', 'jewelry-and-watches', 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&q=60', 'Jewelry and watches', true, NULL);
 
 -- Electronics subcategories
 INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
 (2, 'Mobile Phones', 'mobile-phones', 'Smartphones and mobile devices', true, 1),
-(6, 'Computers & Tablets', 'computers-tablets', 'Computers, laptops, and tablets', true, 1),
-(12, 'TV, Audio & Video', 'tv-audio-video', 'Television and audio equipment', true, 1),
-(18, 'Cameras & Photography', 'cameras-photography', 'Cameras and photography equipment', true, 1),
+(6, 'Computers & Tablets', 'computers-and-tablets', 'Computers, laptops, and tablets', true, 1),
+(12, 'TV, Audio & Video', 'tv-audio-and-video', 'Television and audio equipment', true, 1),
+(18, 'Cameras & Photography', 'cameras-and-photography', 'Cameras and photography equipment', true, 1),
 (23, 'Gaming', 'gaming', 'Video games and gaming equipment', true, 1),
 (27, 'Smart Home', 'smart-home', 'Smart home devices and accessories', true, 1);
 
@@ -53,7 +53,7 @@ INSERT INTO categories (category_id, name, slug, description, is_active, parent_
 -- TV, Audio & Video subcategories
 INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
 (13, 'Televisions', 'televisions', 'Smart TVs and standard televisions', true, 12),
-(14, 'Headphones & Earphones', 'headphones-earphones', 'Wireless and wired audio devices', true, 12),
+(14, 'Headphones & Earphones', 'headphones-and-earphones', 'Wireless and wired audio devices', true, 12),
 (15, 'Speakers', 'speakers', 'Bluetooth and wired speakers', true, 12),
 (16, 'Soundbars', 'soundbars', 'Sound enhancement for TVs', true, 12),
 (17, 'Projectors', 'projectors', 'Home and office projectors', true, 12);
@@ -87,14 +87,14 @@ INSERT INTO categories (category_id, name, slug, description, is_active, parent_
 INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
 (33, 'Clothing', 'women-clothing', 'Dresses, tops, pants, and jackets for women', true, 32),
 (34, 'Shoes', 'women-shoes', 'Heels, sneakers, and boots for women', true, 32),
-(35, 'Bags & Wallets', 'women-bags-wallets', 'Handbags, purses, and wallets for women', true, 32),
+(35, 'Bags & Wallets', 'women-bags-and-wallets', 'Handbags, purses, and wallets for women', true, 32),
 (36, 'Accessories', 'women-accessories', 'Scarves, belts, and hats for women', true, 32);
 
 -- Men's fashion subcategories
 INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
 (38, 'Clothing', 'men-clothing', 'Shirts, pants, suits, and jackets for men', true, 37),
 (39, 'Shoes', 'men-shoes', 'Formal, casual, and sneakers for men', true, 37),
-(40, 'Bags & Wallets', 'men-bags-wallets', 'Bags and wallets for men', true, 37),
+(40, 'Bags & Wallets', 'men-bags-and-wallets', 'Bags and wallets for men', true, 37),
 (41, 'Accessories', 'men-accessories', 'Ties, belts, and hats for men', true, 37);
 
 -- Kids fashion subcategories
@@ -107,9 +107,9 @@ INSERT INTO categories (category_id, name, slug, description, is_active, parent_
 INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
 (47, 'Furniture', 'furniture', 'Furniture for all rooms', true, 46),
 (51, 'Home Decor', 'home-decor', 'Decorative items for your home', true, 46),
-(56, 'Kitchen & Dining', 'kitchen-dining', 'Kitchen and dining essentials', true, 46),
+(56, 'Kitchen & Dining', 'kitchen-and-dining', 'Kitchen and dining essentials', true, 46),
 (60, 'Bedding', 'bedding', 'Bed sheets, pillows, and comforters', true, 46),
-(64, 'Storage & Organization', 'storage-organization', 'Storage solutions for your home', true, 46);
+(64, 'Storage & Organization', 'storage-and-organization', 'Storage solutions for your home', true, 46);
 
 -- Furniture subcategories
 INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
@@ -121,7 +121,7 @@ INSERT INTO categories (category_id, name, slug, description, is_active, parent_
 INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
 (52, 'Lighting', 'lighting', 'Lamps, ceiling lights, and more', true, 51),
 (53, 'Wall Art', 'wall-art', 'Paintings, prints, and wall decor', true, 51),
-(54, 'Rugs & Carpets', 'rugs-carpets', 'Area rugs, throw rugs, and carpets', true, 51),
+(54, 'Rugs & Carpets', 'rugs-and-carpets', 'Area rugs, throw rugs, and carpets', true, 51),
 (55, 'Curtains', 'curtains', 'Window treatments and curtains', true, 51);
 
 -- Kitchen & Dining subcategories
@@ -148,12 +148,12 @@ INSERT INTO categories (category_id, name, slug, description, is_active, parent_
 (70, 'Skincare', 'skincare', 'Facial cleansers, moisturizers, and more', true, 68),
 (71, 'Hair Care', 'hair-care', 'Shampoo, conditioner, and styling products', true, 68),
 (72, 'Fragrances', 'fragrances', 'Perfumes and colognes', true, 68),
-(73, 'Tools & Accessories', 'beauty-tools-accessories', 'Hair dryers, straighteners, and other tools', true, 68),
+(73, 'Tools & Accessories', 'beauty-tools-and-accessories', 'Hair dryers, straighteners, and other tools', true, 68),
 (74, 'Men''s Grooming', 'mens-grooming', 'Grooming products for men', true, 68);
 
 -- Sports & Outdoors subcategories
 INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
-(76, 'Exercise & Fitness', 'exercise-fitness', 'Fitness equipment for home workouts', true, 75),
+(76, 'Exercise & Fitness', 'exercise-and-fitness', 'Fitness equipment for home workouts', true, 75),
 (80, 'Outdoor Recreation', 'outdoor-recreation', 'Camping, hiking, and outdoor activities', true, 75),
 (83, 'Sportswear', 'sportswear', 'Clothing and footwear for sports', true, 75),
 (86, 'Team Sports', 'team-sports', 'Equipment for team sports', true, 75);
@@ -166,7 +166,7 @@ INSERT INTO categories (category_id, name, slug, description, is_active, parent_
 
 -- Outdoor Recreation subcategories
 INSERT INTO categories (category_id, name, slug, description, is_active, parent_category_id) VALUES
-(81, 'Camping & Hiking Gear', 'camping-hiking', 'Tents, backpacks, and camping equipment', true, 80),
+(81, 'Camping & Hiking Gear', 'camping-and-hiking', 'Tents, backpacks, and camping equipment', true, 80),
 (82, 'Bicycles', 'bicycles', 'Road bikes, mountain bikes, and more', true, 80);
 
 -- Sportswear subcategories
@@ -179,83 +179,6 @@ INSERT INTO categories (category_id, name, slug, description, is_active, parent_
 (87, 'Football', 'football', 'Footballs, goals, and equipment', true, 86),
 (88, 'Basketball', 'basketball', 'Basketballs, hoops, and accessories', true, 86),
 (89, 'Tennis', 'tennis', 'Tennis rackets, balls, and equipment', true, 86);
-(88, 'Basketball', 86),
-(89, 'Tennis', 86),
-(90, 'Baby, Toys & Kids', NULL),
-(91, 'Baby Products', 90),
-(92, 'Strollers', 91),
-(93, 'Car Seats', 91),
-(94, 'Baby Care', 91),
-(95, 'Toys', 90),
-(96, 'Educational Toys', 95),
-(97, 'Action Figures', 95),
-(98, 'Dolls', 95),
-(99, 'Board Games', 95),
-(100, 'Puzzles', 95),
-(101, 'Kids'' Furniture', 90),
-(102, 'Health & Wellness', NULL),
-(103, 'Vitamins & Supplements', 102),
-(104, 'Medical Supplies', 102),
-(105, 'Personal Care', 102),
-(106, 'Sexual Wellness', 102),
-(107, 'First Aid', 102),
-(108, 'Automotive', NULL),
-(109, 'Car Accessories', 108),
-(110, 'Seat Covers', 109),
-(111, 'Dash Cams', 109),
-(112, 'Motorcycle Accessories', 108),
-(113, 'Car Electronics (GPS, Alarms)', 108),
-(114, 'Tires & Wheels', 108),
-(115, 'Tools & Equipment', 108),
-(116, 'Grocery & Food', NULL),
-(117, 'Fresh Produce', 116),
-(118, 'Packaged Foods', 116),
-(119, 'Beverages', 116),
-(120, 'Snacks', 116),
-(121, 'Organic & Health Foods', 116),
-(122, 'Household Essentials (Detergents, Cleaners)', 116),
-(123, 'Books, Movies & Music', NULL),
-(124, 'Books', 123),
-(125, 'Fiction', 124),
-(126, 'Non-Fiction', 124),
-(127, 'Educational', 124),
-(128, 'Movies & TV Shows', 123),
-(129, 'Music', 123),
-(130, 'CDs & Vinyl', 129),
-(131, 'Musical Instruments', 129),
-(132, 'Office Products', NULL),
-(133, 'Office Supplies', 132),
-(134, 'Stationery', 133),
-(135, 'Printers & Ink', 133),
-(136, 'Office Furniture', 132),
-(137, 'Business Technology', 132),
-(138, 'Projectors', 137),
-(139, 'Office Phones', 137),
-(140, 'Pet Supplies', NULL),
-(141, 'Dog Supplies', 140),
-(142, 'Cat Supplies', 140),
-(143, 'Bird Supplies', 140),
-(144, 'Fish & Aquatic Pets', 140),
-(145, 'Pet Food', 140),
-(146, 'Pet Toys & Accessories', 140),
-(147, 'Jewelry & Watches', NULL),
-(148, 'Women''s Jewelry', 147),
-(149, 'Men''s Jewelry', 147),
-(150, 'Watches', 147),
-(151, 'Men''s Watches', 150),
-(152, 'Women''s Watches', 150),
-(153, 'Fine Jewelry', 147),
-(154, 'Fashion Jewelry', 147),
-(155, 'Industrial & Scientific', NULL),
-(156, 'Lab & Scientific Products', 155),
-(157, 'Industrial Supplies', 155),
-(158, 'Safety Supplies', 155),
-(159, 'Tools & Instruments', 155),
-(160, 'Travel & Luggage', NULL),
-(161, 'Suitcases', 160),
-(162, 'Backpacks', 160),
-(163, 'Travel Accessories', 160),
-(164, 'Travel-sized Essentials', 160);
 
 -- Stores
 INSERT INTO stores (store_id, seller_id, store_name, description, created_at, average_rating, total_sales, is_banned, banned_date, ban_reason, email, bank_name, account_holder, account_number, street, city, state, postal_code, country)
