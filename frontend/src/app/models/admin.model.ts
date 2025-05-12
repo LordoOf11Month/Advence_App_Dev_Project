@@ -66,6 +66,7 @@ export interface AdminStats {
   totalRevenue: number;
   totalUsers: number;
   totalProducts: number;
+  activeProducts: number;
   monthlySales: number[];
   topSellingCategories: Array<{
     name: string;

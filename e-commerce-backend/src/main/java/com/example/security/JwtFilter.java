@@ -27,8 +27,9 @@ public class JwtFilter extends OncePerRequestFilter {
         "/api/public/",
         "/error",
         "/api/webhooks/",
-        "/v3/api-docs/",
+        "/v3/api-docs",
         "/swagger-ui/",
+        "/swagger-ui.html",
         "/favicon.ico",
         "/static/",
         "/assets/",
@@ -53,7 +54,13 @@ public class JwtFilter extends OncePerRequestFilter {
 
             // Check if the request is for a public endpoint
             boolean isPublicPath = PUBLIC_PATHS.stream()
-                .anyMatch(path -> requestPath.startsWith(path));
+                .anyMatch(path -> {
+                    if (path.endsWith("/")) {
+                        return requestPath.startsWith(path) || requestPath.equals(path.substring(0, path.length() - 1));
+                    } else {
+                        return requestPath.equals(path) || requestPath.startsWith(path + "/");
+                    }
+                });
             
             if (isPublicPath) {
                 logger.info("Public endpoint accessed: {}", requestPath);

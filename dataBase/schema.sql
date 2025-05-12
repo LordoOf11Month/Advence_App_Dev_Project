@@ -11,6 +11,7 @@ DROP TABLE IF EXISTS addresses;
 DROP TABLE IF EXISTS banners;
 DROP TABLE IF EXISTS stores;
 DROP TABLE IF EXISTS promo_codes;
+DROP TABLE IF EXISTS sub_category_relations;
 DROP TABLE IF EXISTS categories;
 DROP TABLE IF EXISTS users;
 
@@ -139,6 +140,7 @@ CREATE TABLE order_items (
 );
 
 CREATE TABLE reviews (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
     user_id INT NOT NULL,
     product_id BIGINT NOT NULL,
     rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
@@ -147,7 +149,7 @@ CREATE TABLE reviews (
     updated_at TIMESTAMP,
     likes INT,
     dislikes INT,
-    PRIMARY KEY (user_id, product_id),
+    UNIQUE KEY unique_user_product (user_id, product_id),
     FOREIGN KEY (user_id) REFERENCES users(user_id),
     FOREIGN KEY (product_id) REFERENCES products(product_id)
 );
@@ -185,4 +187,14 @@ CREATE TABLE promo_codes (
     code VARCHAR(50) NOT NULL,
     discount_percent INT NOT NULL,
     valid_until TIMESTAMP NOT NULL
+);
+
+CREATE TABLE sub_category_relations (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    ancestor_id INT NOT NULL,
+    descendant_id INT NOT NULL,
+    depth INT NOT NULL,
+    FOREIGN KEY (ancestor_id) REFERENCES categories(category_id),
+    FOREIGN KEY (descendant_id) REFERENCES categories(category_id),
+    UNIQUE KEY unique_relation (ancestor_id, descendant_id)
 ); 

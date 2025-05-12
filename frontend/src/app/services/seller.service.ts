@@ -50,6 +50,26 @@ export class SellerService {
     }
   ];
 
+  private mockOrders: any[] = [
+    {
+      id: '1001',
+      customerId: '123',
+      customerName: 'John Doe',
+      dateCreated: new Date('2023-05-15'),
+      status: 'pending',
+      totalAmount: 299.99,
+      items: [
+        {
+          productId: 1,
+          productName: 'Wireless Earbuds',
+          quantity: 1,
+          price: 299.99
+        }
+      ],
+      sellerId: '1'
+    }
+  ];
+
   constructor() {}
 
   getSellerProfile(userId: string): Observable<SellerProfile> {
@@ -69,6 +89,15 @@ export class SellerService {
   }
 
   addProduct(product: Omit<Product, 'id'>): Observable<Product> {
+    const newProduct = {
+      ...product,
+      id: Math.floor(Math.random() * 10000) + 1
+    };
+    this.mockSellerProducts.push(newProduct);
+    return of(newProduct).pipe(delay(500));
+  }
+
+  createProduct(product: any): Observable<Product> {
     const newProduct = {
       ...product,
       id: Math.floor(Math.random() * 10000) + 1
@@ -134,8 +163,21 @@ export class SellerService {
       dateJoined: new Date(),
       status: 'active'
     };
-    
+
     this.mockSellers.push(newSeller);
     return of(newSeller).pipe(delay(500));
+  }
+
+  getSellerOrders(sellerId: string): Observable<any[]> {
+    return of(this.mockOrders.filter(o => o.sellerId === sellerId)).pipe(delay(500));
+  }
+
+  updateOrderStatus(orderId: string, status: string): Observable<any> {
+    const order = this.mockOrders.find(o => o.id === orderId);
+    if (!order) {
+      return throwError(() => new Error('Order not found'));
+    }
+    order.status = status;
+    return of(order).pipe(delay(500));
   }
 }

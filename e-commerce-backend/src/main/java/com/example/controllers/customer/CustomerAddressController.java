@@ -48,12 +48,7 @@ public class CustomerAddressController {
 
     @GetMapping("/default")
     public ResponseEntity<AddressResponse> getDefaultAddress() {
-        List<AddressResponse> addresses = addressService.getCurrentUserAddresses();
-        AddressResponse defaultAddress = addresses.stream()
-                .filter(AddressResponse::isDefault)
-                .findFirst()
-                .orElse(null);
-                
+        AddressResponse defaultAddress = addressService.getDefaultAddress();
         if (defaultAddress != null) {
             return ResponseEntity.ok(defaultAddress);
         } else {

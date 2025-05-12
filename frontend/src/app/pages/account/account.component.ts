@@ -1,10 +1,11 @@
 import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AdminService } from '../../services/admin.service';
 import { AuthService } from '../../services/auth.service';
 import { OrderService } from '../../services/order.service';
+import { AddressService, AddressResponse, CreateAddressRequest, UpdateAddressRequest } from '../../services/address.service';
 import { OrderTracking } from '../../models/admin.model';
 import { User } from '../../models/auth.model';
 import { Order } from '../../models/order.model';
@@ -14,7 +15,7 @@ import { delay, catchError, of } from 'rxjs';
 @Component({
   selector: 'app-account',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule],
   template: `
     <div class="container">
       <h1 class="page-title">My Account</h1>
@@ -363,11 +364,158 @@ import { delay, catchError, of } from 'rxjs';
             </div>
           </div>
 
-          <!-- Other tabs would be implemented similarly -->
+          <!-- Address Tab -->
           <div class="tab-content" *ngIf="activeTab === 'addresses'">
-            <h2 class="tab-title">My Addresses</h2>
-            <!-- Address content would go here -->
-            <p>Addresses management content will be implemented here.</p>
+            <div class="tab-header">
+              <h2 class="tab-title">My Addresses</h2>
+              <button class="add-new-btn" (click)="addNewAddress()">
+                <span class="material-symbols-outlined">add</span>
+                Add New Address
+              </button>
+            </div>
+
+            <!-- Error message -->
+            <div class="alert alert-error" *ngIf="addressError">
+              {{addressError}}
+            </div>
+
+            <!-- Loading indicator -->
+            <div class="loading-container" *ngIf="isLoadingAddresses">
+              <div class="spinner"></div>
+              <p>Loading your addresses...</p>
+            </div>
+
+            <!-- No addresses message -->
+            <div class="no-addresses-message" *ngIf="!isLoadingAddresses && addresses.length === 0 && !showAddressForm">
+              <p>You don't have any saved addresses yet.</p>
+              <button (click)="addNewAddress()" class="add-address-btn">Add a New Address</button>
+            </div>
+
+            <!-- Address Form -->
+            <div class="address-form-container" *ngIf="showAddressForm">
+              <h3>{{editingAddressId ? 'Edit Address' : 'Add New Address'}}</h3>
+              <form [formGroup]="addressForm" (ngSubmit)="saveAddress()">
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="street">Street Address *</label>
+                    <input
+                      type="text"
+                      id="street"
+                      formControlName="street"
+                      [class.error]="addressSubmitted && addressForm.get('street')?.invalid"
+                    >
+                    <div class="error-message" *ngIf="addressSubmitted && addressForm.get('street')?.invalid">
+                      Street address is required
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="city">City *</label>
+                    <input
+                      type="text"
+                      id="city"
+                      formControlName="city"
+                      [class.error]="addressSubmitted && addressForm.get('city')?.invalid"
+                    >
+                    <div class="error-message" *ngIf="addressSubmitted && addressForm.get('city')?.invalid">
+                      City is required
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="state">State/Province *</label>
+                    <input
+                      type="text"
+                      id="state"
+                      formControlName="state"
+                      [class.error]="addressSubmitted && addressForm.get('state')?.invalid"
+                    >
+                    <div class="error-message" *ngIf="addressSubmitted && addressForm.get('state')?.invalid">
+                      State is required
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-row">
+                  <div class="form-group">
+                    <label for="zipCode">Postal Code *</label>
+                    <input
+                      type="text"
+                      id="zipCode"
+                      formControlName="zipCode"
+                      [class.error]="addressSubmitted && addressForm.get('zipCode')?.invalid"
+                    >
+                    <div class="error-message" *ngIf="addressSubmitted && addressForm.get('zipCode')?.invalid">
+                      Postal code is required
+                    </div>
+                  </div>
+
+                  <div class="form-group">
+                    <label for="country">Country *</label>
+                    <input
+                      type="text"
+                      id="country"
+                      formControlName="country"
+                      [class.error]="addressSubmitted && addressForm.get('country')?.invalid"
+                    >
+                    <div class="error-message" *ngIf="addressSubmitted && addressForm.get('country')?.invalid">
+                      Country is required
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-group checkbox">
+                  <input
+                    type="checkbox"
+                    id="isDefault"
+                    formControlName="isDefault"
+                  >
+                  <label for="isDefault">Set as default address</label>
+                </div>
+
+                <div class="form-actions">
+                  <button type="button" class="cancel-btn" (click)="cancelAddressEdit()">Cancel</button>
+                  <button type="submit" class="save-btn">Save Address</button>
+                </div>
+              </form>
+            </div>
+
+            <!-- Address List -->
+            <div class="address-grid" *ngIf="!isLoadingAddresses && addresses.length > 0 && !showAddressForm">
+              <div
+                *ngFor="let address of addresses"
+                class="address-card"
+                [class.default]="address.isDefault"
+              >
+                <div class="address-card-header">
+                  <div class="address-card-title">
+                    <span class="material-symbols-outlined">location_on</span>
+                    <h3>Address</h3>
+                    <span class="default-badge" *ngIf="address.isDefault">Default</span>
+                  </div>
+                  <div class="address-actions">
+                    <button type="button" class="edit-button" (click)="editAddress(address)">
+                      <span class="material-symbols-outlined">edit</span>
+                    </button>
+                    <button type="button" class="delete-button" (click)="deleteAddress(address.id)">
+                      <span class="material-symbols-outlined">delete</span>
+                    </button>
+                  </div>
+                </div>
+                <div class="address-card-body">
+                  <p>{{address.street}}</p>
+                  <p>{{address.city}}, {{address.state}} {{address.zipCode}}</p>
+                  <p>{{address.country}}</p>
+                </div>
+                <div class="address-card-footer" *ngIf="!address.isDefault">
+                  <button type="button" class="set-default-btn" (click)="setDefaultAddress(address.id)">
+                    Set as Default
+                  </button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="tab-content" *ngIf="activeTab === 'favorites'">
@@ -1092,6 +1240,308 @@ import { delay, catchError, of } from 'rxjs';
         grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
       }
     }
+
+    /* Address styles */
+    .tab-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: var(--space-4);
+    }
+
+    .add-new-btn {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+      background-color: var(--primary);
+      color: var(--white);
+      border: none;
+      padding: var(--space-2) var(--space-3);
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+    }
+
+    .add-new-btn:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .address-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: var(--space-4);
+    }
+
+    .address-card {
+      border: 1px solid var(--neutral-200);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      transition: all var(--transition-fast);
+    }
+
+    .address-card:hover {
+      box-shadow: var(--shadow-md);
+      border-color: var(--neutral-300);
+    }
+
+    .address-card.default {
+      border-color: var(--primary);
+      background-color: var(--primary-50);
+    }
+
+    .address-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: var(--space-3);
+      border-bottom: 1px solid var(--neutral-200);
+      background-color: var(--neutral-50);
+    }
+
+    .address-card.default .address-card-header {
+      background-color: var(--primary-100);
+    }
+
+    .address-card-title {
+      display: flex;
+      align-items: center;
+      gap: var(--space-2);
+    }
+
+    .address-card-title h3 {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 500;
+    }
+
+    .default-badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--white);
+      background-color: var(--primary);
+      padding: 2px 6px;
+      border-radius: var(--radius-sm);
+      margin-left: var(--space-2);
+    }
+
+    .address-actions {
+      display: flex;
+      gap: var(--space-1);
+    }
+
+    .edit-button, .delete-button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: var(--radius-full);
+      transition: all var(--transition-fast);
+    }
+
+    .edit-button:hover {
+      background-color: var(--neutral-200);
+      color: var(--primary);
+    }
+
+    .delete-button:hover {
+      background-color: var(--error-100);
+      color: var(--error);
+    }
+
+    .address-card-body {
+      padding: var(--space-3);
+    }
+
+    .address-card-body p {
+      margin: 0;
+      margin-bottom: var(--space-1);
+      font-size: 0.875rem;
+      color: var(--neutral-700);
+    }
+
+    .address-card-body p:last-child {
+      margin-bottom: 0;
+    }
+
+    .address-card-footer {
+      padding: var(--space-3);
+      border-top: 1px solid var(--neutral-200);
+      text-align: right;
+    }
+
+    .set-default-btn {
+      background: none;
+      border: 1px solid var(--primary);
+      color: var(--primary);
+      padding: var(--space-1) var(--space-3);
+      border-radius: var(--radius-md);
+      font-size: 0.875rem;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .set-default-btn:hover {
+      background-color: var(--primary);
+      color: var(--white);
+    }
+
+    .address-form-container {
+      background-color: var(--neutral-50);
+      padding: var(--space-4);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-4);
+      border: 1px solid var(--neutral-200);
+    }
+
+    .address-form-container h3 {
+      margin-top: 0;
+      margin-bottom: var(--space-4);
+      font-size: 1.125rem;
+      font-weight: 600;
+      color: var(--neutral-900);
+    }
+
+    .form-row {
+      display: flex;
+      gap: var(--space-4);
+      margin-bottom: var(--space-4);
+    }
+
+    .form-row .form-group {
+      flex: 1;
+    }
+
+    .form-group {
+      margin-bottom: var(--space-4);
+    }
+
+    .form-group label {
+      display: block;
+      margin-bottom: var(--space-1);
+      font-weight: 500;
+      color: var(--neutral-700);
+    }
+
+    .form-group input, .form-group select {
+      width: 100%;
+      padding: var(--space-2) var(--space-3);
+      border: 1px solid var(--neutral-300);
+      border-radius: var(--radius-md);
+      font-size: 1rem;
+      transition: border-color var(--transition-fast);
+    }
+
+    .form-group input:focus, .form-group select:focus {
+      border-color: var(--primary);
+      outline: none;
+    }
+
+    .form-group input.error, .form-group select.error {
+      border-color: var(--error);
+    }
+
+    .error-message {
+      color: var(--error);
+      font-size: 0.875rem;
+      margin-top: var(--space-1);
+    }
+
+    .form-group.checkbox {
+      display: flex;
+      align-items: center;
+    }
+
+    .form-group.checkbox input {
+      width: auto;
+      margin-right: var(--space-2);
+    }
+
+    .form-group.checkbox label {
+      margin-bottom: 0;
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: var(--space-3);
+    }
+
+    .cancel-btn {
+      background: none;
+      border: 1px solid var(--neutral-300);
+      color: var(--neutral-700);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+    }
+
+    .cancel-btn:hover {
+      background-color: var(--neutral-100);
+      border-color: var(--neutral-400);
+    }
+
+    .save-btn {
+      background-color: var(--primary);
+      border: none;
+      color: var(--white);
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+    }
+
+    .save-btn:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .no-addresses-message {
+      text-align: center;
+      padding: var(--space-6);
+      background-color: var(--neutral-50);
+      border-radius: var(--radius-md);
+      border: 1px dashed var(--neutral-300);
+    }
+
+    .no-addresses-message p {
+      margin-bottom: var(--space-4);
+      color: var(--neutral-600);
+    }
+
+    .add-address-btn {
+      background-color: var(--primary);
+      color: var(--white);
+      border: none;
+      padding: var(--space-2) var(--space-4);
+      border-radius: var(--radius-md);
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color var(--transition-fast);
+    }
+
+    .add-address-btn:hover {
+      background-color: var(--primary-dark);
+    }
+
+    .alert {
+      padding: var(--space-3);
+      border-radius: var(--radius-md);
+      margin-bottom: var(--space-4);
+    }
+
+    .alert-error {
+      background-color: var(--error-50);
+      color: var(--error);
+      border: 1px solid var(--error-100);
+    }
   `]
 })
 export class AccountComponent implements OnInit, OnDestroy {
@@ -1103,7 +1553,15 @@ export class AccountComponent implements OnInit, OnDestroy {
   isSeller: boolean = false;
   currentUser: User | null = null;
 
-  // New properties for order management
+  // Address related variables
+  addresses: AddressResponse[] = [];
+  isLoadingAddresses: boolean = false;
+  showAddressForm: boolean = false;
+  editingAddressId: number | null = null;
+  addressForm: FormGroup;
+  addressSubmitted: boolean = false;
+  addressError: string | null = null;
+
   orders: Order[] = [];
   filteredOrders: Order[] = [];
   isLoadingOrders: boolean = false;
@@ -1113,8 +1571,19 @@ export class AccountComponent implements OnInit, OnDestroy {
     private adminService: AdminService,
     private authService: AuthService,
     private orderService: OrderService,
+    private addressService: AddressService,
+    private formBuilder: FormBuilder,
     private router: Router
-  ) {}
+  ) {
+    this.addressForm = this.formBuilder.group({
+      street: ['', Validators.required],
+      city: ['', Validators.required],
+      state: ['', Validators.required],
+      country: ['', Validators.required],
+      zipCode: ['', Validators.required],
+      isDefault: [false]
+    });
+  }
 
   ngOnInit(): void {
     // Get current user information
@@ -1129,6 +1598,12 @@ export class AccountComponent implements OnInit, OnDestroy {
         }
       })
     );
+
+    if (this.activeTab === 'orders') {
+      this.loadOrders();
+    } else if (this.activeTab === 'addresses') {
+      this.loadAddresses();
+    }
   }
 
   ngOnDestroy(): void {
@@ -1138,8 +1613,10 @@ export class AccountComponent implements OnInit, OnDestroy {
   setActiveTab(tab: string): void {
     this.activeTab = tab;
 
-    if (tab === 'orders') {
+    if (tab === 'orders' && this.orders.length === 0) {
       this.loadOrders();
+    } else if (tab === 'addresses' && this.addresses.length === 0) {
+      this.loadAddresses();
     }
   }
 
@@ -1277,5 +1754,181 @@ export class AccountComponent implements OnInit, OnDestroy {
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  // Address management methods
+  loadAddresses(): void {
+    this.isLoadingAddresses = true;
+    this.addressError = null;
+
+    this.addressService.getAddresses().subscribe({
+      next: (addresses) => {
+        this.addresses = addresses;
+        this.isLoadingAddresses = false;
+      },
+      error: (error) => {
+        console.error('Error loading addresses:', error);
+        this.addressError = 'Failed to load addresses. Please try again.';
+        this.isLoadingAddresses = false;
+      }
+    });
+  }
+
+  addNewAddress(): void {
+    this.addressForm.reset({
+      street: '',
+      city: '',
+      state: '',
+      country: '',
+      zipCode: '',
+      isDefault: false
+    });
+    this.editingAddressId = null;
+    this.showAddressForm = true;
+    this.addressSubmitted = false;
+  }
+
+  editAddress(address: AddressResponse): void {
+    this.addressForm.setValue({
+      street: address.street,
+      city: address.city,
+      state: address.state,
+      country: address.country,
+      zipCode: address.zipCode,
+      isDefault: address.isDefault
+    });
+    this.editingAddressId = address.id;
+    this.showAddressForm = true;
+    this.addressSubmitted = false;
+  }
+
+  cancelAddressEdit(): void {
+    this.showAddressForm = false;
+    this.editingAddressId = null;
+    this.addressForm.reset();
+  }
+
+  deleteAddress(id: number): void {
+    if (confirm('Are you sure you want to delete this address?')) {
+      this.addressService.deleteAddress(id).subscribe({
+        next: () => {
+          this.addresses = this.addresses.filter(a => a.id !== id);
+        },
+        error: (error) => {
+          console.error('Error deleting address:', error);
+          this.addressError = 'Failed to delete address. Please try again.';
+        }
+      });
+    }
+  }
+
+  saveAddress(): void {
+    this.addressSubmitted = true;
+
+    if (this.addressForm.invalid) {
+      return;
+    }
+
+    const addressData = this.addressForm.value;
+
+    if (this.editingAddressId) {
+      // Update existing address
+      this.addressService.updateAddress(this.editingAddressId, addressData).subscribe({
+        next: (updatedAddress) => {
+          const index = this.addresses.findIndex(a => a.id === this.editingAddressId);
+          if (index !== -1) {
+            this.addresses[index] = updatedAddress;
+          }
+          this.cancelAddressEdit();
+        },
+        error: (error) => {
+          console.error('Error updating address:', error);
+          this.addressError = 'Failed to update address. Please try again.';
+        }
+      });
+    } else {
+      // Create new address
+      this.addressService.createAddress(addressData).subscribe({
+        next: (newAddress) => {
+          this.addresses.push(newAddress);
+          this.cancelAddressEdit();
+        },
+        error: (error) => {
+          console.error('Error creating address:', error);
+          this.addressError = 'Failed to create address. Please try again.';
+        }
+      });
+    }
+  }
+
+  setDefaultAddress(id: number): void {
+    const address = this.addresses.find(a => a.id === id);
+    if (!address || address.isDefault) {
+      return;
+    }
+
+    // Show a temporary loading state
+    this.addressError = null;
+    this.isLoadingAddresses = true;
+    const originalAddresses = [...this.addresses];
+
+    // Optimistically update the UI
+    this.addresses.forEach(a => {
+      a.isDefault = a.id === id;
+    });
+
+    const updateRequest: UpdateAddressRequest = {
+      isDefault: true
+    };
+
+    this.addressService.updateAddress(id, updateRequest).subscribe({
+      next: (updatedAddress) => {
+        console.log('Address successfully set as default:', updatedAddress);
+        // Reload addresses to ensure we have the latest state from the backend
+        this.loadAddresses();
+      },
+      error: (error) => {
+        console.error('Error setting default address:', error);
+        this.addressError = 'Failed to set default address. Please try again.';
+        this.isLoadingAddresses = false;
+
+        // Revert the optimistic update
+        this.addresses = [...originalAddresses];
+
+        // If it's a 401 error, try refreshing the token and retry
+        if (error?.status === 401) {
+          console.log('Attempting to refresh token and retry...');
+          this.authService.refreshToken().subscribe({
+            next: () => {
+              console.log('Token refreshed, retrying update...');
+              this.isLoadingAddresses = true;
+              this.addressService.updateAddress(id, updateRequest).subscribe({
+                next: (updatedAddress) => {
+                  console.log('Address successfully set as default after token refresh:', updatedAddress);
+                  // Reload addresses to ensure we have the latest state
+                  this.loadAddresses();
+                },
+                error: (retryError) => {
+                  console.error('Error setting default address after token refresh:', retryError);
+                  this.addressError = 'Failed to set default address. Please log out and try again.';
+                  this.isLoadingAddresses = false;
+                }
+              });
+            },
+            error: (refreshError) => {
+              console.error('Token refresh failed:', refreshError);
+              this.addressError = 'Your session has expired. Please log in again.';
+              this.isLoadingAddresses = false;
+
+              // Redirect to login after a delay
+              setTimeout(() => {
+                this.authService.logout();
+                this.router.navigate(['/login']);
+              }, 2000);
+            }
+          });
+        }
+      }
+    });
   }
 }

@@ -89,47 +89,55 @@ export class OrderService {
     return ordersData.map(orderData => ({
       id: orderData.id?.toString() || '',
       userId: orderData.customer?.id || this.currentUser?.id || 'guest',
-      items: orderData.items?.map((item: any) => ({
-        product: {
-          id: item.product.id,
-          title: item.product.name || item.product.title,
-          price: item.priceAtPurchase || item.product.price,
-          category: item.product.category?.name || '',
-          brand: item.product.brand || '',
-          images: item.product.images || ['/assets/images/placeholder-product.svg'],
-          description: item.product.description || '',
-          rating: item.product.rating || 0,
-          reviewCount: item.product.reviewCount || 0,
-          inStock: true,
-          sellerId: item.product.store?.id || '1',
-          sellerName: item.product.store?.name || 'Store',
-          discountPercentage: 0,
-          originalPrice: item.product.price,
-          freeShipping: false,
-          fastDelivery: false,
-          colors: [],
-          sizes: [],
-          isFavorite: false,
-          variants: []
-        },
-        quantity: item.quantity,
-        color: item.color,
-        size: item.size
-      })) || [],
+      items: orderData.items?.map((item: any) => {
+        // Skip items with missing product data
+        if (!item || !item.product) {
+          console.warn('Found order item with missing product data:', item);
+          return null;
+        }
+
+        return {
+          product: {
+            id: item.product.id || 0,
+            title: item.product.name || item.product.title || 'Unknown Product',
+            price: item.priceAtPurchase || item.product.price || 0,
+            category: item.product.category?.name || '',
+            brand: item.product.brand || '',
+            images: item.product.images || ['/assets/images/placeholder-product.svg'],
+            description: item.product.description || '',
+            rating: item.product.rating || 0,
+            reviewCount: item.product.reviewCount || 0,
+            inStock: true,
+            sellerId: item.product.store?.id || '1',
+            sellerName: item.product.store?.name || 'Store',
+            discountPercentage: 0,
+            originalPrice: item.product.price || 0,
+            freeShipping: false,
+            fastDelivery: false,
+            colors: [],
+            sizes: [],
+            isFavorite: false,
+            variants: []
+          },
+          quantity: item.quantity || 1,
+          color: item.color,
+          size: item.size
+        };
+      }).filter((item: any) => item !== null) || [], // Filter out any null items
       shippingAddress: orderData.shippingAddress,
       paymentMethod: {
         type: 'credit_card', // Default to credit card
-        cardHolder: orderData.customer?.firstName + ' ' + orderData.customer?.lastName,
+        cardHolder: orderData.customer?.firstName + ' ' + orderData.customer?.lastName || 'Card Holder',
         cardNumber: '************1234', // Masked for security
         expiryDate: '12/25', // Default
         cvv: '',
         saveCard: false
       },
-      subtotal: orderData.subtotal || this.calculateSubtotalFromItems(orderData.items),
+      subtotal: orderData.subtotal || this.calculateSubtotalFromItems(orderData.items || []),
       shipping: orderData.shipping || 0,
       discount: orderData.discount || 0,
-      tax: orderData.tax || (orderData.subtotal * 0.18), // Estimate tax if not provided
-      total: orderData.total || this.calculateTotalFromItems(orderData.items),
+      tax: orderData.tax || ((orderData.subtotal || 0) * 0.18), // Estimate tax if not provided
+      total: orderData.total || this.calculateTotalFromItems(orderData.items || []),
       status: orderData.status || 'pending',
       createdAt: orderData.createdAt ? new Date(orderData.createdAt) : new Date(),
       updatedAt: orderData.updatedAt ? new Date(orderData.updatedAt) : new Date(),
@@ -139,8 +147,9 @@ export class OrderService {
 
   private calculateSubtotalFromItems(items: any[]): number {
     if (!items || !Array.isArray(items)) return 0;
-    return items.reduce((total, item) => {
-      return total + ((item.priceAtPurchase || item.product.price) * item.quantity);
+    return items.reduce((total, item: any) => {
+      if (!item || !item.product) return total;
+      return total + ((item.priceAtPurchase || item.product.price || 0) * (item.quantity || 1));
     }, 0);
   }
 
@@ -150,7 +159,7 @@ export class OrderService {
   }
 
   private calculateSubtotal(cartItems: any[]): number {
-    return cartItems.reduce((total, item) => {
+    return cartItems.reduce((total: number, item: any) => {
       return total + (item.product.price * item.quantity);
     }, 0);
   }
@@ -552,14 +561,26 @@ export class OrderService {
 
           try {
             // Process the orders similar to getOrders method
-            const processedOrders = orders.map(order => ({
-              ...order,
-              createdAt: order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt || Date.now()),
-              updatedAt: order.updatedAt instanceof Date ? order.updatedAt : new Date(order.updatedAt || Date.now()),
-              estimatedDelivery: order.estimatedDelivery instanceof Date ?
-                order.estimatedDelivery :
-                order.estimatedDelivery ? new Date(order.estimatedDelivery) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-            }));
+            const processedOrders = orders.map(order => {
+              // Process items safely to handle potentially missing product data
+              const safeItems = order.items?.map((item: any) => {
+                if (!item || !item.product) {
+                  console.warn('Found order item with missing product data in background refresh');
+                  return null;
+                }
+                return item;
+              }).filter((item: any) => item !== null) || [];
+
+              return {
+                ...order,
+                items: safeItems,
+                createdAt: order.createdAt instanceof Date ? order.createdAt : new Date(order.createdAt || Date.now()),
+                updatedAt: order.updatedAt instanceof Date ? order.updatedAt : new Date(order.updatedAt || Date.now()),
+                estimatedDelivery: order.estimatedDelivery instanceof Date ?
+                  order.estimatedDelivery :
+                  order.estimatedDelivery ? new Date(order.estimatedDelivery) : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
+              };
+            });
 
             // Sort by date (newest first)
             processedOrders.sort((a, b) =>

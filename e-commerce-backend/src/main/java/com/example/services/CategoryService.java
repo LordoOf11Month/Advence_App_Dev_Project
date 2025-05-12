@@ -10,14 +10,22 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.DTO.CategoryDTO;
 import com.example.models.Category;
 import com.example.repositories.CategoryRepository;
+import com.example.models.SubCategoryRelation;
+import com.example.repositories.SubCategoryRelationRepository;
 
 @Service
 public class CategoryService {
 
     private final CategoryRepository categoryRepository;
+    private final SubCategoryRelationService subCategoryRelationService;
+    private final SubCategoryRelationRepository relationRepository;
 
-    public CategoryService(CategoryRepository categoryRepository) {
+    public CategoryService(CategoryRepository categoryRepository, 
+                          SubCategoryRelationService subCategoryRelationService,
+                          SubCategoryRelationRepository relationRepository) {
         this.categoryRepository = categoryRepository;
+        this.subCategoryRelationService = subCategoryRelationService;
+        this.relationRepository = relationRepository;
     }
 
     public List<Category> findAll() {
@@ -85,7 +93,22 @@ public class CategoryService {
         if (category.getSlug() == null || category.getSlug().isEmpty()) {
             category.setSlug(generateSlug(category.getName()));
         }
-        return categoryRepository.save(category);
+        
+        Category savedCategory = categoryRepository.save(category);
+        
+        // If this category has a parent, establish relationship in subcategory relation table
+        if (category.getParentCategory() != null) {
+            subCategoryRelationService.addSubcategory(
+                category.getParentCategory().getId(), 
+                savedCategory.getId()
+            );
+        } else {
+            // For root categories, create a self-relation with depth 0
+            SubCategoryRelation selfRelation = new SubCategoryRelation(savedCategory, savedCategory, 0);
+            relationRepository.save(selfRelation);
+        }
+        
+        return savedCategory;
     }
     
     @Transactional
@@ -104,6 +127,18 @@ public class CategoryService {
         }
         
         Category savedCategory = categoryRepository.save(category);
+        
+        // Setup hierarchy relationships
+        if (categoryDTO.getParentCategoryId() != null) {
+            subCategoryRelationService.addSubcategory(
+                categoryDTO.getParentCategoryId(), 
+                savedCategory.getId()
+            );
+        } else {
+            // For root categories, create a self-relation with depth 0
+            subCategoryRelationService.buildRelationship(savedCategory, savedCategory, 0);
+        }
+        
         return CategoryDTO.fromEntity(savedCategory);
     }
 
@@ -111,6 +146,13 @@ public class CategoryService {
     public Category update(int id, Category categoryDetails) {
         Category existingCategory = categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not found with id: " + id));
+                
+        // Check if parent category is changing
+        boolean parentCategoryChanged = 
+            (existingCategory.getParentCategory() == null && categoryDetails.getParentCategory() != null) ||
+            (existingCategory.getParentCategory() != null && categoryDetails.getParentCategory() == null) ||
+            (existingCategory.getParentCategory() != null && categoryDetails.getParentCategory() != null && 
+             existingCategory.getParentCategory().getId() != categoryDetails.getParentCategory().getId());
 
         // Update mutable fields
         existingCategory.setName(categoryDetails.getName());
@@ -127,13 +169,40 @@ public class CategoryService {
         existingCategory.setActive(categoryDetails.getActive());
         existingCategory.setParentCategory(categoryDetails.getParentCategory());
         
-        return categoryRepository.save(existingCategory);
+        Category updatedCategory = categoryRepository.save(existingCategory);
+        
+        // If parent category changed, update the hierarchy relationships
+        if (parentCategoryChanged) {
+            // Remove all existing relationships
+            subCategoryRelationService.removeSubcategoryRelations(updatedCategory);
+            
+            // Create new relationships based on new parent
+            if (updatedCategory.getParentCategory() != null) {
+                subCategoryRelationService.addSubcategory(
+                    updatedCategory.getParentCategory().getId(),
+                    updatedCategory.getId()
+                );
+            } else {
+                // For root categories, create a self-relation with depth 0
+                subCategoryRelationService.buildRelationship(updatedCategory, updatedCategory, 0);
+            }
+        }
+        
+        return updatedCategory;
     }
     
     @Transactional
     public CategoryDTO updateFromDTO(int id, CategoryDTO categoryDTO) {
         Category existingCategory = categoryRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Category not found with id: " + id));
+                
+        // Check if parent category is changing
+        Integer currentParentId = existingCategory.getParentCategory() != null ? 
+                                  existingCategory.getParentCategory().getId() : null;
+        boolean parentCategoryChanged = (currentParentId == null && categoryDTO.getParentCategoryId() != null) ||
+                                       (currentParentId != null && categoryDTO.getParentCategoryId() == null) ||
+                                       (currentParentId != null && categoryDTO.getParentCategoryId() != null && 
+                                        !currentParentId.equals(categoryDTO.getParentCategoryId()));
                 
         // Update fields from DTO
         existingCategory.setName(categoryDTO.getName());
@@ -161,11 +230,36 @@ public class CategoryService {
         }
         
         Category updatedCategory = categoryRepository.save(existingCategory);
+        
+        // If parent category changed, update the hierarchy relationships
+        if (parentCategoryChanged) {
+            // Remove all existing relationships
+            subCategoryRelationService.removeSubcategoryRelations(updatedCategory);
+            
+            // Create new relationships based on new parent
+            if (categoryDTO.getParentCategoryId() != null) {
+                subCategoryRelationService.addSubcategory(
+                    categoryDTO.getParentCategoryId(),
+                    updatedCategory.getId()
+                );
+            } else {
+                // For root categories, create a self-relation with depth 0
+                subCategoryRelationService.buildRelationship(updatedCategory, updatedCategory, 0);
+            }
+        }
+        
         return CategoryDTO.fromEntity(updatedCategory);
     }
 
     @Transactional
     public void delete(int id) {
+        Category category = categoryRepository.findById(id)
+            .orElseThrow(() -> new RuntimeException("Category not found with id: " + id));
+            
+        // First remove all subcategory relationships
+        subCategoryRelationService.removeSubcategoryRelations(category);
+        
+        // Then delete the category
         categoryRepository.deleteById(id);
     }
     

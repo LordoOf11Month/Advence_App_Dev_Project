@@ -14,15 +14,18 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.DTO.CategoryDTO;
 import com.example.models.Category;
 import com.example.services.CategoryService;
-
+import com.example.repositories.SubCategoryRelationRepository;
+import com.example.models.SubCategoryRelation;
 @RestController
 @RequestMapping("/api/public/categories")
 public class PublicCategoryController {
-
+    
+    private final SubCategoryRelationRepository subCategoryRelationRepository;
     private final CategoryService categoryService;
 
-    public PublicCategoryController(CategoryService categoryService) {
+    public PublicCategoryController(CategoryService categoryService, SubCategoryRelationRepository subCategoryRelationRepository) {
         this.categoryService = categoryService;
+        this.subCategoryRelationRepository = subCategoryRelationRepository;
     }
 
     @GetMapping
@@ -44,14 +47,16 @@ public class PublicCategoryController {
 
     @GetMapping("/{id}/subcategories")
     public ResponseEntity<List<CategoryDTO>> getSubcategories(@PathVariable int id) {
-        Optional<Category> categoryOpt = categoryService.findById(id);
-        if (categoryOpt.isPresent()) {
-            List<CategoryDTO> subcategories = categoryOpt.get().getSubcategories().stream()
-                    .map(CategoryDTO::fromEntity)
-                    .collect(Collectors.toList());
-            return ResponseEntity.ok(subcategories);
-        }
-        return ResponseEntity.notFound().build();
+        return categoryService.findById(id)
+                .map(category -> {
+                    List<SubCategoryRelation> relations = subCategoryRelationRepository.findByAncestor(category);
+                    List<CategoryDTO> subcategories = relations.stream()
+                            .filter(rel -> rel.getDepth() > 0)
+                            .map(relation -> CategoryDTO.fromEntity(relation.getDescendant()))
+                            .collect(Collectors.toList());
+                    return ResponseEntity.ok(subcategories);
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
     
     @GetMapping("/with-products")

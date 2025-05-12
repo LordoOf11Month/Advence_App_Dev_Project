@@ -102,6 +102,7 @@ export class SellerDashboardComponent implements OnInit, OnDestroy, AfterViewIni
   paginatedOrders: PaginationResult<AdminOrder> | null = null;
   pageSizes: number[] = [5, 10, 25, 50];
   visibleOrderPages: number[] = [];
+  visibleProductPages: number[] = [];
 
   // Subscription cleanup
   private subscriptions: Subscription[] = [];
@@ -336,7 +337,10 @@ export class SellerDashboardComponent implements OnInit, OnDestroy, AfterViewIni
     const action = this.editingProduct ? 'update' : 'create';
 
     const saveObs = this.editingProduct
-      ? this.sellerService.updateProduct(Number(this.currentProduct.id), this.currentProduct)
+      ? this.sellerService.updateProduct(Number(this.currentProduct.id), {
+          ...this.currentProduct,
+          id: Number(this.currentProduct.id)
+        } as unknown as Partial<Product>)
       : this.sellerService.createProduct(this.currentProduct);
 
     saveObs.pipe(
@@ -584,5 +588,48 @@ export class SellerDashboardComponent implements OnInit, OnDestroy, AfterViewIni
 
   private calculateVisiblePages(currentPage: number, totalPages: number): number[] {
     return calculateVisiblePages(currentPage, totalPages);
+  }
+
+  // Add the missing methods
+  quickEditImage(product: AdminProduct): void {
+    this.currentProduct = { ...product };
+    // Open a simplified form or modal for quick image edit
+    this.showProductForm = true;
+  }
+
+  toggleFreeShipping(product: AdminProduct): void {
+    // Toggle the free shipping status of the product
+    product.freeShipping = !product.freeShipping;
+    // Call API to update product
+    this.saveProduct();
+  }
+
+  toggleFastDelivery(product: AdminProduct): void {
+    // Toggle the fast delivery status of the product
+    product.fastDelivery = !product.fastDelivery;
+    // Call API to update product
+    this.saveProduct();
+  }
+
+  changeProductPageSize(): void {
+    // Reset to first page when changing page size
+    this.productPagination.currentPage = 1;
+    this.applyProductFilters();
+  }
+
+  filterOrders(): void {
+    // Filter orders based on the selected status
+    if (this.selectedOrderStatus === 'all') {
+      this.filteredOrders = [...this.orders];
+    } else {
+      this.filteredOrders = this.orders.filter(order => order.status === this.selectedOrderStatus);
+    }
+
+    // Reset pagination
+    this.orderPagination.currentPage = 1;
+    this.orderPagination.totalItems = this.filteredOrders.length;
+
+    // Apply sorting and pagination
+    this.applyOrderFilters();
   }
 }

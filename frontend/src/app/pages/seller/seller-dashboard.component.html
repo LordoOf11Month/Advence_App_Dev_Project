@@ -47,13 +47,13 @@
         Orders
       </a>
     </nav>
-    
+
     <!-- Sections wrapper to prevent layout shifts -->
     <div class="sections-wrapper">
       <!-- Overview Section -->
       <section id="overview" #section>
         <h2>Store Overview</h2>
-        
+
         <div *ngIf="isLoadingStats">
           <app-loading-spinner></app-loading-spinner>
         </div>
@@ -102,7 +102,7 @@
             </div>
             <div class="stat-info">
               <h3>Store Rating</h3>
-              <div class="stat-value">{{ rating?.toFixed(1) }}</div>
+              <div class="stat-value">{{ rating.toFixed(1) }}</div>
               <small>{{ totalReviews }} reviews</small>
             </div>
           </div>
@@ -134,7 +134,7 @@
       <!-- Products Section -->
       <section id="products" #section>
         <h2>Your Products</h2>
-        
+
         <div *ngIf="isLoadingProducts">
           <app-loading-spinner></app-loading-spinner>
         </div>
@@ -150,15 +150,15 @@
               <span class="material-symbols-outlined">refresh</span>
               Refresh
             </button>
-            
+
             <div class="filters">
-              <input 
-                type="text" 
-                [(ngModel)]="productSearchQuery" 
+              <input
+                type="text"
+                [(ngModel)]="productSearchQuery"
                 (ngModelChange)="filterProducts()"
                 placeholder="Search products..."
               >
-              
+
               <select [(ngModel)]="productStatusFilter" (ngModelChange)="filterProducts()">
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
@@ -223,19 +223,19 @@
           <div class="pagination">
             <button [disabled]="productPagination.currentPage === 1" (click)="goToProductPage(1)">First</button>
             <button [disabled]="productPagination.currentPage === 1" (click)="goToProductPage(productPagination.currentPage - 1)">Previous</button>
-            
+
             <div class="page-numbers">
-              <button 
-                *ngFor="let page of visibleProductPages" 
-                [class.active]="page === productPagination.currentPage" 
+              <button
+                *ngFor="let page of visibleProductPages"
+                [class.active]="page === productPagination.currentPage"
                 (click)="goToProductPage(page)">
                 {{ page }}
               </button>
             </div>
-            
+
             <button [disabled]="productPagination.currentPage >= Math.ceil(productPagination.totalItems / productPagination.pageSize)" (click)="goToProductPage(productPagination.currentPage + 1)">Next</button>
             <button [disabled]="productPagination.currentPage >= Math.ceil(productPagination.totalItems / productPagination.pageSize)" (click)="goToProductPage(Math.ceil(productPagination.totalItems / productPagination.pageSize))">Last</button>
-            
+
             <select [(ngModel)]="productPagination.pageSize" (change)="changeProductPageSize()">
               <option *ngFor="let size of pageSizes" [value]="size">{{ size }} per page</option>
             </select>
@@ -246,7 +246,7 @@
       <!-- Orders Section -->
       <section id="orders" #section>
         <h2>Your Orders</h2>
-        
+
         <div *ngIf="isLoadingOrders">
           <app-loading-spinner></app-loading-spinner>
         </div>
@@ -261,7 +261,7 @@
               <span class="material-symbols-outlined">refresh</span>
               Refresh
             </button>
-            
+
             <div class="filters">
               <select [(ngModel)]="selectedOrderStatus" (change)="filterOrders()">
                 <option *ngFor="let status of allOrderStatuses" [value]="status">
@@ -306,19 +306,19 @@
           <div class="pagination">
             <button [disabled]="orderPagination.currentPage === 1" (click)="goToOrderPage(1)">First</button>
             <button [disabled]="orderPagination.currentPage === 1" (click)="goToOrderPage(orderPagination.currentPage - 1)">Previous</button>
-            
+
             <div class="page-numbers">
-              <button 
-                *ngFor="let page of visibleOrderPages" 
-                [class.active]="page === orderPagination.currentPage" 
+              <button
+                *ngFor="let page of visibleOrderPages"
+                [class.active]="page === orderPagination.currentPage"
                 (click)="goToOrderPage(page)">
                 {{ page }}
               </button>
             </div>
-            
+
             <button [disabled]="orderPagination.currentPage >= Math.ceil(orderPagination.totalItems / orderPagination.pageSize)" (click)="goToOrderPage(orderPagination.currentPage + 1)">Next</button>
             <button [disabled]="orderPagination.currentPage >= Math.ceil(orderPagination.totalItems / orderPagination.pageSize)" (click)="goToOrderPage(Math.ceil(orderPagination.totalItems / orderPagination.pageSize))">Last</button>
-            
+
             <select [(ngModel)]="orderPagination.pageSize" (change)="changeOrderPageSize()">
               <option *ngFor="let size of pageSizes" [value]="size">{{ size }} per page</option>
             </select>
@@ -337,19 +337,19 @@
       <h2>{{ editingProduct ? 'Edit Product' : 'Add New Product' }}</h2>
       <button class="close-btn" (click)="closeProductForm()">×</button>
     </div>
-    
+
     <div class="modal-body">
       <div class="form-grid">
         <div class="form-group">
           <label for="productTitle">Product Title*</label>
           <input type="text" id="productTitle" [(ngModel)]="currentProduct.title" required>
         </div>
-        
+
         <div class="form-group">
           <label for="productPrice">Price (₺)*</label>
           <input type="number" id="productPrice" [(ngModel)]="currentProduct.price" min="0" step="1" required>
         </div>
-        
+
         <div class="form-group">
           <label for="productCategory">Category*</label>
           <select id="productCategory" [(ngModel)]="currentProduct.category" required>
@@ -365,38 +365,38 @@
             <option value="other">Other</option>
           </select>
         </div>
-        
+
         <div class="form-group">
           <label for="productStock">Stock*</label>
           <input type="number" id="productStock" [(ngModel)]="currentProduct.stock" min="0" required>
         </div>
-        
+
         <div class="form-group checkbox-group">
           <label>
             <input type="checkbox" [(ngModel)]="currentProduct.inStock">
             In Stock
           </label>
         </div>
-        
+
         <div class="form-group checkbox-group">
           <label>
             <input type="checkbox" [(ngModel)]="currentProduct.freeShipping">
             Free Shipping
           </label>
         </div>
-        
+
         <div class="form-group checkbox-group">
           <label>
             <input type="checkbox" [(ngModel)]="currentProduct.fastDelivery">
             Fast Delivery
           </label>
         </div>
-        
+
         <div class="form-group full-width">
           <label for="productDescription">Description*</label>
           <textarea id="productDescription" [(ngModel)]="currentProduct.description" rows="4" required></textarea>
         </div>
-        
+
         <div class="form-group full-width">
           <label for="productImageUrl">Image URL*</label>
           <input type="text" id="productImageUrl" [(ngModel)]="currentProduct.imageUrl" required>
@@ -406,7 +406,7 @@
         </div>
       </div>
     </div>
-    
+
     <div class="modal-footer">
       <button (click)="closeProductForm()" class="secondary">Cancel</button>
       <button (click)="saveProduct()" [disabled]="isSavingProduct">
@@ -424,19 +424,19 @@
       <h2>Order Details</h2>
       <button class="close-btn" (click)="selectedOrder = null">×</button>
     </div>
-    
+
     <div class="modal-body">
       <div class="order-details">
         <div class="order-info">
           <p><strong>Order ID:</strong> #{{ selectedOrder.id }}</p>
           <p><strong>Date:</strong> {{ selectedOrder.dateCreated | date:'medium' }}</p>
-          <p><strong>Status:</strong> 
+          <p><strong>Status:</strong>
             <span class="status-badge {{ selectedOrder.status }}">{{ selectedOrder.status }}</span>
           </p>
           <p><strong>Customer:</strong> {{ selectedOrder.userEmail }}</p>
           <p><strong>Shipping Address:</strong> {{ selectedOrder.shippingAddress }}</p>
         </div>
-        
+
         <div class="order-items">
           <h3>Items</h3>
           <table>
@@ -452,8 +452,8 @@
               <tr *ngFor="let item of selectedOrder.items">
                 <td>
                   <div class="item-info">
-                    <img [src]="item.image || 'assets/images/placeholder-product.png'" alt="{{ item.name }}">
-                    <span>{{ item.name }}</span>
+                    <img [src]="'assets/images/placeholder-product.png'" alt="{{ item.productName }}">
+                    <span>{{ item.productName }}</span>
                   </div>
                 </td>
                 <td>{{ item.quantity }}</td>
@@ -463,23 +463,11 @@
             </tbody>
           </table>
         </div>
-        
+
         <div class="order-summary">
           <div class="summary-item">
             <span>Subtotal</span>
-            <span>₺{{ selectedOrder.subtotal || selectedOrder.totalAmount }}</span>
-          </div>
-          <div class="summary-item" *ngIf="selectedOrder.shipping">
-            <span>Shipping</span>
-            <span>₺{{ selectedOrder.shipping }}</span>
-          </div>
-          <div class="summary-item" *ngIf="selectedOrder.tax">
-            <span>Tax</span>
-            <span>₺{{ selectedOrder.tax }}</span>
-          </div>
-          <div class="summary-item" *ngIf="selectedOrder.discount">
-            <span>Discount</span>
-            <span>-₺{{ selectedOrder.discount }}</span>
+            <span>₺{{ selectedOrder.totalAmount }}</span>
           </div>
           <div class="summary-item total">
             <span>Total</span>
@@ -488,7 +476,7 @@
         </div>
       </div>
     </div>
-    
+
     <div class="modal-footer">
       <button (click)="selectedOrder = null" class="secondary">Close</button>
       <button (click)="openStatusUpdate(selectedOrder)" *ngIf="selectedOrder.status !== 'delivered' && selectedOrder.status !== 'cancelled'">
@@ -505,11 +493,11 @@
       <h2>Update Order Status</h2>
       <button class="close-btn" (click)="showStatusUpdate = false">×</button>
     </div>
-    
+
     <div class="modal-body">
       <p>Order #{{ selectedOrder?.id }}</p>
       <p>Current Status: <span class="status-badge {{ selectedOrder?.status }}">{{ selectedOrder?.status }}</span></p>
-      
+
       <div class="form-group">
         <label for="newStatus">New Status</label>
         <select id="newStatus" [(ngModel)]="newOrderStatus">
@@ -519,7 +507,7 @@
         </select>
       </div>
     </div>
-    
+
     <div class="modal-footer">
       <button (click)="showStatusUpdate = false" class="secondary">Cancel</button>
       <button (click)="updateOrderStatus()" [disabled]="newOrderStatus === selectedOrder?.status">Update Status</button>

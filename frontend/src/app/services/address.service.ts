@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, BehaviorSubject, of } from 'rxjs';
+import { Observable, BehaviorSubject, of, map } from 'rxjs';
 import { tap, catchError } from 'rxjs/operators';
 import { ShippingAddress } from '../models/order.model';
 
@@ -55,7 +55,17 @@ export class AddressService {
 
   // Get the default address for the current user
   getDefaultAddress(): Observable<AddressResponse | null> {
-    return this.http.get<AddressResponse>(`${this.apiUrl}/default`).pipe(
+    // First try to get from existing addresses
+    const currentAddresses = this.addressesSubject.value;
+    const defaultAddress = currentAddresses.find(addr => addr.isDefault);
+
+    if (defaultAddress) {
+      return of(defaultAddress);
+    }
+
+    // If no default address in current list or list is empty, fetch all addresses
+    return this.getAddresses().pipe(
+      map(addresses => addresses.find(addr => addr.isDefault) || null),
       catchError(error => {
         console.error('Error fetching default address:', error);
         return of(null);
@@ -68,6 +78,16 @@ export class AddressService {
     return this.http.post<AddressResponse>(this.apiUrl, address).pipe(
       tap(newAddress => {
         const currentAddresses = this.addressesSubject.value;
+
+        // If the new address is set as default, update all other addresses
+        if (newAddress.isDefault) {
+          currentAddresses.forEach(addr => {
+            if (addr.id !== newAddress.id) {
+              addr.isDefault = false;
+            }
+          });
+        }
+
         this.addressesSubject.next([...currentAddresses, newAddress]);
       }),
       catchError(error => {
@@ -83,10 +103,23 @@ export class AddressService {
       tap(updatedAddress => {
         const currentAddresses = this.addressesSubject.value;
         const index = currentAddresses.findIndex(a => a.id === id);
-        if (index !== -1) {
+
+        // If updating to be the default address, update all other addresses locally
+        if (updatedAddress.isDefault) {
+          currentAddresses.forEach(addr => {
+            addr.isDefault = addr.id === id;
+          });
+        } else if (index !== -1) {
+          // Just update the specific address
           currentAddresses[index] = updatedAddress;
-          this.addressesSubject.next([...currentAddresses]);
         }
+
+        // Always refresh the address list from server after updating an address
+        // to ensure consistency with backend state
+        setTimeout(() => this.getAddresses().subscribe(), 100);
+
+        // For immediate UI feedback
+        this.addressesSubject.next([...currentAddresses]);
       }),
       catchError(error => {
         console.error(`Error updating address ${id}:`, error);

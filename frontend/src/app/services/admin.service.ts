@@ -2,11 +2,11 @@ import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, throwError, forkJoin, switchMap } from 'rxjs';
 import { catchError, map, tap } from 'rxjs/operators';
-import { 
-  AdminProduct, 
-  AdminOrder, 
-  AdminUser, 
-  OrderStats, 
+import {
+  AdminProduct,
+  AdminOrder,
+  AdminUser,
+  OrderStats,
   AdminStats,
   OrderTracking,
   UserTransaction,
@@ -19,7 +19,7 @@ import { environment } from '../../environments/environment';
 })
 export class AdminService {
   private apiUrl = environment.apiUrl;
-  
+
   constructor(private http: HttpClient) {
     console.log('AdminService initialized with API URL:', this.apiUrl);
     // Debug check to see what auth headers are being sent
@@ -45,37 +45,37 @@ export class AdminService {
   getProducts(): Observable<AdminProduct[]> {
     // Force admin auth for testing
     localStorage.setItem('adminOverride', 'true');
-    
+
     console.log('Attempting to fetch admin products');
     const endpoints = [
       `${this.apiUrl}/admin/products/all`,
       `${this.apiUrl}/admin/products`
     ];
-    
+
     return this.tryEndpoints(endpoints);
   }
-  
+
   private tryEndpoints(endpoints: string[]): Observable<AdminProduct[]> {
     if (!endpoints || endpoints.length === 0) {
       return throwError(() => new Error('No endpoints available to try'));
     }
-    
+
     const endpoint = endpoints[0];
     console.log(`Trying to fetch products from: ${endpoint}`);
-    
+
     // Add admin override header for testing
     const headers = {
       'X-Admin-Override': 'true',
       'X-Role-Override': 'ADMIN'
     };
-    
+
     return this.http.get<any>(endpoint, { headers }).pipe(
       map(response => {
         console.log(`Response from ${endpoint}:`, response);
-        
+
         // Handle different response formats
         let products: any[] = [];
-        
+
         if (Array.isArray(response)) {
           products = response;
           console.log(`Found array of ${products.length} products`);
@@ -88,11 +88,11 @@ export class AdminService {
             console.warn(`Unexpected response format from ${endpoint}:`, response);
           }
         }
-        
+
         if (products.length === 0) {
           console.warn(`No products found in response from ${endpoint}`);
         }
-        
+
         return products.map((product: any) => ({
           id: product.id?.toString() || '',
           title: product.title || product.name || 'Unknown Product',
@@ -106,8 +106,8 @@ export class AdminService {
           dateAdded: new Date(product.createdAt || Date.now()),
           lastUpdated: new Date(product.updatedAt || product.createdAt || Date.now()),
           description: product.description || '',
-          imageUrl: product.imageUrl || 
-                   (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : '') || 
+          imageUrl: product.imageUrl ||
+                   (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : '') ||
                    '',
           freeShipping: product.freeShipping || false,
           fastDelivery: product.fastDelivery || false
@@ -115,12 +115,12 @@ export class AdminService {
       }),
       catchError(error => {
         console.error(`Error fetching from ${endpoint}:`, error);
-        
+
         if (endpoints.length > 1) {
           console.log('Trying next endpoint...');
           return this.tryEndpoints(endpoints.slice(1));
         }
-        
+
         return throwError(() => new Error(`Failed to load products: HTTP ${error.status} - ${error.statusText || 'Unknown error'}`));
       })
     );
@@ -141,8 +141,8 @@ export class AdminService {
         dateAdded: new Date(product.createdAt),
         lastUpdated: new Date(product.updatedAt),
         description: product.description || '',
-        imageUrl: product.imageUrl || 
-                (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : '') || 
+        imageUrl: product.imageUrl ||
+                (Array.isArray(product.images) && product.images.length > 0 ? product.images[0] : '') ||
                 '',
         freeShipping: product.freeShipping || false,
         fastDelivery: product.fastDelivery || false
@@ -158,21 +158,21 @@ export class AdminService {
     // Convert AdminProduct to the format expected by the backend
     console.log('[AdminService] Starting updateProduct with image URL:', product.imageUrl);
     console.log('[AdminService] Product seller ID:', product.sellerId);
-    
+
     // Clean imageUrl by removing any timestamp parameters
     let cleanImageUrl = product.imageUrl || '';
     if (cleanImageUrl.includes('?')) {
       cleanImageUrl = cleanImageUrl.split('?')[0];
       console.log('[AdminService] Cleaned image URL for API request:', cleanImageUrl);
     }
-    
+
     console.log('[AdminService] Original product ID:', product.id);
-    
+
     // Only use valid image URLs (not null, undefined, or empty string)
     const imageUrls = cleanImageUrl && cleanImageUrl !== 'null' && cleanImageUrl !== 'undefined' && cleanImageUrl !== ''
-      ? [cleanImageUrl] 
+      ? [cleanImageUrl]
       : [];
-    
+
     const productData = {
       title: product.title,
       price: product.price,
@@ -185,7 +185,7 @@ export class AdminService {
       fastDelivery: product.fastDelivery || false,
       sellerId: product.sellerId || null  // Include seller ID if available
     };
-    
+
     console.log('[AdminService] Sending data to backend:', JSON.stringify(productData));
     console.log('[AdminService] Image URLs being sent:', JSON.stringify(productData.imageUrls));
 
@@ -196,10 +196,10 @@ export class AdminService {
     return this.http.put<any>(apiUrl, productData).pipe(
       map(response => {
         console.log('[AdminService] Raw response from updateProduct:', JSON.stringify(response));
-        
+
         // Extract image URL with robust handling
         let resultImageUrl = '';
-        
+
         if (response.images && Array.isArray(response.images) && response.images.length > 0 && response.images[0]) {
           resultImageUrl = response.images[0];
           console.log('[AdminService] Using first image from images array:', resultImageUrl);
@@ -214,15 +214,15 @@ export class AdminService {
           resultImageUrl = '';
           console.log('[AdminService] No valid image found, using empty string');
         }
-        
+
         // Add timestamp to prevent caching
         if (resultImageUrl && !resultImageUrl.includes('?')) {
           resultImageUrl = `${resultImageUrl}?t=${new Date().getTime()}`;
           console.log('[AdminService] Added timestamp to prevent caching:', resultImageUrl);
         }
-        
+
         console.log('[AdminService] Final selected imageUrl:', resultImageUrl);
-        
+
         return {
           id: response.id.toString(),
           title: response.title || response.name || 'Unknown Product',
@@ -252,7 +252,7 @@ export class AdminService {
   approveProduct(productId: string, approved: boolean): Observable<AdminProduct> {
     // Note: Backend expects this as a query parameter, not a request body
     const params = new HttpParams().set('approved', approved.toString());
-    
+
     return this.http.put<any>(`${this.apiUrl}/admin/products/${productId}/approve`, {}, { params }).pipe(
       map(response => ({
         id: response.id.toString(),
@@ -267,8 +267,8 @@ export class AdminService {
         dateAdded: new Date(response.createdAt),
         lastUpdated: new Date(response.updatedAt),
         description: response.description || '',
-        imageUrl: response.imageUrl || 
-                (Array.isArray(response.images) && response.images.length > 0 ? response.images[0] : '') || 
+        imageUrl: response.imageUrl ||
+                (Array.isArray(response.images) && response.images.length > 0 ? response.images[0] : '') ||
                 '',
         freeShipping: response.freeShipping || false,
         fastDelivery: response.fastDelivery || false
@@ -283,7 +283,7 @@ export class AdminService {
   toggleFreeShipping(productId: string, freeShipping: boolean): Observable<AdminProduct> {
     // Backend expects this as a query parameter
     const params = new HttpParams().set('freeShipping', freeShipping.toString());
-    
+
     return this.http.put<any>(`${this.apiUrl}/admin/products/${productId}/free-shipping`, {}, { params }).pipe(
       map(response => ({
         id: response.id.toString(),
@@ -305,11 +305,11 @@ export class AdminService {
       })
     );
   }
-  
+
   toggleFastDelivery(productId: string, fastDelivery: boolean): Observable<AdminProduct> {
     // Backend expects this as a query parameter
     const params = new HttpParams().set('fastDelivery', fastDelivery.toString());
-    
+
     return this.http.put<any>(`${this.apiUrl}/admin/products/${productId}/fast-delivery`, {}, { params }).pipe(
       map(response => ({
         id: response.id.toString(),
@@ -355,17 +355,17 @@ export class AdminService {
   createProduct(product: Partial<AdminProduct>): Observable<AdminProduct> {
     // First create the product with a placeholder image regardless of what was provided
     console.log('[AdminService] Creating product with two-step approach to handle Discord CDN images');
-    
+
     // Make a copy of the product to modify
     const productToCreate = { ...product };
-    
+
     // Store the original image URL for later use
     const originalImageUrl = productToCreate.imageUrl;
     console.log('[AdminService] Original image URL: ', originalImageUrl);
-    
+
     // Use a placeholder image for initial creation
     productToCreate.imageUrl = '/assets/images/placeholder-product.svg';
-    
+
     const productData = {
       title: productToCreate.title,
       price: productToCreate.price,
@@ -378,22 +378,22 @@ export class AdminService {
       fastDelivery: productToCreate.fastDelivery || false,
       sellerId: productToCreate.sellerId || null
     };
-    
+
     console.log('[AdminService] Creating product with placeholder image first');
 
     return this.http.post<any>(`${this.apiUrl}/admin/products`, productData).pipe(
       switchMap(response => {
         console.log('[AdminService] Product created with ID:', response.id);
-        
+
         // Now that we have a product ID, update the image if an original was provided
         if (originalImageUrl && originalImageUrl !== '/assets/images/placeholder-product.svg') {
           console.log('[AdminService] Updating product image to:', originalImageUrl);
-          
+
           // Use the working image update method
           return this.updateProductImageDirect(response.id.toString(), originalImageUrl).pipe(
             map(imageResponse => {
               console.log('[AdminService] Image updated successfully:', imageResponse);
-              
+
               // Combine the product response with the image URL from the image update
               return {
                 ...response,
@@ -408,7 +408,7 @@ export class AdminService {
       }),
       map(response => {
         console.log('[AdminService] Final product response:', response);
-        
+
         return {
           id: response.id.toString(),
           title: response.title || response.name || 'Unknown Product',
@@ -574,8 +574,8 @@ export class AdminService {
         dateCreated: new Date(order.createdAt),
         dateUpdated: new Date(order.updatedAt || order.createdAt),
         createdAt: new Date(order.createdAt),
-        shippingAddress: order.shippingAddress ? 
-          `${order.shippingAddress.street}, ${order.shippingAddress.city}, ${order.shippingAddress.state}, ${order.shippingAddress.country}, ${order.shippingAddress.zipCode}` : 
+        shippingAddress: order.shippingAddress ?
+          `${order.shippingAddress.street}, ${order.shippingAddress.city}, ${order.shippingAddress.state}, ${order.shippingAddress.country}, ${order.shippingAddress.zipCode}` :
           'No address provided'
       }))),
       catchError(error => {
@@ -701,7 +701,7 @@ export class AdminService {
       })),
       catchError(error => {
         console.error('Error fetching order stats:', error);
-        
+
         // Since we have getOrders, we can calculate stats from there as fallback
         return this.getOrders().pipe(
           map(orders => {
@@ -737,6 +737,7 @@ export class AdminService {
         totalRevenue: stats.totalRevenue || 0,
         totalUsers: stats.totalUsers || 0,
         totalProducts: stats.totalProducts || 0,
+        activeProducts: stats.activeProducts || 0,
         monthlySales: stats.monthlySales || [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         topSellingCategories: stats.topSellingCategories || [],
         recentOrders: (stats.recentOrders || []).map(order => ({
@@ -749,13 +750,14 @@ export class AdminService {
       })),
       catchError(error => {
         console.error('Error fetching admin stats:', error);
-        
+
         // Return empty stats in case of error
         return of({
           totalOrders: 0,
           totalRevenue: 0,
           totalUsers: 0,
           totalProducts: 0,
+          activeProducts: 0,
           monthlySales: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
           topSellingCategories: [],
           recentOrders: []
@@ -823,8 +825,8 @@ export class AdminService {
       map(products => {
         // Filter products by seller name matching
         const lowerCaseQuery = sellerNameQuery.toLowerCase();
-        return products.filter(product => 
-          product.sellerName && 
+        return products.filter(product =>
+          product.sellerName &&
           product.sellerName.toLowerCase().includes(lowerCaseQuery)
         );
       }),
@@ -840,22 +842,22 @@ export class AdminService {
    */
   updateProductImageDirect(productId: string, newImageUrl: string): Observable<any> {
     console.log('AdminService: Updating product image directly:', productId, newImageUrl);
-    
+
     // Don't strip query parameters from Discord CDN or Unsplash URLs as they're required
     // Just ensure we don't have timestamp parameters
     let cleanImageUrl = newImageUrl;
-    
+
     // Only clean URLs that have our own timestamp parameters
     if (newImageUrl.includes('?t=') && !newImageUrl.includes('discordapp.net') && !newImageUrl.includes('discord.com')) {
       cleanImageUrl = newImageUrl.split('?t=')[0];
     } else if (newImageUrl.includes('&t=') && !newImageUrl.includes('discordapp.net') && !newImageUrl.includes('discord.com')) {
       cleanImageUrl = newImageUrl.split('&t=')[0];
     }
-    
+
     console.log('AdminService: Sending image URL to backend:', cleanImageUrl);
-    
+
     return this.http.post<any>(
-      `${this.apiUrl}/products/${productId}/image`, 
+      `${this.apiUrl}/products/${productId}/image`,
       { imageUrl: cleanImageUrl }
     ).pipe(
       map(response => {

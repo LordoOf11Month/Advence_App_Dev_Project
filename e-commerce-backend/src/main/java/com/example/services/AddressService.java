@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,6 +31,12 @@ public class AddressService {
         return addressRepository.findByUser(currentUser).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
+    }
+    
+    public AddressResponse getDefaultAddress() {
+        User currentUser = getCurrentUser();
+        Optional<Address> defaultAddress = addressRepository.findByUserAndIsDefaultTrue(currentUser);
+        return defaultAddress.map(this::convertToDto).orElse(null);
     }
 
     @Transactional
@@ -73,21 +80,28 @@ public class AddressService {
         if (request.getState() != null) address.setState(request.getState());
         if (request.getCountry() != null) address.setCountry(request.getCountry());
         if (request.getZipCode() != null) address.setZipCode(request.getZipCode());
+        
+        // Handle default address status change
         if (request.getIsDefault() != null) {
-            address.setDefault(request.getIsDefault());
-            // If setting as default, unset any existing default address
-            if (request.getIsDefault()) {
-                addressRepository.findByUserAndIsDefaultTrue(currentUser)
-                        .ifPresent(existingDefault -> {
-                            if (existingDefault.getId() != id) {
-                                existingDefault.setDefault(false);
-                                addressRepository.save(existingDefault);
-                            }
-                        });
+            // Only process if the default status is actually changing
+            if (request.getIsDefault() != address.isDefault()) {
+                address.setDefault(request.getIsDefault());
+                
+                // If setting as default, unset any other default addresses
+                if (request.getIsDefault()) {
+                    addressRepository.findByUserAndIsDefaultTrue(currentUser)
+                            .ifPresent(existingDefault -> {
+                                if (existingDefault.getId() != id) {
+                                    existingDefault.setDefault(false);
+                                    addressRepository.save(existingDefault);
+                                }
+                            });
+                }
             }
         }
 
-        return convertToDto(addressRepository.save(address));
+        Address savedAddress = addressRepository.save(address);
+        return convertToDto(savedAddress);
     }
 
     @Transactional
