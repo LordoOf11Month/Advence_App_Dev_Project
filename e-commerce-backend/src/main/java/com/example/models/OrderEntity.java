@@ -29,6 +29,9 @@ public class OrderEntity {
     @Column(name = "updated_at")
     private Timestamp updatedAt;
 
+    @Column(name = "stripe_payment_intent_id", length = 255)
+    private String stripePaymentIntentId;
+
     @Column(name = "stripe_charge_id", length = 255)
     private String stripeChargeId;
 

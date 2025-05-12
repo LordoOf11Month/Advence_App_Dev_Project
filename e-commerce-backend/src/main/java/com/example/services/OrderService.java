@@ -33,6 +33,8 @@ import java.util.HashMap;
 
 import com.example.models.PaymentMethod;
 import com.stripe.model.PaymentIntent;
+import com.example.models.Address;
+import java.util.Objects;
 
 @Service
 public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.OrderResponse, OrderDTO.CreateOrderRequest, Long> {
@@ -64,24 +66,64 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
     @Override
     @Transactional
     protected OrderEntity convertToEntity(OrderDTO.CreateOrderRequest createDto) {
-        // Get the current user
         User user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // Create the order entity
         OrderEntity order = new OrderEntity();
         order.setUser(user);
-        order.setStatus(OrderEntity.Status.pending);
+        order.setStatus(OrderEntity.Status.pending); // Initial status
         order.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
         order.setEstimatedDelivery(LocalDate.now().plusDays(7));
         order.setTrackingNumber(generateTrackingNumber());
-        order.setShippingAddress(addressRepository.findById(createDto.getShippingAddressId())
-            .orElseThrow(() -> new RuntimeException("Shipping address not found")));
-        // Process each order item and create payment intents
+        
+        Address shippingAddressInput = createDto.getShippingAddress();
+        Address finalShippingAddress;
+
+        if (shippingAddressInput == null) {
+            throw new IllegalArgumentException("Shipping address is required.");
+        }
+
+        // Check if an existing address ID is indicated (ID > 0 for primitive int IDs)
+        if (shippingAddressInput.getId() > 0) {
+            finalShippingAddress = addressRepository.findById(shippingAddressInput.getId())
+                .orElseThrow(() -> new RuntimeException("Shipping address not found with ID: " + shippingAddressInput.getId()));
+
+            // Optional: Validate if the address belongs to the user.
+            if (finalShippingAddress.getUser() == null || !Objects.equals(finalShippingAddress.getUser().getId(), user.getId())) {
+                throw new SecurityException("Attempt to use an address not belonging to the current user or address has no associated user.");
+            }
+        } else {
+            // New address: ID is not positive (e.g., 0 or negative). The shippingAddressInput should contain all details.
+            // Basic validation for new address fields on the input Address object itself.
+            if (shippingAddressInput.getStreet() == null || shippingAddressInput.getStreet().isBlank()) {
+                throw new IllegalArgumentException("Street is required for a new shipping address.");
+            }
+            if (shippingAddressInput.getCity() == null || shippingAddressInput.getCity().isBlank()) {
+                throw new IllegalArgumentException("City is required for a new shipping address.");
+            }
+            if (shippingAddressInput.getZipCode() == null || shippingAddressInput.getZipCode().isBlank()) {
+                throw new IllegalArgumentException("Zip code is required for a new shipping address.");
+            }
+            if (shippingAddressInput.getCountry() == null || shippingAddressInput.getCountry().isBlank()) {
+                throw new IllegalArgumentException("Country is required for a new shipping address.");
+            }
+
+            shippingAddressInput.setUser(user); // Associate with the current user
+            finalShippingAddress = addressRepository.save(shippingAddressInput); // Save the new address
+        }
+        order.setShippingAddress(finalShippingAddress);
+
+        if (createDto.getItems() == null || createDto.getItems().isEmpty()) {
+            throw new IllegalArgumentException("Order must contain at least one item.");
+        }
+
         List<OrderItem> orderItems = new ArrayList<>();
         for (OrderDTO.OrderItemDTO itemDto : createDto.getItems()) {
+            if (itemDto.getProductId() == null) {
+                throw new IllegalArgumentException("Product ID is missing for an order item.");
+            }
             Product product = productRepository.findById(itemDto.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found"));
+                    .orElseThrow(() -> new RuntimeException("Product not found: " + itemDto.getProductId()));
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
@@ -90,21 +132,38 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
             orderItem.setPriceAtPurchase(product.getPrice());
 
             try {
-                // Create a payment intent for this item
-                Map<String, String> paymentIntent = stripeService.createPaymentIntent(
-                    user.getStripeCustomerId(),
-                    product.getPrice().multiply(new java.math.BigDecimal(itemDto.getQuantity())).longValue(),
-                    "usd"
+                // Calculate item total in cents
+                long itemTotalInCentsLong = product.getPrice()
+                                                .multiply(new BigDecimal(itemDto.getQuantity()))
+                                                .multiply(new BigDecimal(100))
+                                                .longValue();
+                if (itemTotalInCentsLong > Integer.MAX_VALUE) {
+                    throw new RuntimeException("Item total exceeds maximum value for payment intent amount.");
+                }
+                int itemTotalInCentsInt = (int) itemTotalInCentsLong;
+
+                // Create a payment intent for this item WITHOUT customerId
+                PaymentIntent paymentIntent = stripeService.createPaymentIntent(
+                    itemTotalInCentsInt,
+                    "usd" // Assuming currency is USD
                 );
 
-                orderItem.setStripePaymentIntentId(paymentIntent.get("paymentIntentId"));
+                orderItem.setStripePaymentIntentId(paymentIntent.getId());
                 orderItems.add(orderItem);
             } catch (StripeException e) {
-                throw new RuntimeException("Failed to create payment intent: " + e.getMessage());
+                // logger.error("StripeException creating PI for item {}: {}", product.getId(), e.getMessage());
+                throw new RuntimeException("Failed to create payment intent for item " + product.getName() + ": " + e.getMessage(), e);
+            } catch (Exception e) {
+                // logger.error("Unexpected error creating PI for item {}: {}", product.getId(), e.getMessage());
+                throw new RuntimeException("Unexpected error preparing payment for item " + product.getName() + ": " + e.getMessage(), e);
             }
         }
 
         order.setOrderItems(orderItems);
+        // The main order doesn't need its own top-level stripePaymentIntentId if each item has one.
+        // However, if you have a primary PI for the order (e.g. from /api/orders/create-payment-intent)
+        // you might set it here. But for per-item PIs, this line below is not needed.
+        // order.setStripePaymentIntentId(null); // Or remove the field if truly per-item only
         return order;
     }
 
@@ -276,14 +335,7 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
         dto.setQuantity(item.getQuantity());
         dto.setPriceAtPurchase(item.getPriceAtPurchase());
         dto.setStripePaymentIntentId(item.getStripePaymentIntentId());
-        // Get client secret from Stripe service
-        try {
-            PaymentIntent paymentIntent = stripeService.getPaymentIntent(item.getStripePaymentIntentId());
-            dto.setClientSecret(paymentIntent.getClientSecret());
-        } catch (StripeException e) {
-            // Log error but don't fail the request
-            System.err.println("Error getting payment intent client secret: " + e.getMessage());
-        }
+        dto.setStripeChargeId(item.getStripeChargeId());  // Set the charge ID instead of client secret
         return dto;
     }
 
@@ -327,43 +379,127 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
 
     @Transactional
     public OrderDTO.OrderResponse create(OrderDTO.CreateOrderRequest createDto) throws StripeException {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(username)
+        User user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         OrderEntity order = new OrderEntity();
         order.setUser(user);
-        order.setStatus(OrderEntity.Status.pending);
+        order.setStatus(OrderEntity.Status.pending); // Initial status, will be updated based on PI creations
         order.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
-        order.setShippingAddress(addressRepository.findById(createDto.getShippingAddressId())
-            .orElseThrow(() -> new RuntimeException("Shipping address not found")));
-        order.setEstimatedDelivery(LocalDate.now().plusDays(7));
+        order.setEstimatedDelivery(LocalDate.now().plusDays(7)); 
         order.setTrackingNumber(generateTrackingNumber());
+        
+        Address shippingAddressInput = createDto.getShippingAddress();
+        Address finalShippingAddress;
+
+        if (shippingAddressInput == null) {
+            throw new IllegalArgumentException("Shipping address is required.");
+        }
+
+        // Check if an existing address ID is indicated (ID > 0 for primitive int IDs)
+        if (shippingAddressInput.getId() > 0) {
+            finalShippingAddress = addressRepository.findById(shippingAddressInput.getId())
+                .orElseThrow(() -> new RuntimeException("Shipping address not found with ID: " + shippingAddressInput.getId()));
+
+            // Optional: Validate if the address belongs to the user.
+            if (finalShippingAddress.getUser() == null || !Objects.equals(finalShippingAddress.getUser().getId(), user.getId())) {
+                throw new SecurityException("Attempt to use an address not belonging to the current user or address has no associated user.");
+            }
+        } else {
+            // New address: ID is not positive (e.g., 0 or negative). The shippingAddressInput should contain all details.
+            // Basic validation for new address fields on the input Address object itself.
+            if (shippingAddressInput.getStreet() == null || shippingAddressInput.getStreet().isBlank()) {
+                throw new IllegalArgumentException("Street is required for a new shipping address.");
+            }
+            if (shippingAddressInput.getCity() == null || shippingAddressInput.getCity().isBlank()) {
+                throw new IllegalArgumentException("City is required for a new shipping address.");
+            }
+            if (shippingAddressInput.getZipCode() == null || shippingAddressInput.getZipCode().isBlank()) {
+                throw new IllegalArgumentException("Zip code is required for a new shipping address.");
+            }
+            if (shippingAddressInput.getCountry() == null || shippingAddressInput.getCountry().isBlank()) {
+                throw new IllegalArgumentException("Country is required for a new shipping address.");
+            }
+
+            shippingAddressInput.setUser(user); // Associate with the current user
+            finalShippingAddress = addressRepository.save(shippingAddressInput); // Save the new address
+        }
+        order.setShippingAddress(finalShippingAddress);
+
+        if (createDto.getItems() == null || createDto.getItems().isEmpty()) {
+            throw new IllegalArgumentException("Order must contain at least one item.");
+        }
 
         List<OrderItem> orderItems = new ArrayList<>();
+        boolean allPaymentIntentsCreated = true;
+
         for (OrderDTO.OrderItemDTO itemDto : createDto.getItems()) {
+            if (itemDto.getProductId() == null) {
+                throw new IllegalArgumentException("Product ID is missing for an order item.");
+            }
             Product product = productRepository.findById(itemDto.getProductId())
                     .orElseThrow(() -> new RuntimeException("Product not found: " + itemDto.getProductId()));
 
             OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order);
+            orderItem.setOrder(order); // Associate with the main order being built
             orderItem.setProduct(product);
             orderItem.setQuantity(itemDto.getQuantity());
             orderItem.setPriceAtPurchase(product.getPrice());
 
-            // Create payment intent for this item
-            Map<String, String> paymentIntent = stripeService.createPaymentIntent(
-                user.getStripeCustomerId(),
-                product.getPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity())).longValue(),
-                "usd"
-            );
-            orderItem.setStripePaymentIntentId(paymentIntent.get("paymentIntentId"));
+            try {
+                long itemTotalInCentsLong = product.getPrice()
+                                                .multiply(new BigDecimal(itemDto.getQuantity()))
+                                                .multiply(new BigDecimal(100))
+                                                .longValue();
+                if (itemTotalInCentsLong > Integer.MAX_VALUE) {
+                    throw new RuntimeException("Item total for '" + product.getName() + "' exceeds maximum value for payment intent amount.");
+                }
+                int itemTotalInCentsInt = (int) itemTotalInCentsLong;
 
-            orderItems.add(orderItem);
+                if (itemTotalInCentsInt > 0) { // Only create PI if item has a cost
+                    PaymentIntent paymentIntent = stripeService.createPaymentIntent(
+                        itemTotalInCentsInt,
+                        "usd" 
+                    );
+                    orderItem.setStripePaymentIntentId(paymentIntent.getId());
+                } else {
+                    // Handle free items if necessary (e.g., set a specific status or no PI)
+                    orderItem.setStripePaymentIntentId(null); // Or a marker like "FREE_ITEM"
+                }
+                orderItems.add(orderItem);
+            } catch (StripeException e) {
+                allPaymentIntentsCreated = false;
+                // Log detailed error: logger.error("StripeException for item {}: {}", product.getName(), e.getMessage(), e);
+                // Decide if you want to throw immediately or collect errors
+                // Throwing immediately will stop the order creation for this item's PI failure.
+                throw new RuntimeException("Failed to create payment intent for item '" + product.getName() + "': " + e.getMessage(), e);
+            } catch (Exception e) {
+                allPaymentIntentsCreated = false;
+                // logger.error("Unexpected error for item {}: {}", product.getName(), e.getMessage(), e);
+                throw new RuntimeException("Unexpected error preparing payment for item '" + product.getName() + "': " + e.getMessage(), e);
+            }
         }
-        order.setOrderItems(orderItems);
+        order.setOrderItems(orderItems); // Add all processed items to the order
 
-        return convertToDto(orderRepository.save(order));
+        // If any PI failed, the order might be considered failed or partially created.
+        // For now, the exception thrown above would halt this.
+        // If not throwing immediately, you might change order status here.
+        if (!allPaymentIntentsCreated) {
+            // This part might not be reached if exceptions are thrown above and not caught locally.
+            // Consider how to handle partial PI creation failures if you don't re-throw immediately.
+            order.setStatus(OrderEntity.Status.cancelled); // Or a specific error status
+        }
+
+        // The main OrderEntity itself won't have a single stripePaymentIntentId if each item has its own.
+        // Ensure the OrderEntity.stripePaymentIntentId field is nullable or remove it if unused at the order level.
+        order.setStripePaymentIntentId(null); // Explicitly nullify if it exists on OrderEntity and is not used here
+
+        OrderEntity savedOrder = orderRepository.save(order);
+        
+        // The DTO needs to include the client secrets for each item if the frontend needs them individually.
+        // This requires OrderItemDTO to have a clientSecret field, and StripeService to return it.
+        // For now, the controller's response might need adjustment if it expects a single clientSecret.
+        return convertToDto(savedOrder); 
     }
 
     @Transactional
@@ -442,7 +578,7 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
         order.setUser(user);
         order.setStatus(OrderEntity.Status.pending);
         order.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
-        order.setShippingAddress(addressRepository.findById(createDto.getShippingAddressId())
+        order.setShippingAddress(addressRepository.findById(createDto.getShippingAddress().getId())
             .orElseThrow(() -> new RuntimeException("Shipping address not found")));
         order.setEstimatedDelivery(LocalDate.now().plusDays(7));
         order.setTrackingNumber(generateTrackingNumber());

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
 import { FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { OrderService } from '../../services/order.service';
+import { Address, AddressFormData } from '../../models/address.model';
 import { ShippingAddress } from '../../models/order.model';
 import { CheckoutProgressComponent } from './checkout-progress.component';
 import { OrderSummaryComponent } from './order-summary.component';
@@ -11,8 +12,8 @@ import { OrderSummaryComponent } from './order-summary.component';
   selector: 'app-shipping',
   standalone: true,
   imports: [
-    CommonModule, 
-    RouterModule, 
+    CommonModule,
+    RouterModule,
     ReactiveFormsModule,
     CheckoutProgressComponent,
     OrderSummaryComponent
@@ -20,18 +21,18 @@ import { OrderSummaryComponent } from './order-summary.component';
   template: `
     <div class="container">
       <app-checkout-progress [currentStep]="'shipping'"></app-checkout-progress>
-      
+
       <div class="checkout-container">
         <div class="checkout-form">
           <h1>Shipping Information</h1>
-          
+
           <form [formGroup]="shippingForm" (ngSubmit)="onSubmit()">
             <div class="form-row">
               <div class="form-group">
                 <label for="firstName">First Name *</label>
-                <input 
-                  type="text" 
-                  id="firstName" 
+                <input
+                  type="text"
+                  id="firstName"
                   formControlName="firstName"
                   [class.error]="isFieldInvalid('firstName')"
                 >
@@ -39,12 +40,12 @@ import { OrderSummaryComponent } from './order-summary.component';
                   First name is required
                 </div>
               </div>
-              
+
               <div class="form-group">
                 <label for="lastName">Last Name *</label>
-                <input 
-                  type="text" 
-                  id="lastName" 
+                <input
+                  type="text"
+                  id="lastName"
                   formControlName="lastName"
                   [class.error]="isFieldInvalid('lastName')"
                 >
@@ -53,12 +54,12 @@ import { OrderSummaryComponent } from './order-summary.component';
                 </div>
               </div>
             </div>
-            
+
             <div class="form-group">
               <label for="email">Email Address *</label>
-              <input 
-                type="email" 
-                id="email" 
+              <input
+                type="email"
+                id="email"
                 formControlName="email"
                 [class.error]="isFieldInvalid('email')"
               >
@@ -66,12 +67,12 @@ import { OrderSummaryComponent } from './order-summary.component';
                 Please enter a valid email address
               </div>
             </div>
-            
+
             <div class="form-group">
               <label for="phone">Phone Number *</label>
-              <input 
-                type="tel" 
-                id="phone" 
+              <input
+                type="tel"
+                id="phone"
                 formControlName="phone"
                 [class.error]="isFieldInvalid('phone')"
               >
@@ -79,107 +80,94 @@ import { OrderSummaryComponent } from './order-summary.component';
                 Please enter a valid phone number
               </div>
             </div>
-            
+
             <div class="form-group">
-              <label for="address1">Address Line 1 *</label>
-              <input 
-                type="text" 
-                id="address1" 
-                formControlName="address1"
-                [class.error]="isFieldInvalid('address1')"
+              <label for="street">Street *</label>
+              <input
+                type="text"
+                id="street"
+                formControlName="street"
+                [class.error]="isFieldInvalid('street')"
               >
-              <div class="error-message" *ngIf="isFieldInvalid('address1')">
-                Address is required
+              <div class="error-message" *ngIf="isFieldInvalid('street')">
+                Street is required
               </div>
             </div>
-            
+
             <div class="form-group">
-              <label for="address2">Address Line 2 (Optional)</label>
-              <input 
-                type="text" 
-                id="address2" 
-                formControlName="address2"
+              <label for="city">City *</label>
+              <input
+                type="text"
+                id="city"
+                formControlName="city"
+                [class.error]="isFieldInvalid('city')"
               >
-            </div>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label for="city">City *</label>
-                <input 
-                  type="text" 
-                  id="city" 
-                  formControlName="city"
-                  [class.error]="isFieldInvalid('city')"
-                >
-                <div class="error-message" *ngIf="isFieldInvalid('city')">
-                  City is required
-                </div>
-              </div>
-              
-              <div class="form-group">
-                <label for="state">State/Province *</label>
-                <input 
-                  type="text" 
-                  id="state" 
-                  formControlName="state"
-                  [class.error]="isFieldInvalid('state')"
-                >
-                <div class="error-message" *ngIf="isFieldInvalid('state')">
-                  State/Province is required
-                </div>
+              <div class="error-message" *ngIf="isFieldInvalid('city')">
+                City is required
               </div>
             </div>
-            
-            <div class="form-row">
-              <div class="form-group">
-                <label for="postalCode">Postal Code *</label>
-                <input 
-                  type="text" 
-                  id="postalCode" 
-                  formControlName="postalCode"
-                  [class.error]="isFieldInvalid('postalCode')"
-                >
-                <div class="error-message" *ngIf="isFieldInvalid('postalCode')">
-                  Postal code is required
-                </div>
-              </div>
-              
-              <div class="form-group">
-                <label for="country">Country *</label>
-                <select 
-                  id="country" 
-                  formControlName="country"
-                  [class.error]="isFieldInvalid('country')"
-                >
-                  <option value="">Select a country</option>
-                  <option value="Turkey">Turkey</option>
-                  <option value="United States">United States</option>
-                  <option value="United Kingdom">United Kingdom</option>
-                  <option value="Germany">Germany</option>
-                  <option value="France">France</option>
-                  <option value="Italy">Italy</option>
-                  <option value="Spain">Spain</option>
-                  <option value="Netherlands">Netherlands</option>
-                </select>
-                <div class="error-message" *ngIf="isFieldInvalid('country')">
-                  Country is required
-                </div>
+
+            <div class="form-group">
+              <label for="state">State/Province *</label>
+              <input
+                type="text"
+                id="state"
+                formControlName="state"
+                [class.error]="isFieldInvalid('state')"
+              >
+              <div class="error-message" *ngIf="isFieldInvalid('state')">
+                State/Province is required
               </div>
             </div>
-            
+
+            <div class="form-group">
+              <label for="country">Country *</label>
+              <select
+                id="country"
+                formControlName="country"
+                [class.error]="isFieldInvalid('country')"
+              >
+                <option value="">Select a country</option>
+                <option value="Turkey">Turkey</option>
+                <option value="United States">United States</option>
+                <option value="United Kingdom">United Kingdom</option>
+                <option value="Germany">Germany</option>
+                <option value="France">France</option>
+                <option value="Italy">Italy</option>
+                <option value="Spain">Spain</option>
+                <option value="Netherlands">Netherlands</option>
+              </select>
+              <div class="error-message" *ngIf="isFieldInvalid('country')">
+                Country is required
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="zipCode">Postal Code *</label>
+              <input
+                type="text"
+                id="zipCode"
+                formControlName="zipCode"
+                [class.error]="isFieldInvalid('zipCode')"
+              >
+              <div class="error-message" *ngIf="isFieldInvalid('zipCode')">
+                Postal code is required
+              </div>
+            </div>
+
             <div class="form-group checkbox">
-              <input 
-                type="checkbox" 
-                id="saveAddress" 
+              <input
+                type="checkbox"
+                id="saveAddress"
                 formControlName="saveAddress"
               >
               <label for="saveAddress">Save this address for future orders</label>
             </div>
-            
+
             <div class="form-actions">
               <a routerLink="/cart" class="back-button">Back to Cart</a>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 class="continue-button"
                 [disabled]="shippingForm.invalid"
               >
@@ -188,7 +176,7 @@ import { OrderSummaryComponent } from './order-summary.component';
             </div>
           </form>
         </div>
-        
+
         <div class="checkout-summary">
           <app-order-summary></app-order-summary>
         </div>
@@ -201,20 +189,20 @@ import { OrderSummaryComponent } from './order-summary.component';
       margin: 0 auto;
       padding: var(--space-4);
     }
-    
+
     h1 {
       font-size: 1.5rem;
       font-weight: 600;
       margin-bottom: var(--space-4);
       color: var(--neutral-900);
     }
-    
+
     .checkout-container {
       display: flex;
       gap: var(--space-6);
       margin-top: var(--space-6);
     }
-    
+
     .checkout-form {
       flex: 1;
       background-color: var(--white);
@@ -222,25 +210,25 @@ import { OrderSummaryComponent } from './order-summary.component';
       border-radius: var(--radius-md);
       box-shadow: var(--shadow-sm);
     }
-    
+
     .checkout-summary {
       width: 350px;
     }
-    
+
     .form-row {
       display: flex;
       gap: var(--space-4);
       margin-bottom: var(--space-4);
     }
-    
+
     .form-row .form-group {
       flex: 1;
     }
-    
+
     .form-group {
       margin-bottom: var(--space-4);
     }
-    
+
     label {
       display: block;
       font-size: 0.9375rem;
@@ -248,7 +236,7 @@ import { OrderSummaryComponent } from './order-summary.component';
       margin-bottom: var(--space-2);
       color: var(--neutral-700);
     }
-    
+
     input, select {
       width: 100%;
       padding: var(--space-3);
@@ -257,54 +245,54 @@ import { OrderSummaryComponent } from './order-summary.component';
       font-size: 1rem;
       transition: border-color var(--transition-fast);
     }
-    
+
     input:focus, select:focus {
       outline: none;
       border-color: var(--primary);
     }
-    
+
     input.error, select.error {
       border-color: var(--error);
     }
-    
+
     .error-message {
       color: var(--error);
       font-size: 0.8125rem;
       margin-top: var(--space-1);
     }
-    
+
     .checkbox {
       display: flex;
       align-items: center;
     }
-    
+
     .checkbox input {
       width: auto;
       margin-right: var(--space-2);
     }
-    
+
     .checkbox label {
       margin-bottom: 0;
     }
-    
+
     .form-actions {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-top: var(--space-6);
     }
-    
+
     .back-button {
       color: var(--neutral-700);
       text-decoration: none;
       font-weight: 500;
       transition: color var(--transition-fast);
     }
-    
+
     .back-button:hover {
       color: var(--primary);
     }
-    
+
     .continue-button {
       background-color: var(--primary);
       color: var(--white);
@@ -316,28 +304,28 @@ import { OrderSummaryComponent } from './order-summary.component';
       cursor: pointer;
       transition: background-color var(--transition-fast);
     }
-    
+
     .continue-button:hover:not(:disabled) {
       background-color: var(--primary-dark);
     }
-    
+
     .continue-button:disabled {
       background-color: var(--neutral-400);
       cursor: not-allowed;
     }
-    
+
     @media (max-width: 992px) {
       .checkout-container {
         flex-direction: column;
       }
-      
+
       .checkout-summary {
         width: 100%;
         order: -1;
         margin-bottom: var(--space-4);
       }
     }
-    
+
     @media (max-width: 576px) {
       .form-row {
         flex-direction: column;
@@ -348,7 +336,7 @@ import { OrderSummaryComponent } from './order-summary.component';
 })
 export class ShippingComponent implements OnInit {
   shippingForm: FormGroup;
-  
+
   constructor(
     private fb: FormBuilder,
     private orderService: OrderService,
@@ -359,16 +347,16 @@ export class ShippingComponent implements OnInit {
       lastName: ['', Validators.required],
       email: ['', [Validators.required, Validators.email]],
       phone: ['', Validators.required],
-      address1: ['', Validators.required],
-      address2: [''],
+      street: ['', Validators.required],
       city: ['', Validators.required],
       state: ['', Validators.required],
-      postalCode: ['', Validators.required],
       country: ['', Validators.required],
+      zipCode: ['', Validators.required],
+      isDefault: [false],
       saveAddress: [false]
     });
   }
-  
+
   ngOnInit(): void {
     // Load saved address if available
     const savedAddress = this.orderService.getSavedShippingAddress();
@@ -376,15 +364,41 @@ export class ShippingComponent implements OnInit {
       this.shippingForm.patchValue(savedAddress);
     }
   }
-  
+
   isFieldInvalid(field: string): boolean {
     const formControl = this.shippingForm.get(field);
     return !!(formControl && formControl.invalid && (formControl.dirty || formControl.touched));
   }
-  
+
   onSubmit(): void {
     if (this.shippingForm.valid) {
-      const shippingAddress: ShippingAddress = this.shippingForm.value;
+      const formData = this.shippingForm.value;
+      // Convert form data to backend address model
+      const address: Address = {
+        street: formData.street || '',  // Ensure street is never null
+        city: formData.city || '',
+        state: formData.state || '',
+        country: formData.country || '',
+        zipCode: formData.zipCode || '',
+        isDefault: formData.isDefault || false
+      };
+
+      // Create shipping address object with all required fields
+      const shippingAddress: ShippingAddress = {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phone,
+        street: formData.street || '',  // Include address fields at top level
+        city: formData.city || '',
+        state: formData.state || '',
+        country: formData.country || '',
+        zipCode: formData.zipCode || '',
+        isDefault: formData.isDefault || false,
+        saveAddress: formData.saveAddress || false,
+        address: address  // Include the nested address object
+      };
+
       this.orderService.setShippingAddress(shippingAddress);
       this.router.navigate(['/checkout/payment']);
     } else {
@@ -394,4 +408,4 @@ export class ShippingComponent implements OnInit {
       });
     }
   }
-} 
+}

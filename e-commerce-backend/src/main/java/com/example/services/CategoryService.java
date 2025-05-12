@@ -23,6 +23,7 @@ public class CategoryService {
         return categoryRepository.findAll();
     }
     
+    @Transactional(readOnly = true)
     public List<CategoryDTO> findAllAsDTO() {
         List<Category> categories = categoryRepository.findAll();
         return categories.stream()

@@ -46,7 +46,7 @@ import { CategoryTestComponent } from './components/category-test/category-test.
 })
 export class DebugComponent {
   tokenDetails: any;
-  
+
   constructor() {
     const token = localStorage.getItem('token');
     if (token) {
@@ -79,16 +79,16 @@ export const routes: Routes = [
       { path: '', redirectTo: 'shipping', pathMatch: 'full' }
     ]
   },
-  { 
-    path: 'account', 
+  {
+    path: 'account',
     component: AccountComponent,
     canActivate: [AuthGuard]
   },
   { path: 'login', component: LoginComponent },
   { path: 'register', component: RegisterComponent },
-  { 
-    path: 'seller/register', 
-    component: SellerRegisterComponent 
+  {
+    path: 'seller/register',
+    component: SellerRegisterComponent
   },
   { path: 'debug', component: DebugComponent },
   {

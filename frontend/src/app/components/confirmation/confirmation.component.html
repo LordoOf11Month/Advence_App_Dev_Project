@@ -1,0 +1,29 @@
+<div class="confirmation-container">
+  <div *ngIf="isLoading" class="loading-spinner">
+    <p>Loading confirmation...</p>
+    <!-- You can add a more sophisticated loader/spinner here -->
+  </div>
+
+  <div *ngIf="!isLoading && paymentStatus === 'succeeded'" class="payment-success">
+    <h2>Payment Successful!</h2>
+    <p>Your order has been confirmed.</p>
+    <p *ngIf="paymentIntentId">Payment Intent ID: {{ paymentIntentId }}</p>
+    <p>Thank you for your purchase.</p>
+    <button (click)="navigateToShop()" class="shop-button">Continue Shopping</button>
+  </div>
+
+  <div *ngIf="!isLoading && (paymentStatus !== 'succeeded' || errorMessage)" class="payment-error">
+    <h2>Payment Failed or Incomplete</h2>
+    <p *ngIf="paymentStatus">Status: {{ paymentStatus }}</p>
+    <p *ngIf="errorMessage" class="error-message">{{ errorMessage }}</p>
+    <p>Please try again or contact support if the issue persists.</p>
+    <button (click)="navigateToShop()" class="shop-button">Back to Shop</button>
+    <!-- You might want a "Try Again" button that navigates to the payment page -->
+  </div>
+
+  <div *ngIf="!isLoading && !paymentStatus && !errorMessage" class="payment-unknown">
+    <h2>Unable to Determine Payment Status</h2>
+    <p>We could not determine the status of your payment. Please check your email or contact support.</p>
+    <button (click)="navigateToShop()" class="shop-button">Back to Shop</button>
+  </div>
+</div>

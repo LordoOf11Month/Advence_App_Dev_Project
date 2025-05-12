@@ -1,0 +1,33 @@
+<div class="checkout-container" *ngIf="currentStep$ | async as resolvedCurrentStep">
+  <nav class="checkout-steps-nav" aria-label="Checkout steps">
+    <ul>
+      <li *ngFor="let step of steps; let i = index"
+          [ngClass]="{
+            'active': isStepActive(step.path),
+            'completed': isStepCompleted(step.path),
+            'disabled': isStepDisabled(step.path)
+          }">
+        <a (click)="navigateToStep(step.path)"
+           [attr.aria-current]="isStepActive(step.path) ? 'step' : null"
+           [class.disabled-link]="isStepDisabled(step.path)"
+           [attr.tabindex]="isStepDisabled(step.path) ? -1 : 0">
+          <span class="step-number">{{ i + 1 }}</span>
+          <span class="step-label">{{ step.label }}</span>
+        </a>
+      </li>
+    </ul>
+  </nav>
+
+  <div class="checkout-content">
+    <router-outlet></router-outlet>
+    <!-- Child routes for shipping, payment, review, confirmation will be rendered here -->
+  </div>
+
+  <!-- Example navigation buttons (could be in child components) -->
+  <!--
+  <div class="navigation-buttons" *ngIf="(currentStep$ | async) as currentStep">
+    <button *ngIf="currentStep !== 'shipping'" (click)="navigateToPreviousStep()">Back</button>
+    <button *ngIf="currentStep !== 'confirmation'" (click)="navigateToNextStep()">Next</button>
+  </div>
+  -->
+</div>

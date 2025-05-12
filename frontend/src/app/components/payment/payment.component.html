@@ -1,0 +1,29 @@
+<div class="payment-container">
+  <h2>Payment Details</h2>
+
+  <div *ngIf="isLoading" class="loading-container">
+    <p>Loading payment options...</p>
+    <!-- Add a spinner or loading animation here -->
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="errorMessage && !isLoading" class="error-container">
+    <p class="error-message">{{ errorMessage }}</p>
+    <!-- Optionally, add a button to retry or go back -->
+    <button (click)="ngOnInit()" class="retry-button">Try Again</button>
+    <button (click)="router.navigate(['/checkout/shipping'])" class="back-button">Back to Shipping</button>
+  </div>
+
+  <div *ngIf="!isLoading && !errorMessage">
+    <!-- This div will host the Stripe Payment Element -->
+    <div #paymentElementRef id="payment-element"></div>
+
+    <!-- Error display for Stripe Element (if any validation errors occur within the element) -->
+    <div id="payment-message" class="error-message" role="alert"></div>
+
+    <button (click)="proceedToReview()" class="submit-button" [disabled]="!paymentElementRef || isLoading">
+      Continue to Review
+    </button>
+  </div>
+
+</div>

@@ -1,0 +1,127 @@
+/* General Checkout Container Styles */
+.checkout-container {
+  max-width: 800px;
+  margin: 2rem auto;
+  padding: 1rem;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Steps Navigation */
+.checkout-steps-nav ul {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 2rem 0;
+  display: flex;
+  justify-content: space-around;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.checkout-steps-nav li {
+  padding: 1rem 0.5rem;
+  text-align: center;
+  flex-grow: 1;
+  cursor: default; /* Default cursor, link will change it if active */
+  color: #757575; /* Default color for step text */
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s ease;
+}
+
+.checkout-steps-nav li a {
+  text-decoration: none;
+  color: inherit; /* Inherit color from li */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+}
+
+.checkout-steps-nav li.active a {
+  color: #007bff; /* Active step color */
+  font-weight: bold;
+}
+.checkout-steps-nav li.active {
+    border-bottom-color: #007bff;
+}
+
+.checkout-steps-nav li.completed a {
+  color: #28a745; /* Completed step color */
+}
+.checkout-steps-nav li.completed:not(.active) a:hover {
+  color: #1e7e34;
+}
+
+.checkout-steps-nav li.disabled a {
+  color: #adb5bd; /* Disabled step color */
+  cursor: not-allowed;
+}
+
+/* Add this for the anchor tag directly if it's handling the click */
+.checkout-steps-nav li a.disabled-link {
+  color: #adb5bd;
+  cursor: not-allowed;
+  pointer-events: none; /* Prevents click events on the anchor itself */
+}
+
+.checkout-steps-nav .step-number {
+  font-size: 0.9rem;
+  margin-bottom: 0.25rem;
+  border: 1px solid #ccc;
+  border-radius: 50%;
+  width: 24px;
+  height: 24px;
+  line-height: 22px; /* Adjust for border */
+  text-align: center;
+  background-color: #f8f9fa;
+}
+
+.checkout-steps-nav li.active .step-number {
+  border-color: #007bff;
+  background-color: #007bff;
+  color: white;
+}
+
+.checkout-steps-nav li.completed .step-number {
+  border-color: #28a745;
+  background-color: #28a745;
+  color: white;
+}
+
+.checkout-steps-nav .step-label {
+  font-size: 0.9rem;
+}
+
+/* Content Area */
+.checkout-content {
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  background-color: #ffffff;
+  min-height: 300px; /* Give some space for content */
+}
+
+/* Basic button styling (can be enhanced) */
+.navigation-buttons {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: space-between;
+}
+
+.navigation-buttons button {
+  padding: 0.5rem 1rem;
+  border: 1px solid #007bff;
+  background-color: #007bff;
+  color: white;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.navigation-buttons button:hover {
+  background-color: #0056b3;
+}
+
+.navigation-buttons button:disabled {
+  background-color: #cccccc;
+  border-color: #cccccc;
+  cursor: not-allowed;
+}

@@ -35,7 +35,7 @@ public class OrderDTO {
         private BigDecimal priceAtPurchase;
         
         private String stripePaymentIntentId;
-        private String clientSecret;
+        private String stripeChargeId;
     }
 
     @Data
@@ -44,7 +44,7 @@ public class OrderDTO {
         private List<OrderItemDTO> items;
         
         @NotNull
-        private int shippingAddressId;
+        private Address shippingAddress;
         
         // @NotBlank
         // private String paymentMethodId; // Stripe payment method ID

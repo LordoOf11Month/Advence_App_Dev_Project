@@ -24,6 +24,10 @@ import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.util.stream.Collectors;
+import com.example.models.Address;
+import com.example.repositories.AddressRepository;
+import org.springframework.http.HttpStatus;
+import org.springframework.transaction.annotation.Transactional;
 
 @RestController
 @RequestMapping("/api/orders")
@@ -36,14 +40,16 @@ public class CustomerOrderController {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final ProductService productService;
+    private final AddressRepository addressRepository;
         
-        public CustomerOrderController(OrderService orderService, StripeService stripeService, RefundService refundService, OrderRepository orderRepository, UserRepository userRepository, ProductService productService) {
+        public CustomerOrderController(OrderService orderService, StripeService stripeService, RefundService refundService, OrderRepository orderRepository, UserRepository userRepository, ProductService productService, AddressRepository addressRepository) {
             this.orderService = orderService;
             this.stripeService = stripeService;
             this.refundService = refundService;
             this.orderRepository = orderRepository;
             this.userRepository = userRepository;
             this.productService = productService;
+            this.addressRepository = addressRepository;
         }
     
         @GetMapping
@@ -57,26 +63,24 @@ public class CustomerOrderController {
         }
     
         @PostMapping
-        public ResponseEntity<Map<String, Object>> createOrder(@RequestBody CreateOrderRequest createDto) throws StripeException {
-            // Get current user
-            String username = SecurityContextHolder.getContext().getAuthentication().getName();
-            User user = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        public ResponseEntity<Map<String, Object>> createOrder(@RequestBody OrderDTO.CreateOrderRequest createDto) {
+            try {
+                // Get current user
+                String username = SecurityContextHolder.getContext().getAuthentication().getName();
+                User user = userRepository.findByEmail(username)
+                    .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // Create order with payment intents
-            OrderResponse order = orderService.create(createDto);
-            
-            // Return the order ID and payment intents
-            Map<String, Object> response = new HashMap<>();
-            response.put("orderId", order.getId());
-            response.put("paymentIntents", order.getItems().stream()
-                .map(item -> Map.of(
-                    "paymentIntentId", item.getStripePaymentIntentId(),
-                    "clientSecret", item.getClientSecret()
-                ))
-                .collect(Collectors.toList()));
+                // Save the order (associate with payment intent)
+                OrderResponse order = orderService.create(createDto);
 
-            return ResponseEntity.ok(response);
+                return ResponseEntity.ok(Map.of(
+                    "orderId", order.getId(),
+                    "status", order.getStatus()
+                ));
+            } catch (Exception e) {
+                return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to create order: " + e.getMessage()));
+            }
         }
     
         @DeleteMapping("/{id}")
@@ -147,5 +151,65 @@ public class CustomerOrderController {
             "message", "Payment confirmed and order status updated",
             "orderId", updatedOrder.getId()
         ));
+    }
+
+    @PostMapping("/create-payment-intent")
+    @Transactional(readOnly = true)
+    public ResponseEntity<Map<String, Object>> createPaymentIntent(@RequestBody OrderDTO.CreateOrderRequest createDto) {
+        try {
+            // User retrieval is not strictly necessary here if not using stripeCustomerId, but can be kept for context or future use.
+            // String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            // User user = userRepository.findByEmail(username)
+            //     .orElseThrow(() -> new RuntimeException("User not found"));
+
+            if (createDto.getItems() == null || createDto.getItems().isEmpty()) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Order items cannot be empty."));
+            }
+
+            long orderTotalCents = 0;
+            for (OrderDTO.OrderItemDTO item : createDto.getItems()) {
+                if (item.getProductId() == null) {
+                    return ResponseEntity.badRequest().body(Map.of("error", "Product ID is missing for an item."));
+                }
+                // Get product price from DB to ensure security
+                BigDecimal productPrice = productService.findById(item.getProductId())
+                    .orElseThrow(() -> new RuntimeException("Product not found: " + item.getProductId()))
+                    .getPrice();
+                if (productPrice == null) {
+                     throw new RuntimeException("Price not found for product: " + item.getProductId());
+                }
+                
+                orderTotalCents += productPrice.multiply(new BigDecimal(item.getQuantity()))
+                                            .multiply(new BigDecimal(100))
+                                            .longValue();
+            }
+
+            if (orderTotalCents <= 0) {
+                 return ResponseEntity.badRequest().body(Map.of("error", "Order total must be greater than zero."));
+            }
+            
+            if (orderTotalCents > Integer.MAX_VALUE) { // Stripe amount is int cents
+                return ResponseEntity.badRequest().body(Map.of("error", "Order total exceeds maximum allowed amount."));
+            }
+
+            // Create payment intent with Stripe using the method that doesn't require customerId
+            com.stripe.model.PaymentIntent paymentIntent = stripeService.createPaymentIntent(
+                (int) orderTotalCents, 
+                "usd" // Currency - consider making this configurable
+            );
+            
+            return ResponseEntity.ok(Map.of(
+                "clientSecret", paymentIntent.getClientSecret(),
+                "paymentIntentId", paymentIntent.getId(),
+                "amount", orderTotalCents // Return amount in cents, frontend might need to format it
+            ));
+        } catch (StripeException e) {
+            // Log e for more details on Stripe errors
+            return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE) // Or INTERNAL_SERVER_ERROR
+                .body(Map.of("error", "Failed to create payment intent with Stripe: " + e.getMessage()));
+        } catch (RuntimeException e) { // Catch other runtime exceptions like product not found
+             return ResponseEntity.status(HttpStatus.BAD_REQUEST) // Or INTERNAL_SERVER_ERROR depending on cause
+                .body(Map.of("error", "Failed to create payment intent: " + e.getMessage()));
+        }
     }
 } 

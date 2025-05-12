@@ -1,0 +1,53 @@
+<div class="container">
+  <app-checkout-progress [currentStep]="'payment'"></app-checkout-progress>
+
+  <div class="checkout-container">
+    <div class="checkout-form">
+      <h1>Payment Method</h1>
+
+      <div class="payment-methods">
+        <div class="payment-method"
+          *ngFor="let method of paymentMethods"
+          [class.active]="selectedPaymentMethod === method.id"
+          (click)="selectPaymentMethod(method.id)">
+          <div class="payment-method-radio">
+            <div class="radio-inner" *ngIf="selectedPaymentMethod === method.id"></div>
+          </div>
+          <div class="payment-method-icon">
+            <span class="material-symbols-outlined">{{method.icon}}</span>
+          </div>
+          <div class="payment-method-details">
+            <div class="payment-method-name">{{method.name}}</div>
+            <div class="payment-method-description">{{method.description}}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Stripe Card Input -->
+      <div *ngIf="selectedPaymentMethod === 'stripe'">
+        <div #paymentElement class="payment-element"></div>
+        <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
+      </div>
+
+      <div class="alternative-payment">
+        <p class="alternative-payment-note">
+          You will be redirected to complete your payment after reviewing your order.
+        </p>
+        <div class="form-actions">
+          <a routerLink="/checkout/shipping" class="back-button">Back to Shipping</a>
+          <button
+            type="button"
+            class="continue-button"
+            (click)="continueWithSelectedMethod()"
+            [disabled]="isProcessing">
+            <span *ngIf="isProcessing">Processing...</span>
+            <span *ngIf="!isProcessing">Continue to Review</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <div class="checkout-summary">
+      <app-order-summary></app-order-summary>
+    </div>
+  </div>
+</div>

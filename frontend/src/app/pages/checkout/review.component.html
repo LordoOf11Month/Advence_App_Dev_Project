@@ -1,0 +1,129 @@
+<div class="review-container">
+  <div class="review-content">
+    <!-- Order Summary Section -->
+    <div class="order-summary">
+      <h2>Order Summary</h2>
+      <app-order-summary></app-order-summary>
+    </div>
+
+    <!-- Shipping Address Section -->
+    <div class="shipping-address" *ngIf="shippingAddress">
+      <h2>Shipping Address</h2>
+      <div class="address-details">
+        <p>{{ shippingAddress.address.street }}</p>
+        <p>{{ shippingAddress.address.city }}, {{ shippingAddress.address.state }} {{ shippingAddress.address.zipCode }}</p>
+        <p>{{ shippingAddress.address.country }}</p>
+      </div>
+    </div>
+
+    <!-- Payment Section -->
+    <div class="payment-section">
+      <h2>Payment</h2>
+      <form [formGroup]="orderForm">
+        <div class="terms-checkbox">
+          <input type="checkbox" id="terms" formControlName="terms">
+          <label for="terms">I agree to the terms and conditions</label>
+        </div>
+
+        <!-- Stripe Payment Element -->
+        <div #paymentElement class="payment-element"></div>
+
+        <!-- Error Message -->
+        <div class="error-message" *ngIf="errorMessage">
+          {{ errorMessage }}
+        </div>
+
+        <!-- Place Order Button -->
+        <div class="place-order-section">
+          <button
+            type="button"
+            class="place-order-button"
+            (click)="placeOrder()"
+            [disabled]="isProcessing || orderForm.invalid">
+            <span *ngIf="isProcessing">Processing...</span>
+            <span *ngIf="!isProcessing">Place Order</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.review-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.review-content {
+  display: grid;
+  gap: 2rem;
+}
+
+.order-summary,
+.shipping-address,
+.payment-section {
+  background: white;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+h2 {
+  margin-bottom: 1rem;
+  color: #333;
+}
+
+.address-details p {
+  margin: 0.5rem 0;
+  color: #666;
+}
+
+.terms-checkbox {
+  margin: 1rem 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.payment-element {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+}
+
+.error-message {
+  color: #dc3545;
+  margin: 1rem 0;
+  padding: 0.5rem;
+  background: #fff5f5;
+  border-radius: 4px;
+}
+
+.place-order-section {
+  margin-top: 1.5rem;
+}
+
+.place-order-button {
+  width: 100%;
+  padding: 1rem;
+  background: #007bff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.place-order-button:hover:not(:disabled) {
+  background: #0056b3;
+}
+
+.place-order-button:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+</style>

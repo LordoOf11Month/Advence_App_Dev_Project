@@ -1,0 +1,78 @@
+<div class="shipping-form-container">
+  <h2>Shipping Address</h2>
+  <form [formGroup]="shippingForm" (ngSubmit)="onSubmit()" novalidate>
+
+    <!-- Full Name -->
+    <div class="form-field">
+      <label for="name">Full Name</label>
+      <input id="name" formControlName="name" placeholder="Jane Doe">
+      <div *ngIf="shippingForm.controls['name'].invalid && (shippingForm.controls['name'].dirty || shippingForm.controls['name'].touched)" class="error-message">
+        <span *ngIf="shippingForm.controls['name'].errors?.['required']">Full name is required.</span>
+      </div>
+    </div>
+
+    <!-- Address Line 1 -->
+    <div class="form-field">
+      <label for="addressLine1">Address Line 1</label>
+      <input id="addressLine1" formControlName="addressLine1" placeholder="123 Main St">
+      <div *ngIf="shippingForm.controls['addressLine1'].invalid && (shippingForm.controls['addressLine1'].dirty || shippingForm.controls['addressLine1'].touched)" class="error-message">
+        <span *ngIf="shippingForm.controls['addressLine1'].errors?.['required']">Address is required.</span>
+      </div>
+    </div>
+
+    <!-- Address Line 2 -->
+    <div class="form-field">
+      <label for="addressLine2">Address Line 2 (Optional)</label>
+      <input id="addressLine2" formControlName="addressLine2" placeholder="Apartment, suite, etc.">
+    </div>
+
+    <!-- City -->
+    <div class="form-field">
+      <label for="city">City</label>
+      <input id="city" formControlName="city" placeholder="Anytown">
+      <div *ngIf="shippingForm.controls['city'].invalid && (shippingForm.controls['city'].dirty || shippingForm.controls['city'].touched)" class="error-message">
+        <span *ngIf="shippingForm.controls['city'].errors?.['required']">City is required.</span>
+      </div>
+    </div>
+
+    <!-- State -->
+    <div class="form-field">
+      <label for="state">State / Province</label>
+      <input id="state" formControlName="state" placeholder="CA">
+      <div *ngIf="shippingForm.controls['state'].invalid && (shippingForm.controls['state'].dirty || shippingForm.controls['state'].touched)" class="error-message">
+        <span *ngIf="shippingForm.controls['state'].errors?.['required']">State/Province is required.</span>
+      </div>
+    </div>
+
+    <!-- Postal Code -->
+    <div class="form-field">
+      <label for="postalCode">Postal Code</label>
+      <input id="postalCode" formControlName="postalCode" placeholder="90210">
+      <div *ngIf="shippingForm.controls['postalCode'].invalid && (shippingForm.controls['postalCode'].dirty || shippingForm.controls['postalCode'].touched)" class="error-message">
+        <span *ngIf="shippingForm.controls['postalCode'].errors?.['required']">Postal code is required.</span>
+        <span *ngIf="shippingForm.controls['postalCode'].errors?.['pattern']">Invalid postal code format.</span>
+      </div>
+    </div>
+
+    <!-- Country -->
+    <div class="form-field">
+      <label for="country">Country</label>
+      <!-- For a real app, this would likely be a select dropdown -->
+      <input id="country" formControlName="country" placeholder="US">
+      <div *ngIf="shippingForm.controls['country'].invalid && (shippingForm.controls['country'].dirty || shippingForm.controls['country'].touched)" class="error-message">
+        <span *ngIf="shippingForm.controls['country'].errors?.['required']">Country is required.</span>
+      </div>
+    </div>
+
+    <!-- Phone (Optional) -->
+    <div class="form-field">
+      <label for="phone">Phone (Optional)</label>
+      <input id="phone" type="tel" formControlName="phone" placeholder="+1234567890">
+       <div *ngIf="shippingForm.controls['phone'].invalid && (shippingForm.controls['phone'].dirty || shippingForm.controls['phone'].touched)" class="error-message">
+        <span *ngIf="shippingForm.controls['phone'].errors?.['pattern']">Invalid phone number format.</span>
+      </div>
+    </div>
+
+    <button type="submit" class="submit-button" [disabled]="shippingForm.invalid">Continue to Payment</button>
+  </form>
+</div>

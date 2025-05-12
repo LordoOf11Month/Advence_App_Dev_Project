@@ -1,0 +1,83 @@
+<div class="review-container">
+  <h2>Review Your Order</h2>
+
+  <div *ngIf="isLoading" class="loading-spinner">
+    <p>Processing your order...</p>
+    <div class="spinner"></div>
+  </div>
+
+  <div *ngIf="errorMessage && !isLoading" class="error-message alert alert-danger">
+    <p>{{ errorMessage }}</p>
+    <button *ngIf="clientSecret" (click)="confirmOrderAndPay()" class="retry-button">Retry Payment</button>
+    <button (click)="editPayment()" class="edit-button">Edit Payment</button>
+  </div>
+
+  <ng-container *ngIf="!isLoading && !errorMessage">
+    <!-- Shipping Address Section -->
+    <section class="review-section" *ngIf="shippingAddress$ | async as address">
+      <h3>Shipping To: <button class="edit-link" (click)="editShipping()">Edit</button></h3>
+      <div *ngIf="address; else noShippingAddress">
+        <p>{{ address.name }}</p>
+        <p>{{ address.addressLine1 }}</p>
+        <p *ngIf="address.addressLine2">{{ address.addressLine2 }}</p>
+        <p>{{ address.city }}, {{ address.state }} {{ address.postalCode }}</p>
+        <p>{{ address.country }}</p>
+        <p *ngIf="address.phone">Phone: {{ address.phone }}</p>
+      </div>
+      <ng-template #noShippingAddress>
+        <p>Shipping address not provided.</p>
+      </ng-template>
+    </section>
+
+    <!-- Payment Information Placeholder -->
+    <section class="review-section">
+        <h3>Payment Method: <button class="edit-link" (click)="editPayment()">Edit</button></h3>
+        <p>Your payment details will be processed securely via Stripe.</p>
+        <!-- We don't display the actual card details here for PCI compliance -->
+        <!-- Could show card brand if available from Payment Element, but requires more advanced handling -->
+         <p>Ensure your payment details are correct on the previous step.</p>
+    </section>
+
+    <!-- Order Items Section -->
+    <section class="review-section item-summary-section" *ngIf="orderItems$ | async as items">
+      <h3>Order Items:</h3>
+      <ul *ngIf="items.length > 0; else emptyCart">
+        <li *ngFor="let item of items" class="order-item">
+          <div class="item-image" *ngIf="item.imageUrl">
+            <img [src]="item.imageUrl" [alt]="item.name">
+          </div>
+          <div class="item-details">
+            <span class="item-name">{{ item.name }}</span>
+            <span class="item-qty">Qty: {{ item.quantity }}</span>
+          </div>
+          <span class="item-price">{{ item.price * item.quantity | currency:'USD' }}</span>
+        </li>
+      </ul>
+      <ng-template #emptyCart>
+        <p>Your cart is empty.</p>
+      </ng-template>
+    </section>
+
+    <!-- Order Summary Section -->
+    <section class="review-section order-total-section" *ngIf="orderSummary$ | async as summary">
+      <h3>Order Summary:</h3>
+      <div *ngIf="summary; else noSummary">
+        <p>Subtotal: <span>{{ summary.subtotal | currency:'USD' }}</span></p>
+        <p>Shipping: <span>{{ summary.shippingCost | currency:'USD' }}</span></p>
+        <p>Tax (Est.): <span>{{ summary.tax | currency:'USD' }}</span></p>
+        <p class="total-price">Total: <span>{{ summary.total | currency:'USD' }}</span></p>
+      </div>
+      <ng-template #noSummary>
+        <p>Order summary is not available.</p>
+      </ng-template>
+    </section>
+
+    <button
+      (click)="confirmOrderAndPay()"
+      class="confirm-button"
+      [disabled]="isLoading || !clientSecret">
+      {{ isLoading ? 'Processing...' : 'Confirm & Pay' }}
+    </button>
+  </ng-container>
+
+</div>

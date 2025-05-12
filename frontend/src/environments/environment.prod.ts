@@ -1,4 +1,7 @@
 export const environment = {
   production: true,
-  apiUrl: 'http://localhost:8080/api' // This should be updated to the production API URL when deployed
-}; 
+  apiUrl: 'http://localhost:8080/api', // Update this with your production API URL
+  stripe: {
+    publishableKey: 'your_publishable_key_here' // Replace with your production Stripe publishable key
+  }
+};

@@ -24,6 +24,7 @@ public class PaymentMethod {
         DISCOVER,
         OTHER // Add more brands as needed
     }
+    
 
     @Enumerated(EnumType.STRING)
     @Column(name = "brand", length = 50, nullable = false)

@@ -1,17 +1,8 @@
 import { CartItem } from './product.model';
+import { Address, AddressFormData } from './address.model';
 
-export interface ShippingAddress {
-  firstName: string;
-  lastName: string;
-  address1: string;
-  address2?: string;
-  city: string;
-  state: string;
-  postalCode: string;
-  country: string;
-  phone: string;
-  email: string;
-  saveAddress?: boolean;
+export interface ShippingAddress extends AddressFormData {
+  address: Address;
 }
 
 export interface PaymentMethod {
@@ -22,6 +13,16 @@ export interface PaymentMethod {
   cvv?: string;
   saveCard?: boolean;
 }
+
+export interface OrderItem {
+  productId: number;
+  quantity: number;
+  priceAtPurchase: number;
+  stripePaymentIntentId?: string;
+  clientSecret?: string;
+}
+
+export type OrderStatus = 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
 
 export interface Order {
   id: string;
@@ -34,12 +35,38 @@ export interface Order {
   discount: number;
   tax: number;
   total: number;
-  status: 'pending' | 'processing' | 'shipped' | 'delivered' | 'cancelled';
+  status: OrderStatus;
   createdAt: Date;
   updatedAt: Date;
-  estimatedDelivery?: Date;
+  estimatedDelivery: Date;
   trackingNumber?: string;
-  notes?: string;
+  actualDeliveryDate?: Date;
+  customer?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+}
+
+export interface OrderResponse {
+  id: string;
+  status: OrderStatus;
+  createdAt: Date;
+  updatedAt: Date;
+  items: OrderItem[];
+  subtotal: number;
+  shipping: number;
+  total: number;
+  customer?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    email: string;
+  };
+  shippingAddress: Address;
+  trackingNumber?: string;
+  actualDeliveryDate?: Date;
 }
 
 export interface OrderSummary {
@@ -50,4 +77,27 @@ export interface OrderSummary {
   total: number;
 }
 
-export type CheckoutStep = 'shipping' | 'payment' | 'review' | 'confirmation'; 
+export type CheckoutStep = 'shipping' | 'payment' | 'review' | 'confirmation';
+
+export interface CreateOrderRequest {
+  items: {
+    productId: number;
+    quantity: number;
+    priceAtPurchase: number;
+    stripePaymentIntentId: string | null;
+    stripeChargeId: string | null;
+  }[];
+  shippingAddress: {
+    id?: number | null;
+    name?: string;
+    street?: string;
+    addressLine1?: string;
+    addressLine2?: string;
+    city?: string;
+    state?: string;
+    country?: string;
+    zipCode?: string;
+    phone?: string;
+    isDefault?: boolean;
+  };
+}
