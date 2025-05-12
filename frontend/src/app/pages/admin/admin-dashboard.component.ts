@@ -118,30 +118,30 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
 
   // Mobile view detection - improved
   isMobileView: boolean = false;
-  
+
   @HostListener('window:resize', ['$event'])
   onResize() {
     this.checkIfMobile();
   }
-  
+
   private checkIfMobile(): void {
     const prevMobileState = this.isMobileView;
     this.isMobileView = window.innerWidth <= 768; // Same breakpoint as CSS
-    
+
     // If state changed, update UI accordingly
     if (prevMobileState !== this.isMobileView) {
       // Allow time for DOM to update
       setTimeout(() => {
         // Update active section in nav
-        const activeNavLink = document.querySelector(this.isMobileView ? 
-          '.mobile-nav a.active' : 
+        const activeNavLink = document.querySelector(this.isMobileView ?
+          '.mobile-nav a.active' :
           '.admin-nav a.active');
-          
+
         if (activeNavLink) {
-          activeNavLink.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'nearest', 
-            inline: 'center' 
+          activeNavLink.scrollIntoView({
+            behavior: 'smooth',
+            block: 'nearest',
+            inline: 'center'
           });
         }
       }, 100);
@@ -151,7 +151,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
     // Ignore keyboard shortcuts when user is typing in an input
-    if (event.target instanceof HTMLInputElement || 
+    if (event.target instanceof HTMLInputElement ||
         event.target instanceof HTMLTextAreaElement) {
       return;
     }
@@ -221,16 +221,16 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
       const sectionIndex = ['overview', 'products', 'orders', 'users'].indexOf(sectionId);
       this.currentSectionIndex = sectionIndex;
       this.activeSection = sectionId;
-      
+
       // Simply use native scroll with an offset
       const yOffset = -100; // Header offset
       const y = section.getBoundingClientRect().top + window.pageYOffset + yOffset;
-      
+
       window.scrollTo({
         top: y,
         behavior: 'smooth'
       });
-      
+
       // Also scroll the nav to show active item
       setTimeout(() => {
         const activeNavLink = document.querySelector('.admin-nav a.active');
@@ -274,19 +274,14 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
   }
 
   ngOnInit(): void {
-    // Verify admin permissions
-    console.log('AdminDashboardComponent: Initializing');
-    console.log('Is admin:', this.authService.isAdmin());
-    
-    if (!this.authService.isAdmin()) {
-      console.error('Unauthorized access attempt to admin dashboard');
-      this.errorService.showError('You do not have permission to access this page');
-      this.router.navigate(['/']);
-      return;
-    }
-    
-    console.log('Admin access verified, loading dashboard data');
+    this.checkIfMobile();
     this.loadDashboardData();
+
+    // Prefetch sellers for product assignment
+    this.loadSellers();
+
+    // Load orders separately to ensure they're always loaded
+    this.loadOrders();
   }
 
   ngOnDestroy(): void {
@@ -313,11 +308,12 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
   }
 
   private loadDashboardData(): void {
+    // Load basic stats for overview section
     this.loadStats();
+
+    // Load separate data sections
     this.loadProducts();
-    this.loadOrders();
     this.loadUsers();
-    this.loadSellers();
   }
 
   private loadStats(): void {
@@ -385,7 +381,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
 
     if (this.productSearchQuery) {
       const query = this.productSearchQuery.toLowerCase();
-      filtered = filtered.filter(p => 
+      filtered = filtered.filter(p =>
         p.title.toLowerCase().includes(query)
       );
     }
@@ -428,19 +424,19 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
       description: '',
       imageUrl: '/assets/images/placeholder-product.svg'
     };
-    
+
     // Ensure sellers are loaded for the dropdown
     if (this.sellers.length === 0) {
       this.loadSellers();
     }
-    
+
     this.showProductForm = true;
   }
 
   editProduct(product: AdminProduct): void {
     this.editingProduct = true;
     this.currentProduct = { ...product };
-    
+
     // Ensure seller data is properly set
     if (product.sellerId) {
       // If sellers aren't loaded yet, load them
@@ -448,11 +444,11 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
         this.loadSellers();
       }
     }
-    
+
     console.log('[EDIT] Current image URL before opening form:', this.currentProduct.imageUrl);
     console.log('[EDIT] Current seller ID:', this.currentProduct.sellerId);
     console.log('[EDIT] Current seller name:', this.currentProduct.sellerName);
-    
+
     this.showProductForm = true;
   }
 
@@ -462,30 +458,30 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
 
   saveProduct(): void {
     if (this.isSavingProduct) return;
-    
+
     // Clean the image URL by removing any timestamp parameters
     if (this.currentProduct && this.currentProduct.imageUrl && this.currentProduct.imageUrl.includes('?')) {
       this.currentProduct.imageUrl = this.currentProduct.imageUrl.split('?')[0];
       console.log('[SAVE] Cleaned image URL for saving:', this.currentProduct.imageUrl);
     }
-    
+
     console.log('[SAVE] Before API call - Image URL:', this.currentProduct.imageUrl);
     this.isSavingProduct = true;
     const action = this.editingProduct ? 'update' : 'create';
-    
+
     // Special handling for image updates when editing an existing product
     if (this.editingProduct && this.currentProduct.imageUrl) {
       // Find the original product to check if image changed
       const originalProduct = this.products.find(p => p.id === this.currentProduct.id);
       const originalImageUrl = originalProduct?.imageUrl?.split('?')[0];
       const newImageUrl = this.currentProduct.imageUrl.split('?')[0];
-      
+
       // If image URL changed, handle it separately
       if (originalImageUrl !== newImageUrl) {
         console.log('[SAVE] Image URL changed, handling it separately');
         console.log('[SAVE] Original:', originalImageUrl);
         console.log('[SAVE] New:', newImageUrl);
-        
+
         // First update just the image
         this.adminService.updateProductImageDirect(this.currentProduct.id, newImageUrl)
           .pipe(
@@ -501,7 +497,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
               // Update our current product with the new image URL
               this.currentProduct.imageUrl = imageResult.imageUrl;
             }
-            
+
             // Now proceed with the regular product update
             this.performProductUpdate(action);
           });
@@ -514,7 +510,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
       this.performProductUpdate(action);
     }
   }
-  
+
   // Helper method to perform the actual product update/create operation
   private performProductUpdate(action: 'update' | 'create'): void {
     const request$ = action === 'update'
@@ -532,7 +528,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
       if (product) {
         console.log('[SAVE] API response product:', JSON.stringify(product));
         console.log('[SAVE] API response image URL:', product.imageUrl);
-        
+
         if (action === 'update') {
           const index = this.products.findIndex(p => p.id === product.id);
           if (index !== -1) {
@@ -546,7 +542,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
         this.filterProducts();
         this.showProductForm = false;
         this.errorService.showSuccess(`Product ${action}d successfully`);
-        
+
         // Add delay and reload products to ensure the image changes are reflected
         setTimeout(() => {
           this.loadProducts();
@@ -655,8 +651,8 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
 
   filterByOrderStatus(status: string): void {
     this.selectedOrderStatus = status;
-    this.filteredOrders = status === 'all' 
-      ? this.orders 
+    this.filteredOrders = status === 'all'
+      ? this.orders
       : this.orders.filter(order => order.status === status);
     this.applyOrderFilters();
   }
@@ -686,9 +682,9 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
     if (!this.selectedOrder || this.selectedOrderStatus === 'all') return;
 
     const previousStatus = this.selectedOrder.status;
-    
+
     this.adminService.updateOrderStatus(
-      this.selectedOrder.id, 
+      this.selectedOrder.id,
       this.selectedOrderStatus as AdminOrder['status']
     ).pipe(
       catchError(error => {
@@ -709,7 +705,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
 
   resolveOrderIssue(order: AdminOrder): void {
     const issueType = order.status === 'pending' ? 'payment' : 'order';
-    const method = order.status === 'pending' 
+    const method = order.status === 'pending'
       ? this.adminService.resolvePaymentIssue(order.id)
       : this.adminService.resolveOrderIssue(order.id);
 
@@ -926,26 +922,26 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
   previewImage(): void {
     if (this.currentProduct && this.currentProduct.imageUrl) {
       // Store the original URL without timestamp
-      const originalUrl = this.currentProduct.imageUrl.includes('?') 
+      const originalUrl = this.currentProduct.imageUrl.includes('?')
         ? this.currentProduct.imageUrl.split('?')[0]
         : this.currentProduct.imageUrl;
-      
+
       // Add timestamp to force image refresh but keep the original URL for saving
       this.currentProduct.imageUrl = originalUrl + '?t=' + new Date().getTime();
       console.log('[PREVIEW] Updated image URL with timestamp:', this.currentProduct.imageUrl);
     }
   }
-  
+
   // Update only the image URL of the product
   updateImageOnly(): void {
     if (!this.currentProduct || !this.currentProduct.id || !this.currentProduct.imageUrl) {
       this.errorService.showError('Product ID or image URL is missing');
       return;
     }
-    
+
     // Store the user-entered image URL directly
     const enteredImageUrl = this.currentProduct.imageUrl;
-    
+
     // Clean the URL by removing only timestamp parameters, preserve other query params
     let cleanImageUrl = enteredImageUrl;
     if (cleanImageUrl.includes('?t=')) {
@@ -953,12 +949,12 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
     } else if (cleanImageUrl.includes('&t=')) {
       cleanImageUrl = cleanImageUrl.split('&t=')[0];
     }
-    
+
     console.log('[SAVE] Cleaned image URL for saving:', cleanImageUrl);
     console.log('[SAVE] Before API call - Image URL:', cleanImageUrl);
-    
+
     this.isSavingProduct = true;
-    
+
     this.adminService.updateProductImageDirect(this.currentProduct.id, cleanImageUrl)
       .pipe(
         finalize(() => {
@@ -974,26 +970,26 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
         if (updatedProduct) {
           console.log('[SAVE] API response product:', JSON.stringify(updatedProduct));
           console.log('[SAVE] API response image URL:', updatedProduct.imageUrl);
-          
+
           this.errorService.showSuccess('Product image updated successfully');
-          
+
           // Update the product in our list
           const index = this.products.findIndex(p => p.id === updatedProduct.id);
           if (index !== -1) {
             // Update the product with the response
             this.products[index] = {
               ...this.products[index],
-              imageUrl: updatedProduct.imageUrl // Service already adds timestamp 
+              imageUrl: updatedProduct.imageUrl // Service already adds timestamp
             };
-            
+
             // Also update current product if we're editing it
             if (this.editingProduct && this.currentProduct.id === updatedProduct.id) {
               this.currentProduct.imageUrl = updatedProduct.imageUrl;
             }
-            
+
             console.log('[SAVE] Product updated in array', updatedProduct.imageUrl);
           }
-          
+
           // Refresh all products after a short delay
           setTimeout(() => {
             this.loadProducts();
@@ -1001,27 +997,27 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
         }
       });
   }
-  
+
   // Quick edit for product images directly from the products table
   quickEditImage(product: AdminProduct): void {
     // Prompt for the new image URL, defaulting to current image if available
-    const currentImage = product.imageUrl 
-      ? product.imageUrl.includes('?t=') || product.imageUrl.includes('&t=') 
-         ? product.imageUrl.split(/[?&]t=/)[0] 
+    const currentImage = product.imageUrl
+      ? product.imageUrl.includes('?t=') || product.imageUrl.includes('&t=')
+         ? product.imageUrl.split(/[?&]t=/)[0]
          : product.imageUrl
       : '';
     const newImageUrl = prompt('Enter new image URL:', currentImage);
-    
+
     if (!newImageUrl || newImageUrl.trim() === '') {
       return; // User cancelled or entered empty URL
     }
-    
+
     // Show loading state
     this.isSavingProduct = true;
-    
+
     console.log('[QUICK-EDIT] Updating image for product:', product.id);
     console.log('[QUICK-EDIT] New image URL:', newImageUrl);
-    
+
     this.adminService.updateProductImageDirect(product.id, newImageUrl)
       .pipe(
         finalize(() => {
@@ -1036,15 +1032,15 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
       .subscribe(updatedProduct => {
         if (updatedProduct) {
           console.log('[QUICK-EDIT] Image updated successfully:', updatedProduct.imageUrl);
-          
+
           // Update the product in the list
           const index = this.products.findIndex(p => p.id === product.id);
           if (index !== -1) {
             this.products[index].imageUrl = updatedProduct.imageUrl;
           }
-          
+
           this.errorService.showSuccess('Product image updated successfully');
-          
+
           // Refresh the product list
           setTimeout(() => {
             this.loadProducts();
@@ -1100,7 +1096,7 @@ export class AdminDashboardComponent implements OnInit, OnDestroy, AfterViewInit
       this.currentProduct.sellerName = '';
       return;
     }
-    
+
     const selectedSeller = this.sellers.find(s => s.id === sellerId);
     if (selectedSeller) {
       this.currentProduct.sellerId = selectedSeller.id;

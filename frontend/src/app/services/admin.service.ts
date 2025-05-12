@@ -690,7 +690,7 @@ export class AdminService {
 
   // Dashboard statistics
   getOrderStats(): Observable<OrderStats> {
-    return this.http.get<any>(`${this.apiUrl}/admin/stats/orders`).pipe(
+    return this.http.get<any>(`${this.apiUrl}/admin/orders/stats`).pipe(
       map(stats => ({
         total: stats.total || 0,
         pending: stats.pending || 0,

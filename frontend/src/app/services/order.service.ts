@@ -639,4 +639,30 @@ export class OrderService {
         })
       );
   }
+
+  /**
+   * Request a refund for an order item
+   */
+  requestRefund(orderId: string, itemId: string, reason: string): Observable<any> {
+    if (!this.isAuthenticated) {
+      return throwError(() => new Error('Authentication required to request a refund'));
+    }
+
+    const refundRequest = {
+      orderItemId: itemId,
+      reason: reason
+    };
+
+    return this.http.post<any>(`${this.apiUrl}/${orderId}/items/${itemId}/refund`, refundRequest)
+      .pipe(
+        tap(() => {
+          // Refresh orders after requesting a refund
+          this.loadOrdersFromBackend();
+        }),
+        catchError(error => {
+          console.error(`Error requesting refund for order item ${itemId}:`, error);
+          return throwError(() => error);
+        })
+      );
+  }
 }

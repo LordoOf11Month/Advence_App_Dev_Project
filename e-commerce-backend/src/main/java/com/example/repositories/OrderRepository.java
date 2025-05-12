@@ -29,4 +29,20 @@ public interface OrderRepository extends GenericRepository<OrderEntity, Long> { 
 
     @Query("SELECT COUNT(oi) > 0 FROM OrderEntity o JOIN o.orderItems oi WHERE o.user.id = :userId AND oi.product.id = :productId AND o.status IN ('delivered', 'shipped', 'processing')")
     boolean existsByUserIdAndProductId(@Param("userId") int userId, @Param("productId") Long productId);
+    
+    // Order stats counting methods
+    @Query("SELECT COUNT(o) FROM OrderEntity o WHERE o.status = 'pending'")
+    long countPendingOrders();
+    
+    @Query("SELECT COUNT(o) FROM OrderEntity o WHERE o.status = 'processing'")
+    long countProcessingOrders();
+    
+    @Query("SELECT COUNT(o) FROM OrderEntity o WHERE o.status = 'shipped'")
+    long countShippedOrders();
+    
+    @Query("SELECT COUNT(o) FROM OrderEntity o WHERE o.status = 'delivered'")
+    long countDeliveredOrders();
+    
+    @Query("SELECT COUNT(o) FROM OrderEntity o WHERE o.status = 'cancelled'")
+    long countCancelledOrders();
 }

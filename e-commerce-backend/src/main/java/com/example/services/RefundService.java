@@ -25,17 +25,20 @@ public class RefundService {
     private final OrderRepository orderRepository;
     private final UserRepository userRepository;
     private final StripeService stripeService;
+    private final NotificationService notificationService;
 
     @Autowired
     public RefundService(
             RefundRepository refundRepository,
             OrderRepository orderRepository,
             UserRepository userRepository,
-            StripeService stripeService) {
+            StripeService stripeService,
+            NotificationService notificationService) {
         this.refundRepository = refundRepository;
         this.orderRepository = orderRepository;
         this.userRepository = userRepository;
         this.stripeService = stripeService;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -78,8 +81,27 @@ public class RefundService {
         refund.setAmount(orderItem.getPriceAtPurchase().multiply(BigDecimal.valueOf(orderItem.getQuantity())));
         refund.setRequestedAt(LocalDateTime.now());
         
-        refundRepository.save(refund);
-        return convertToRefundResponse(refund);
+        Refund savedRefund = refundRepository.save(refund);
+        
+        // Notify the product's seller about the refund request
+        if (orderItem.getProduct() != null && orderItem.getProduct().getStore() != null && 
+            orderItem.getProduct().getStore().getSeller() != null) {
+            
+            User seller = orderItem.getProduct().getStore().getSeller();
+            OrderEntity order = orderItem.getOrder();
+            String productName = orderItem.getProduct().getName();
+            
+            String notificationMessage = String.format(
+                "A refund has been requested for product \"%s\" in order #%d. Reason: %s", 
+                productName,
+                order.getId(),
+                request.getReason()
+            );
+            
+            notificationService.createNotification(Long.valueOf(seller.getId()), notificationMessage);
+        }
+        
+        return convertToRefundResponse(savedRefund);
     }
 
     @Transactional
@@ -124,6 +146,25 @@ public class RefundService {
             refund.setProcessedAt(LocalDateTime.now());
             refundRepository.save(refund);
 
+            // Notify the product's seller about the refund
+            if (orderItem.getProduct() != null && orderItem.getProduct().getStore() != null && 
+                orderItem.getProduct().getStore().getSeller() != null) {
+                
+                User seller = orderItem.getProduct().getStore().getSeller();
+                OrderEntity order = orderItem.getOrder();
+                String productName = orderItem.getProduct().getName();
+                
+                String notificationMessage = String.format(
+                    "A refund of ₺%.2f has been processed for product \"%s\" in order #%d. Reason: %s", 
+                    refund.getAmount().doubleValue(),
+                    productName,
+                    order.getId(),
+                    refund.getReason()
+                );
+                
+                notificationService.createNotification(Long.valueOf(seller.getId()), notificationMessage);
+            }
+
             return convertToRefundResponse(refund);
         } catch (StripeException e) {
             refund.setStatus(Refund.RefundStatus.FAILED);
@@ -146,9 +187,29 @@ public class RefundService {
         refund.setStatus(Refund.RefundStatus.REJECTED);
         refund.setRejectionReason(request.getRejectionReason());
         refund.setProcessedAt(LocalDateTime.now());
-        refundRepository.save(refund);
+        Refund savedRefund = refundRepository.save(refund);
+        
+        // Notify the product's seller about the refund rejection
+        OrderItem orderItem = refund.getOrderItem();
+        if (orderItem != null && orderItem.getProduct() != null && 
+            orderItem.getProduct().getStore() != null && 
+            orderItem.getProduct().getStore().getSeller() != null) {
+            
+            User seller = orderItem.getProduct().getStore().getSeller();
+            OrderEntity order = orderItem.getOrder();
+            String productName = orderItem.getProduct().getName();
+            
+            String notificationMessage = String.format(
+                "A refund request for product \"%s\" in order #%d has been rejected. Reason: %s", 
+                productName,
+                order.getId(),
+                request.getRejectionReason()
+            );
+            
+            notificationService.createNotification(Long.valueOf(seller.getId()), notificationMessage);
+        }
 
-        return convertToRefundResponse(refund);
+        return convertToRefundResponse(savedRefund);
     }
 
     public List<OrderDTO.RefundResponseDTO> getRefundsForCurrentUser() {

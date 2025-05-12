@@ -59,13 +59,13 @@
         Seller Search
       </a>
     </nav>
-    
+
     <!-- Sections wrapper to prevent layout shifts -->
     <div class="sections-wrapper">
       <!-- Overview Section -->
       <section id="overview" #section>
         <h2>Overview</h2>
-        
+
         <div *ngIf="isLoadingStats">
           <app-loading-spinner></app-loading-spinner>
         </div>
@@ -113,7 +113,7 @@
       <!-- Products Section -->
       <section id="products" #section>
         <h2>Products</h2>
-        
+
         <div *ngIf="isLoadingProducts">
           <app-loading-spinner></app-loading-spinner>
         </div>
@@ -130,15 +130,15 @@
               <span class="material-symbols-outlined">refresh</span>
               Refresh
             </button>
-            
+
             <div class="filters">
-              <input 
-                type="text" 
-                [(ngModel)]="productSearchQuery" 
+              <input
+                type="text"
+                [(ngModel)]="productSearchQuery"
                 (ngModelChange)="filterProducts()"
                 placeholder="Search products..."
               >
-              
+
               <select [(ngModel)]="productStatusFilter" (ngModelChange)="filterProducts()">
                 <option value="all">All Status</option>
                 <option value="active">Active</option>
@@ -216,7 +216,7 @@
             </div>
 
             <div class="page-numbers">
-              <button 
+              <button
                 *ngFor="let page of calculateVisiblePages(productPagination.currentPage, paginatedProducts.totalPages)"
                 (click)="goToProductPage(page)"
                 [class.active]="page === productPagination.currentPage"
@@ -231,7 +231,7 @@
       <!-- Orders Section -->
       <section id="orders" #section>
         <h2>Orders</h2>
-        
+
         <div *ngIf="isLoadingOrders">
           <app-loading-spinner></app-loading-spinner>
         </div>
@@ -241,8 +241,15 @@
         </div>
 
         <div *ngIf="!isLoadingOrders && !ordersError">
+          <div class="table-actions">
+            <button (click)="loadOrders()" title="Reload Orders">
+              <span class="material-symbols-outlined">refresh</span>
+              Refresh
+            </button>
+          </div>
+
           <div class="status-filters">
-            <button 
+            <button
               *ngFor="let status of allOrderStatuses"
               (click)="filterByOrderStatus(status)"
               [class.active]="selectedOrderStatus === status"
@@ -251,20 +258,28 @@
             </button>
           </div>
 
-          <table>
+          <div *ngIf="filteredOrders.length === 0" class="empty-state">
+            <p>No orders found for the selected filter.</p>
+          </div>
+
+          <table *ngIf="filteredOrders.length > 0">
             <thead>
               <tr>
                 <th (click)="sortOrders('id')">
                   Order ID
                   <span *ngIf="orderSort.column === 'id'" [class]="orderSort.direction">↕</span>
                 </th>
-                <th (click)="sortOrders('customer')">
+                <th (click)="sortOrders('customerName')">
                   Customer
-                  <span *ngIf="orderSort.column === 'customer'" [class]="orderSort.direction">↕</span>
+                  <span *ngIf="orderSort.column === 'customerName'" [class]="orderSort.direction">↕</span>
                 </th>
                 <th (click)="sortOrders('total')">
                   Total
                   <span *ngIf="orderSort.column === 'total'" [class]="orderSort.direction">↕</span>
+                </th>
+                <th (click)="sortOrders('createdAt')">
+                  Date
+                  <span *ngIf="orderSort.column === 'createdAt'" [class]="orderSort.direction">↕</span>
                 </th>
                 <th (click)="sortOrders('status')">
                   Status
@@ -277,32 +292,33 @@
               <tr *ngFor="let order of paginatedOrders?.items">
                 <td>{{ order.id }}</td>
                 <td>{{ order.customerName }}</td>
-                <td>${{ order.total }}</td>
+                <td>₺{{ order.total | number:'1.2-2' }}</td>
+                <td>{{ order.createdAt | date:'short' }}</td>
                 <td>
                   <span [class]="'status-badge ' + order.status">
                     {{ order.status }}
                   </span>
                 </td>
                 <td>
-                  <button (click)="viewOrderDetails(order)">View</button>
+                  <button (click)="viewOrderDetails(order)">View Details</button>
                   <button (click)="updateOrderStatus(order)">Update Status</button>
                 </td>
               </tr>
             </tbody>
           </table>
 
-          <div class="pagination" *ngIf="paginatedOrders">
+          <div class="pagination" *ngIf="paginatedOrders && paginatedOrders.totalPages > 1">
             <div class="page-size">
               <select [(ngModel)]="orderPagination.pageSize" (ngModelChange)="onOrderPageSizeChange()">
-                <option *ngFor="let size of getPageSizes(orderPagination.totalItems)" [value]="size">
+                <option *ngFor="let size of getPageSizes(orderPagination?.totalItems || 0)" [value]="size">
                   {{ size }} per page
                 </option>
               </select>
             </div>
 
             <div class="page-numbers">
-              <button 
-                *ngFor="let page of calculateVisiblePages(orderPagination.currentPage, paginatedOrders.totalPages)"
+              <button
+                *ngFor="let page of calculateVisiblePages(orderPagination.currentPage, paginatedOrders?.totalPages || 1)"
                 (click)="goToOrderPage(page)"
                 [class.active]="page === orderPagination.currentPage"
               >
@@ -316,7 +332,7 @@
       <!-- Users Section -->
       <section id="users" #section>
         <h2>Users</h2>
-        
+
         <div *ngIf="isLoadingUsers">
           <app-loading-spinner></app-loading-spinner>
         </div>
@@ -360,14 +376,14 @@
                 </td>
                 <td>
                   <button (click)="viewUserTransactions(user.id)">Transactions</button>
-                  <button 
+                  <button
                     *ngIf="user.status !== 'banned'"
-                    (click)="banUser(user.id)" 
+                    (click)="banUser(user.id)"
                     class="danger"
                   >
                     Ban
                   </button>
-                  <button 
+                  <button
                     *ngIf="user.status === 'banned'"
                     (click)="unbanUser(user.id)"
                   >
@@ -388,7 +404,7 @@
             </div>
 
             <div class="page-numbers">
-              <button 
+              <button
                 *ngFor="let page of calculateVisiblePages(userPagination.currentPage, paginatedUsers.totalPages)"
                 (click)="goToUserPage(page)"
                 [class.active]="page === userPagination.currentPage"
@@ -407,7 +423,7 @@
 <div class="modal" *ngIf="showProductForm">
   <div class="modal-content">
     <h2>{{ editingProduct ? 'Edit' : 'Add' }} Product</h2>
-    
+
     <form (ngSubmit)="saveProduct()">
       <div class="form-group">
         <label for="title">Title</label>
@@ -464,13 +480,13 @@
           <option value="out-of-stock">Out of Stock</option>
         </select>
       </div>
-      
+
       <div class="form-group">
         <label for="seller">Assign to Seller</label>
         <div class="seller-selection">
-          <select 
-            id="seller" 
-            [(ngModel)]="currentProduct.sellerId" 
+          <select
+            id="seller"
+            [(ngModel)]="currentProduct.sellerId"
             name="seller"
             (change)="onSellerSelect(currentProduct.sellerId)">
             <option value="">-- No Seller (Admin Product) --</option>
@@ -502,38 +518,113 @@
 
 <div class="modal" *ngIf="selectedOrder">
   <div class="modal-content">
-    <h2>Order Details</h2>
-    
-    <div class="order-details">
-      <p><strong>Order ID:</strong> {{ selectedOrder.id }}</p>
-      <p><strong>Customer:</strong> {{ selectedOrder.customerName }}</p>
-      <p><strong>Total:</strong> ${{ selectedOrder.total }}</p>
-      <p><strong>Status:</strong> {{ selectedOrder.status }}</p>
-      
-      <h3>Items</h3>
-      <table>
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Quantity</th>
-            <th>Price</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let item of selectedOrder.items">
-            <td>{{ item.productName }}</td>
-            <td>{{ item.quantity }}</td>
-            <td>${{ item.price }}</td>
-            <td>${{ item.quantity * item.price }}</td>
-          </tr>
-        </tbody>
-      </table>
+    <div class="modal-header">
+      <h2>Order Details</h2>
+      <button class="close-btn" (click)="closeOrderDetails()">×</button>
     </div>
 
-    <div class="modal-actions">
-      <button (click)="closeOrderDetails()">Close</button>
-      <button (click)="updateStatus(selectedOrder)">Update Status</button>
+    <div class="modal-body">
+      <div class="order-details-grid">
+        <div class="order-detail-item">
+          <span class="detail-label">Order ID</span>
+          <span class="detail-value">{{ selectedOrder.id }}</span>
+        </div>
+        <div class="order-detail-item">
+          <span class="detail-label">Date</span>
+          <span class="detail-value">{{ selectedOrder.createdAt | date:'medium' }}</span>
+        </div>
+        <div class="order-detail-item">
+          <span class="detail-label">Status</span>
+          <span class="detail-value status-badge {{ selectedOrder.status }}">{{ selectedOrder.status }}</span>
+        </div>
+        <div class="order-detail-item">
+          <span class="detail-label">Customer</span>
+          <span class="detail-value">{{ selectedOrder.customerName }}</span>
+        </div>
+        <div class="order-detail-item">
+          <span class="detail-label">Customer Email</span>
+          <span class="detail-value">{{ selectedOrder.userEmail }}</span>
+        </div>
+      </div>
+
+      <div class="order-detail-section">
+        <h3>Shipping Address</h3>
+        <p>{{ selectedOrder.shippingAddress }}</p>
+      </div>
+
+      <div class="order-detail-section">
+        <h3>Items</h3>
+        <table class="order-items-table">
+          <thead>
+            <tr>
+              <th>Product</th>
+              <th>Quantity</th>
+              <th>Price</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of selectedOrder.items">
+              <td>{{ item.productName }}</td>
+              <td>{{ item.quantity }}</td>
+              <td>₺{{ item.price | number:'1.2-2' }}</td>
+              <td>₺{{ item.quantity * item.price | number:'1.2-2' }}</td>
+            </tr>
+          </tbody>
+          <tfoot>
+            <tr>
+              <td colspan="3" class="text-right"><strong>Total</strong></td>
+              <td>₺{{ selectedOrder.total | number:'1.2-2' }}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+
+      <div class="order-detail-section">
+        <h3>Order Timeline</h3>
+        <div class="order-timeline">
+          <div class="timeline-item">
+            <div class="timeline-icon ordered"></div>
+            <div class="timeline-content">
+              <h4>Order Placed</h4>
+              <p>{{ selectedOrder.createdAt | date:'medium' }}</p>
+            </div>
+          </div>
+
+          <div class="timeline-item" [class.active]="selectedOrder.status === 'processing' || selectedOrder.status === 'shipped' || selectedOrder.status === 'delivered'">
+            <div class="timeline-icon processing"></div>
+            <div class="timeline-content">
+              <h4>Processing</h4>
+              <p *ngIf="selectedOrder.status === 'processing' || selectedOrder.status === 'shipped' || selectedOrder.status === 'delivered'">In progress</p>
+              <p *ngIf="selectedOrder.status === 'cancelled'">Order cancelled</p>
+              <p *ngIf="selectedOrder.status === 'pending'">Waiting for payment</p>
+            </div>
+          </div>
+
+          <div class="timeline-item" [class.active]="selectedOrder.status === 'shipped' || selectedOrder.status === 'delivered'">
+            <div class="timeline-icon shipped"></div>
+            <div class="timeline-content">
+              <h4>Shipped</h4>
+              <p *ngIf="selectedOrder.status === 'shipped' || selectedOrder.status === 'delivered'">Order has been shipped</p>
+              <p *ngIf="selectedOrder.status !== 'shipped' && selectedOrder.status !== 'delivered'">Not yet shipped</p>
+            </div>
+          </div>
+
+          <div class="timeline-item" [class.active]="selectedOrder.status === 'delivered'">
+            <div class="timeline-icon delivered"></div>
+            <div class="timeline-content">
+              <h4>Delivered</h4>
+              <p *ngIf="selectedOrder.status === 'delivered'">Order has been delivered</p>
+              <p *ngIf="selectedOrder.status !== 'delivered'">Not yet delivered</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn-secondary" (click)="closeOrderDetails()">Close</button>
+      <button class="btn-primary" (click)="updateOrderStatus(selectedOrder)">Update Status</button>
     </div>
   </div>
 </div>
@@ -541,9 +632,9 @@
 <div class="modal" *ngIf="showStatusUpdate">
   <div class="modal-content">
     <h2>Update Order Status</h2>
-    
+
     <div class="status-options">
-      <button 
+      <button
         *ngFor="let status of orderStatuses"
         [class.active]="selectedOrderStatus === status"
         (click)="selectStatus(status)"
@@ -564,7 +655,7 @@
 <div class="modal" *ngIf="showTransactions">
   <div class="modal-content">
     <h2>User Transactions</h2>
-    
+
     <div *ngIf="isLoadingTransactions">
       <app-loading-spinner></app-loading-spinner>
     </div>

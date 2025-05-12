@@ -35,6 +35,7 @@ import java.util.Optional;
 import com.example.models.PaymentMethod;
 import com.stripe.model.PaymentIntent;
 import com.example.models.Address;
+import com.example.services.NotificationService;
 
 @Service
 public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.OrderResponse, OrderDTO.CreateOrderRequest, Long> {
@@ -46,6 +47,7 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
     private final StoreRepository storeRepository;   // For filtering by store name/id
     private final UserRepository userRepository;     // For filtering by customer email/id
     private final StripeService stripeService;
+    private final NotificationService notificationService;
 
     @Autowired
     public OrderService(OrderRepository orderRepository,
@@ -53,7 +55,8 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
                         StoreRepository storeRepository,
                         UserRepository userRepository,
                         StripeService stripeService,
-                        RefundRepository refundRepository, AddressRepository addressRepository) {
+                        RefundRepository refundRepository, AddressRepository addressRepository,
+                        NotificationService notificationService) {
         super(orderRepository);
         this.orderRepository = orderRepository;
         this.productRepository = productRepository;
@@ -61,6 +64,7 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
         this.userRepository = userRepository;
         this.stripeService = stripeService;
         this.addressRepository = addressRepository;
+        this.notificationService = notificationService;
     }
 
     @Override
@@ -359,9 +363,21 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
                 .orElseThrow(() -> new RuntimeException("Order not found with id: " + orderId)); // Replace with custom exception
         
         try {
+            OrderEntity.Status oldStatus = order.getStatus();
             OrderEntity.Status newStatus = OrderEntity.Status.valueOf(request.getNewStatus().toLowerCase());
             order.setStatus(newStatus);
-            // Optionally: Log the reason if provided in request.getReason()
+            
+            // Create a notification for the user about the order status change
+            if (order.getUser() != null && !oldStatus.equals(newStatus)) {
+                String notificationMessage = String.format(
+                    "Your order #%d status has been updated from %s to %s.", 
+                    orderId, 
+                    oldStatus.name(), 
+                    newStatus.name()
+                );
+                notificationService.createNotification(Long.valueOf(order.getUser().getId()), notificationMessage);
+            }
+            
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException("Invalid order status: " + request.getNewStatus());
         }
@@ -468,6 +484,10 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
         
         order.setStatus(OrderEntity.Status.cancelled);
         orderRepository.save(order);
+        
+        // Create a notification for the user about their cancelled order
+        String notificationMessage = String.format("You have cancelled your order #%d.", orderId);
+        notificationService.createNotification(Long.valueOf(user.getId()), notificationMessage);
     }
 
     public Map<String, Object> findAllAdminOrders(AdminOrderDTO.AdminOrderFilterRequest filter, int page, int size) {
@@ -613,7 +633,7 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
         try {
             OrderItem orderItem = orderRepository.findByStripePaymentIntentId(paymentIntentId)
                     .orElseThrow(() -> new RuntimeException("Order item not found for payment intent: " + paymentIntentId));
-
+            
             String chargeId = stripeService.confirmPaymentIntent(paymentIntentId);
             orderItem.setStripeChargeId(chargeId);
             
@@ -621,13 +641,17 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
             OrderEntity order = orderItem.getOrder();
             boolean allItemsPaid = order.getOrderItems().stream()
                     .allMatch(item -> item.getStripeChargeId() != null);
-
+            
             // If all items are paid, update order status
             if (allItemsPaid) {
                 order.setStatus(OrderEntity.Status.processing);
                 order.setStripeChargeId(chargeId);
+                
+                // Create a notification for the user about their payment confirmation
+                String notificationMessage = String.format("Payment for order #%d has been confirmed. Your order is now being processed.", order.getId());
+                notificationService.createNotification(Long.valueOf(order.getUser().getId()), notificationMessage);
             }
-
+            
             orderRepository.save(order);
             return convertToDto(order);
         } catch (StripeException e) {
@@ -637,17 +661,31 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
 
     @Transactional
     public OrderDTO.OrderResponse handlePaymentFailure(String paymentIntentId) {
-        OrderItem orderItem = orderRepository.findByStripePaymentIntentId(paymentIntentId)
-                .orElseThrow(() -> new RuntimeException("Order item not found for payment intent: " + paymentIntentId));
-
-        OrderEntity order = orderItem.getOrder();
-        
-        // You might want to implement retry logic or notify the user
-        // For now, we'll just mark the order as cancelled
-        order.setStatus(OrderEntity.Status.cancelled);
-        
-        orderRepository.save(order);
-        return convertToDto(order);
+        try {
+            OrderItem orderItem = orderRepository.findByStripePaymentIntentId(paymentIntentId)
+                    .orElseThrow(() -> new RuntimeException("Order item not found for payment intent: " + paymentIntentId));
+            
+            // Get the parent order
+            OrderEntity order = orderItem.getOrder();
+            
+            // Mark the order as cancelled due to payment failure
+            if (order.getStatus() == OrderEntity.Status.pending) {
+                order.setStatus(OrderEntity.Status.cancelled);
+                
+                // Notify the user that payment has failed
+                String notificationMessage = String.format(
+                    "Payment for order #%d has failed. Please update your payment information or contact customer support.", 
+                    order.getId()
+                );
+                notificationService.createNotification(Long.valueOf(order.getUser().getId()), notificationMessage);
+            }
+            
+            // Save the updated order
+            OrderEntity savedOrder = orderRepository.save(order);
+            return convertToDto(savedOrder);
+        } catch (Exception e) {
+            throw new RuntimeException("Error handling payment failure: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -692,5 +730,28 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
         }
         
         return convertToDto(order);
+    }
+
+    public Map<String, Object> getOrderStats() {
+        // Get counts of orders by status
+        long pendingCount = orderRepository.countPendingOrders();
+        long processingCount = orderRepository.countProcessingOrders();
+        long shippedCount = orderRepository.countShippedOrders();
+        long deliveredCount = orderRepository.countDeliveredOrders();
+        long cancelledCount = orderRepository.countCancelledOrders();
+        
+        // Calculate total orders
+        long totalOrders = pendingCount + processingCount + shippedCount + deliveredCount + cancelledCount;
+        
+        // Create the response map
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("total", totalOrders);
+        stats.put("pending", pendingCount);
+        stats.put("processing", processingCount);
+        stats.put("shipped", shippedCount);
+        stats.put("delivered", deliveredCount);
+        stats.put("cancelled", cancelledCount);
+        
+        return stats;
     }
 } 
