@@ -9,33 +9,29 @@ import { environment } from '../../environments/environment';
   providedIn: 'root'
 })
 export class CategoryService {
-  private apiUrl = 'http://localhost:8080/api/public/categories';
+  private apiUrl = `${environment.apiUrl}/public/categories`;
   private categoriesCache$: Observable<Category[]> | null = null;
-  
+
   constructor(private http: HttpClient) { }
-  
+
   /**
    * Get all categories with subcategories
    */
   getAllCategories(): Observable<Category[]> {
-    // Return cached categories if available
     if (this.categoriesCache$) {
       return this.categoriesCache$;
     }
-    
-    // Fetch categories from the API
     this.categoriesCache$ = this.http.get<Category[]>(this.apiUrl).pipe(
       tap(categories => console.log('Fetched categories:', categories)),
       catchError(error => {
         console.error('Error fetching categories:', error);
         return throwError(() => error);
       }),
-      shareReplay(1) // Cache the result
+      shareReplay(1)
     );
-    
     return this.categoriesCache$;
   }
-  
+
   /**
    * Get only root categories
    */
@@ -48,7 +44,7 @@ export class CategoryService {
       })
     );
   }
-  
+
   /**
    * Get a specific category by ID
    */
@@ -61,7 +57,7 @@ export class CategoryService {
       })
     );
   }
-  
+
   /**
    * Get a specific category by slug
    */
@@ -74,7 +70,21 @@ export class CategoryService {
       })
     );
   }
-  
+
+  /**
+   * Get a specific category by name
+   */
+  getCategoryByName(name: string): Observable<Category> {
+    const encodedName = encodeURIComponent(name);
+    return this.http.get<Category>(`${this.apiUrl}/by-name/${encodedName}`).pipe(
+      tap(category => console.log(`Fetched category with name '${name}':`, category)),
+      catchError(error => {
+        console.error(`Error fetching category with name '${name}':`, error);
+        return throwError(() => error);
+      })
+    );
+  }
+
   /**
    * Get subcategories for a specific category
    */
@@ -87,7 +97,7 @@ export class CategoryService {
       })
     );
   }
-  
+
   /**
    * Get categories that have products
    */
@@ -100,7 +110,38 @@ export class CategoryService {
       })
     );
   }
-  
+
+  /**
+   * Check if a given string is likely a category name rather than a slug.
+   * This helps decide whether to call getCategoryByName or getCategoryBySlug.
+   * @param param The URL parameter string (expected to be URL-decoded by Angular Router).
+   */
+  isLikelyCategoryName(param: string): boolean {
+    if (!param) return false; // Handle null or empty string
+
+    // If it contains spaces, it's very likely a name that needs to be looked up.
+    // e.g., "Living Room Furniture"
+    if (param.includes(' ')) {
+      return true;
+    }
+
+    // Regex for typical slugs:
+    // - Starts with alphanumeric
+    // - Can have hyphens between alphanumeric parts
+    // - Optionally ends with '-<digits>' (e.g., 'some-slug-123')
+    // - Case-insensitive matching for the pattern itself, though slugs are often lowercase.
+    const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*(-\d+)?$/i;
+
+    // If it does NOT contain spaces AND it does NOT match the typical slug pattern,
+    // it might be a single-word category name (e.g., "Electronics", "Books").
+    if (!slugPattern.test(param)) {
+      return true;
+    }
+
+    // Otherwise (it has no spaces and matches slugPattern), assume it's a slug.
+    return false;
+  }
+
   /**
    * Clear the categories cache
    */

@@ -4,14 +4,9 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotEmpty;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Positive;
-import jakarta.validation.constraints.Size;
 import lombok.Data;
 
-public class ProductDTO {
+public class ProductDetailDTO {
 
     @Data
     public static class ProductResponse {
@@ -33,24 +28,12 @@ public class ProductDTO {
         private String sellerName;
     }
 
-    @Data
-    public static class CreateProductRequest {
-        @NotBlank @Size(max = 255)
-        private String title;
-        @NotBlank @Size(max = 1000)
-        private String description;
-        @NotNull @Positive
-        private BigDecimal price;
-        @NotBlank
-        private String category;
-        private Integer stockQuantity;
-        @NotEmpty
-        private List<String> imageUrls; // List of image URLs to be stored
-        private boolean freeShipping;
-        private boolean fastDelivery;
-    }
+    // The static inner class CreateProductRequest has been moved to its own file:
+    // e-commerce-backend/src/main/java/com/example/DTO/ProductDTO/CreateProductRequest.java
 
-    @Data
+    // The static inner class ProductFilterRequest has been moved to its own file:
+    // e-commerce-backend/src/main/java/com/example/DTO/ProductDTO/ProductFilterRequest.java
+    /*
     public static class ProductFilterRequest {
         private String search; // Search string for product name or description
         private Double minPrice; // Minimum price
@@ -60,4 +43,5 @@ public class ProductDTO {
         private Boolean freeShipping; // Filter for free shipping products
         private Boolean fastDelivery; // Filter for fast delivery products
     }
+    */
 }

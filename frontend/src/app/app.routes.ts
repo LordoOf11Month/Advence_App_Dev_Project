@@ -25,6 +25,7 @@ import { JsonPipe, CommonModule } from '@angular/common';
 import { jwtDecode } from 'jwt-decode';
 import { SellerProductsComponent } from './components/seller-products.component';
 import { CategoryTestComponent } from './components/category-test/category-test.component';
+import { SearchResultsComponent } from './components/search-results/search-results.component';
 
 // Simple debug component for checking auth status
 @Component({
@@ -63,7 +64,7 @@ export class DebugComponent {
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
-  { path: 'category/:categoryId', component: ProductListComponent },
+  { path: 'category/:slug', component: ProductListComponent },
   { path: 'product/:productId', component: ProductDetailComponent },
   { path: 'store/:sellerId', component: StorePageComponent },
   { path: 'cart', component: CartComponent },
@@ -118,6 +119,10 @@ export const routes: Routes = [
       { path: 'orders', component: SellerDashboardComponent },
       { path: 'profile', component: SellerDashboardComponent }
     ]
+  },
+  {
+    path: 'search',
+    component: SearchResultsComponent
   },
   { path: '**', redirectTo: '' }
 ];

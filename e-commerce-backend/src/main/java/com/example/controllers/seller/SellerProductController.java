@@ -125,7 +125,7 @@ public class SellerProductController {
             List<ProductResponse> lowStockProducts = productService.findAllByStoreId(storeId, Pageable.unpaged())
                 .getContent()
                 .stream()
-                .filter(p -> p.getStockQuantity() != null && p.getStockQuantity() < 10)
+                .filter(p -> p.getStockQuantity() < 10) // stockQuantity is int, cannot be null
                 .collect(Collectors.toList());
             
             // Create stats response
@@ -147,7 +147,7 @@ public class SellerProductController {
             List<ProductResponse> lowStockProducts = productService.findAllByStoreId(storeId, Pageable.unpaged())
                 .getContent()
                 .stream()
-                .filter(p -> p.getStockQuantity() != null && p.getStockQuantity() < 10)
+                .filter(p -> p.getStockQuantity() < 10) // stockQuantity is int, cannot be null
                 .collect(Collectors.toList());
             
             return ResponseEntity.ok(lowStockProducts);
@@ -169,7 +169,7 @@ public class SellerProductController {
             updateRequest.setTitle(product.getTitle());
             updateRequest.setDescription(product.getDescription());
             updateRequest.setPrice(product.getPrice());
-            updateRequest.setCategory(product.getCategory());
+            updateRequest.setCategory(product.getCategoryName()); // Use getCategoryName() instead of getCategory()
             updateRequest.setStockQuantity(quantity);
             updateRequest.setImageUrls(product.getImages());
             
@@ -182,4 +182,4 @@ public class SellerProductController {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Error updating stock: " + e.getMessage());
         }
     }
-} 
+}

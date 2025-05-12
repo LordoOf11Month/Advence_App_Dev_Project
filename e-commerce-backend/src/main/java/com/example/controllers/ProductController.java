@@ -76,6 +76,24 @@ public class ProductController {
     }
 
     /**
+     * Fetch products by category slug.
+     */
+    @GetMapping("/category/{slug}")
+    public ResponseEntity<?> getProductsByCategorySlug(@PathVariable String slug) {
+        try {
+            System.out.println("Received request for products with category slug: " + slug);
+            List<ProductResponse> products = productService.findByCategorySlug(slug);
+            System.out.println("Returning " + products.size() + " products for category: " + slug);
+            return ResponseEntity.ok(products);
+        } catch (Exception e) {
+            System.err.println("Error in getProductsByCategorySlug for slug " + slug + ": " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                .body("Error fetching products: " + e.getMessage());
+        }
+    }
+
+    /**
      * Create a new product.
      * Accepts a ProductCreateRequest payload, and validates it.
      */

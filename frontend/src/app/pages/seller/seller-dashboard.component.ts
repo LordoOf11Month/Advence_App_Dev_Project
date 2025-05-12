@@ -1,370 +1,197 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, OnDestroy, ViewChildren, QueryList, ElementRef, HostListener, ViewChild, AfterViewInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { AuthService } from '../../services/auth.service';
 import { SellerService } from '../../services/seller.service';
 import { Product } from '../../models/product.model';
-import { AdminOrder } from '../../models/admin.model';
+import { AdminOrder, AdminProduct, AdminStats, OrderStats } from '../../models/admin.model';
+import { ErrorService } from '../../services/error.service';
+import { finalize, catchError } from 'rxjs/operators';
+import { of, Subscription } from 'rxjs';
+import { LoadingSpinnerComponent } from '../../components/loading-spinner/loading-spinner.component';
+import { fadeInOut, listAnimation, slideUpDown, modalAnimation, sectionAnimation, tableRowAnimation } from '../../animations';
+import { SortConfig, sortData, toggleSort } from '../../utils/table-sort';
+import { FilterConfig, filterData, createFilter } from '../../utils/table-filter';
+import { PaginationConfig, paginateData, PaginationResult, getPageSizes, calculateVisiblePages } from '../../utils/table-pagination';
 
 @Component({
   selector: 'app-seller-dashboard',
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule],
-  template: `
-    <div class="seller-container">
-      <aside class="seller-sidebar">
-        <nav class="seller-nav">
-          <a routerLink="/seller" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
-            <span class="material-symbols-outlined">dashboard</span>
-            Dashboard
-          </a>
-          <a routerLink="/seller/products" routerLinkActive="active">
-            <span class="material-symbols-outlined">inventory_2</span>
-            Products
-          </a>
-          <a routerLink="/seller/orders" routerLinkActive="active">
-            <span class="material-symbols-outlined">local_shipping</span>
-            Orders
-          </a>
-          <a routerLink="/seller/profile" routerLinkActive="active">
-            <span class="material-symbols-outlined">store</span>
-            Store Profile
-          </a>
-        </nav>
-      </aside>
+  imports: [CommonModule, RouterModule, FormsModule, LoadingSpinnerComponent],
+  animations: [fadeInOut, listAnimation, slideUpDown, modalAnimation, sectionAnimation, tableRowAnimation],
+  templateUrl: './seller-dashboard.component.html',
+  styleUrls: ['./seller-dashboard.component.css']
+})
+export class SellerDashboardComponent implements OnInit, OnDestroy, AfterViewInit {
+  // Overview data
+  stats: AdminStats | null = null;
+  orderStats: OrderStats | null = null;
+  sellerId: string = '';
+  storeName: string = '';
+  todayOrders: number = 0;
+  todayRevenue: number = 0;
+  orderChange: number = 0;
+  revenueChange: number = 0;
+  activeProducts: number = 0;
+  lowStockProducts: number = 0;
+  rating: number = 0;
+  totalReviews: number = 0;
+  lowStockItems: AdminProduct[] = [];
+  recentOrders: AdminOrder[] = [];
 
-      <main class="seller-content">
-        <div class="seller-header">
-          <div class="header-content">
-            <h1>Welcome back, {{storeName}}</h1>
-            <p>Here's what's happening with your store today.</p>
-          </div>
-        </div>
+  // Product management
+  products: AdminProduct[] = [];
+  filteredProducts: AdminProduct[] = [];
+  productSearchQuery: string = '';
+  productStatusFilter: string = 'all';
+  productSortBy: string = 'title';
+  showProductForm: boolean = false;
+  editingProduct: boolean = false;
+  saving: boolean = false;
+  currentProduct: AdminProduct = {
+    id: '',
+    title: '',
+    price: 0,
+    category: '',
+    status: 'active',
+    inStock: true,
+    stock: 0,
+    sellerId: '',
+    sellerName: '',
+    dateAdded: new Date(),
+    lastUpdated: new Date(),
+    description: '',
+    imageUrl: '/assets/images/placeholder-product.svg'
+  };
 
-        <div class="dashboard-stats">
-          <div class="stat-card">
-            <div class="stat-icon orders">
-              <span class="material-symbols-outlined">local_shipping</span>
-            </div>
-            <div class="stat-content">
-              <h3>Orders Today</h3>
-              <p class="stat-value">{{todayOrders}}</p>
-              <p class="stat-change positive" *ngIf="orderChange > 0">+{{orderChange}}% from yesterday</p>
-              <p class="stat-change negative" *ngIf="orderChange < 0">{{orderChange}}% from yesterday</p>
-            </div>
-          </div>
+  // Order management
+  orders: AdminOrder[] = [];
+  filteredOrders: AdminOrder[] = [];
+  selectedOrder: AdminOrder | null = null;
+  showStatusUpdate: boolean = false;
+  allOrderStatuses: string[] = ['all', 'pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+  orderStatuses: string[] = ['pending', 'processing', 'shipped', 'delivered', 'cancelled'];
+  selectedOrderStatus: string = 'all';
 
-          <div class="stat-card">
-            <div class="stat-icon revenue">
-              <span class="material-symbols-outlined">payments</span>
-            </div>
-            <div class="stat-content">
-              <h3>Revenue Today</h3>
-              <p class="stat-value">₺{{todayRevenue.toLocaleString()}}</p>
-              <p class="stat-change positive" *ngIf="revenueChange > 0">+{{revenueChange}}% from yesterday</p>
-              <p class="stat-change negative" *ngIf="revenueChange < 0">{{revenueChange}}% from yesterday</p>
-            </div>
-          </div>
+  // Active section tracking
+  activeSection: string = 'overview';
 
-          <div class="stat-card">
-            <div class="stat-icon products">
-              <span class="material-symbols-outlined">inventory_2</span>
-            </div>
-            <div class="stat-content">
-              <h3>Active Products</h3>
-              <p class="stat-value">{{activeProducts}}</p>
-              <p class="stat-note">{{lowStockProducts}} low in stock</p>
-            </div>
-          </div>
+  // Loading states
+  isLoadingStats: boolean = false;
+  isLoadingProducts: boolean = false;
+  isLoadingOrders: boolean = false;
+  isSavingProduct: boolean = false;
 
-          <div class="stat-card">
-            <div class="stat-icon rating">
-              <span class="material-symbols-outlined">star</span>
-            </div>
-            <div class="stat-content">
-              <h3>Store Rating</h3>
-              <p class="stat-value">{{rating.toFixed(1)}}</p>
-              <p class="stat-note">{{totalReviews}} total reviews</p>
-            </div>
-          </div>
-        </div>
+  // Error states
+  statsError: string | null = null;
+  productsError: string | null = null;
+  ordersError: string | null = null;
 
-        <div class="dashboard-sections">
-          <section class="recent-orders">
-            <div class="section-header">
-              <h2>Recent Orders</h2>
-              <a routerLink="/seller/orders" class="view-all">View All</a>
-            </div>
-            
-            <div class="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Order ID</th>
-                    <th>Customer</th>
-                    <th>Products</th>
-                    <th>Total</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr *ngFor="let order of recentOrders">
-                    <td>#{{order.id}}</td>
-                    <td>{{order.userEmail}}</td>
-                    <td>{{order.items.length}} items</td>
-                    <td>₺{{order.totalAmount.toLocaleString()}}</td>
-                    <td>
-                      <span class="status-badge" [class]="order.status">
-                        {{order.status}}
-                      </span>
-                    </td>
-                    <td>{{order.dateCreated | date:'short'}}</td>
-                  </tr>
-                </tbody>
-              </table>
-            </div>
-          </section>
+  // Sorting configurations
+  productSort: SortConfig = { column: 'title', direction: 'asc' };
+  orderSort: SortConfig = { column: 'createdAt', direction: 'desc' };
 
-          <section class="low-stock-products">
-            <div class="section-header">
-              <h2>Low Stock Products</h2>
-              <a routerLink="/seller/products" class="view-all">View All Products</a>
-            </div>
-            
-            <div class="products-grid">
-              <div class="product-card" *ngFor="let product of lowStockItems">
-                <img [src]="product.images[0]" [alt]="product.title">
-                <div class="product-info">
-                  <h3>{{product.title}}</h3>
-                  <p class="price">₺{{product.price.toLocaleString()}}</p>
-                  <p class="stock warning">Only {{product.stock}} left in stock</p>
-                </div>
-                <button class="update-stock-btn">Update Stock</button>
-              </div>
-            </div>
-          </section>
-        </div>
-      </main>
-    </div>
-  `,
-  styles: [`
-    .seller-container {
-      display: flex;
-      min-height: calc(100vh - 140px);
+  // Pagination configurations
+  productPagination: PaginationConfig = { pageSize: 10, currentPage: 1, totalItems: 0 };
+  orderPagination: PaginationConfig = { pageSize: 10, currentPage: 1, totalItems: 0 };
+
+  // Pagination results
+  paginatedProducts: PaginationResult<AdminProduct> | null = null;
+  paginatedOrders: PaginationResult<AdminOrder> | null = null;
+
+  // Subscription cleanup
+  private subscriptions: Subscription[] = [];
+
+  @ViewChildren('section') sections!: QueryList<ElementRef>;
+  @ViewChild('mainContent') mainContent!: ElementRef;
+  private currentSectionIndex = 0;
+  private scrolling = false;
+  private touchStartY: number = 0;
+  private touchStartX: number = 0;
+  private touchEndY: number = 0;
+  private touchEndX: number = 0;
+  private touchThreshold: number = 50;
+  private touchStartTime: number = 0;
+  private isSwiping: boolean = false;
+  private swipeCooldown: boolean = false;
+
+  // Mobile view detection
+  isMobileView: boolean = false;
+  
+  constructor(
+    private sellerService: SellerService,
+    private errorService: ErrorService,
+    private authService: AuthService,
+    private router: Router
+  ) {
+    this.checkIfMobile();
+  }
+
+  @HostListener('window:resize', ['$event'])
+  onResize() {
+    this.checkIfMobile();
+  }
+  
+  private checkIfMobile(): void {
+    const prevMobileState = this.isMobileView;
+    this.isMobileView = window.innerWidth <= 768; // Same breakpoint as CSS
+    
+    // If state changed, update UI accordingly
+    if (prevMobileState !== this.isMobileView) {
+      // Allow time for DOM to update
+      setTimeout(() => {
+        // Update active section in nav
+        const activeNavLink = document.querySelector(this.isMobileView ? 
+          '.mobile-nav a.active' : 
+          '.seller-nav a.active');
+          
+        if (activeNavLink) {
+          activeNavLink.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'nearest', 
+            inline: 'center' 
+          });
+        }
+      }, 100);
+    }
+  }
+
+  @HostListener('window:keydown', ['$event'])
+  handleKeyboardEvent(event: KeyboardEvent) {
+    // Ignore keyboard shortcuts when user is typing in an input
+    if (event.target instanceof HTMLInputElement || 
+        event.target instanceof HTMLTextAreaElement) {
+      return;
     }
 
-    .seller-sidebar {
-      width: 250px;
-      background-color: var(--white);
-      border-right: 1px solid var(--neutral-200);
-      padding: var(--space-4);
+    switch (event.key) {
+      case 'ArrowDown':
+        event.preventDefault();
+        this.navigateToNextSection();
+        break;
+      case 'ArrowUp':
+        event.preventDefault();
+        this.navigateToPreviousSection();
+        break;
+      case 'Escape':
+        event.preventDefault();
+        this.closeAllModals();
+        break;
+      case 'n':
+        if (event.ctrlKey) {
+          event.preventDefault();
+          this.openProductForm();
+        }
+        break;
+      case 's':
+        if (event.ctrlKey && this.showProductForm) {
+          event.preventDefault();
+          this.saveProduct();
+        }
+        break;
     }
-
-    .seller-nav {
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-2);
-    }
-
-    .seller-nav a {
-      display: flex;
-      align-items: center;
-      gap: var(--space-3);
-      padding: var(--space-3);
-      color: var(--neutral-700);
-      border-radius: var (--radius-md);
-      transition: all var(--transition-fast);
-    }
-
-    .seller-nav a:hover {
-      background-color: var(--neutral-100);
-      color: var(--primary);
-    }
-
-    .seller-nav a.active {
-      background-color: var(--primary);
-      color: var(--white);
-    }
-
-    .seller-content {
-      flex: 1;
-      padding: var(--space-6);
-      background-color: var(--neutral-50);
-    }
-
-    .seller-header {
-      background-color: var(--white);
-      border-radius: var(--radius-lg);
-      padding: var(--space-6);
-      margin-bottom: var(--space-6);
-      box-shadow: var(--shadow-sm);
-    }
-
-    .seller-header h1 {
-      font-size: 1.75rem;
-      color: var(--neutral-900);
-      margin: 0;
-    }
-
-    .seller-header p {
-      color: var(--neutral-600);
-      margin: var(--space-2) 0 0;
-    }
-
-    .dashboard-stats {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-      gap: var(--space-4);
-      margin-bottom: var(--space-6);
-    }
-
-    .stat-card {
-      background-color: var(--white);
-      border-radius: var(--radius-lg);
-      padding: var(--space-4);
-      display: flex;
-      gap: var(--space-4);
-      box-shadow: var(--shadow-sm);
-    }
-
-    .stat-icon {
-      width: 48px;
-      height: 48px;
-      border-radius: var(--radius-lg);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .stat-icon.orders {
-      background-color: var(--primary-light);
-      color: var(--primary);
-    }
-
-    .stat-icon.revenue {
-      background-color: var(--success-light);
-      color: var(--success);
-    }
-
-    .stat-icon.products {
-      background-color: var(--warning-light);
-      color: var(--warning);
-    }
-
-    .stat-icon.rating {
-      background-color: var(--info-light);
-      color: var (--info);
-    }
-
-    .stat-content h3 {
-      font-size: 0.875rem;
-      color: var(--neutral-600);
-      margin: 0;
-    }
-
-    .stat-value {
-      font-size: 1.5rem;
-      font-weight: 600;
-      color: var(--neutral-900);
-      margin: var(--space-1) 0;
-    }
-
-    .stat-change {
-      font-size: 0.875rem;
-      margin: 0;
-    }
-
-    .stat-change.positive {
-      color: var(--success);
-    }
-
-    .stat-change.negative {
-      color: var(--error);
-    }
-
-    .stat-note {
-      font-size: 0.875rem;
-      color: var(--neutral-600);
-      margin: 0;
-    }
-
-    .dashboard-sections {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: var(--space-6);
-    }
-
-    .section-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: var(--space-4);
-    }
-
-    .section-header h2 {
-      font-size: 1.25rem;
-      color: var(--neutral-900);
-      margin: 0;
-    }
-
-    .view-all {
-      color: var(--primary);
-      font-weight: 500;
-    }
-
-    .table-container {
-      background-color: var(--white);
-      border-radius: var(--radius-lg);
-      box-shadow: var(--shadow-sm);
-      overflow: hidden;
-    }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    th, td {
-      padding: var(--space-4);
-      text-align: left;
-    }
-
-    th {
-      background-color: var(--neutral-50);
-      font-weight: 600;
-      color: var(--neutral-700);
-    }
-
-    td {
-      border-top: 1px solid var(--neutral-200);
-    }
-
-    .status-badge {
-      display: inline-block;
-      padding: var(--space-1) var(--space-2);
-      border-radius: var(--radius-sm);
-      font-size: 0.875rem;
-      font-weight: 500;
-    }
-
-    .status-badge.pending {
-      background-color: var(--warning-light);
-      color: var(--warning);
-    }
-
-    .status-badge.processing {
-      background-color: var(--info-light);
-      color: var(--info);
-    }
-
-    .status-badge.shipped {
-      background-color: var(--primary-light);
-      color: var(--primary);
-    }
-
-    .status-badge.delivered {
+  }  .status-badge.delivered {
       background-color: var(--success-light);
       color: var(--success);
     }
@@ -457,84 +284,79 @@ import { AdminOrder } from '../../models/admin.model';
       }
 
       .seller-nav a {
-        flex: 0 0 auto;
-      }
-    }
-  `]
-})
-export class SellerDashboardComponent implements OnInit {
-  storeName: string = '';
-  todayOrders: number = 0;
-  todayRevenue: number = 0;
-  orderChange: number = 0;
-  revenueChange: number = 0;
-  activeProducts: number = 0;
-  lowStockProducts: number = 0;
-  rating: number = 0;
-  totalReviews: number = 0;
-  recentOrders: AdminOrder[] = [];
-  lowStockItems: any[] = [];
-
-  constructor(
-    private authService: AuthService,
-    private sellerService: SellerService
-  ) {}
-
-  ngOnInit(): void {
-    // Get current seller's profile using Observable
-    this.authService.currentUser$.subscribe(currentUser => {
-      if (currentUser && currentUser.storeName) {
-        this.storeName = currentUser.storeName;
-        this.loadDashboardData(currentUser.id);
-      }
-    });
   }
+}
 
-  private loadDashboardData(sellerId: string): void {
-    // In a real application, these would be separate API calls
-    // For now, we'll use mock data
-    this.todayOrders = 12;
-    this.todayRevenue = 4500;
-    this.orderChange = 15;
-    this.revenueChange = 8;
-    this.activeProducts = 45;
-    this.lowStockProducts = 3;
-    this.rating = 4.8;
-    this.totalReviews = 128;
-
-    // Load recent orders
-    this.recentOrders = [
-      {
-        id: '1',
-        userId: 'user1',
-        userEmail: 'customer@example.com',
-        customerName: 'John Customer',
-        items: [
-          { productId: 1, productName: 'Wireless Earbuds', quantity: 1, price: 299.99 }
-        ],
-        totalAmount: 299.99,
-        total: 299.99, // Set total equal to totalAmount
-        status: 'pending',
-        sellerId: sellerId,
-        sellerName: this.storeName,
-        dateCreated: new Date(),
-        dateUpdated: new Date(),
-        createdAt: new Date(),
-        shippingAddress: '123 Main St, Anytown, USA'
-      },
-      // Add more mock orders as needed
-    ];
-
-    // Load low stock products
-    this.lowStockItems = [
-      {
-        id: 1,
-        title: 'Wireless Earbuds',
-        price: 299.99,
-        images: ['https://example.com/earbuds.jpg'],
-        stock: 2
-      },
-      // Add more mock products as needed
-    ];
+ngOnInit(): void {
+  this.checkIfMobile();
+  
+  // Get current seller ID from auth service
+  const currentUser = this.authService.getCurrentUser();
+  
+  if (currentUser && currentUser.role === 'seller') {
+    this.sellerId = currentUser.id;
+    this.loadDashboardData();
+    this.loadProducts();
+    this.loadOrders();
+  } else {
+    this.router.navigate(['/login'], { queryParams: { redirect: 'seller' } });
   }
+}
+
+private loadDashboardData(): void {
+  // In a real application, these would be separate API calls
+  // For now, we'll use mock data
+  this.todayOrders = 12;
+  this.todayRevenue = 4500;
+  this.orderChange = 15;
+  this.revenueChange = 8;
+  this.rating = 4.8;
+  this.totalReviews = 128;
+}
+
+private loadProducts(): void {
+  // Load products
+  this.products = [
+    {
+      id: 1,
+      title: 'Wireless Earbuds',
+      price: 299.99,
+      category: 'Electronics',
+      status: 'active',
+      inStock: true,
+      stock: 2,
+      sellerId: this.sellerId,
+      sellerName: this.storeName,
+      dateAdded: new Date(),
+      lastUpdated: new Date(),
+      description: 'Wireless earbuds with long battery life',
+      imageUrl: '/assets/images/placeholder-product.svg'
+    },
+    // Add more mock products as needed
+  ];
+}
+
+private loadOrders(): void {
+  // Load orders
+  this.orders = [
+    {
+      id: '1',
+      userId: 'user1',
+      userEmail: 'customer@example.com',
+      customerName: 'John Customer',
+      items: [
+        { productId: 1, productName: 'Wireless Earbuds', quantity: 1, price: 299.99 }
+      ],
+      totalAmount: 299.99,
+      total: 299.99, // Set total equal to totalAmount
+      status: 'pending',
+      sellerId: this.sellerId,
+      sellerName: this.storeName,
+      dateCreated: new Date(),
+      dateUpdated: new Date(),
+      createdAt: new Date(),
+      shippingAddress: '123 Main St, Anytown, USA'
+    },
+    // Add more mock orders as needed
+  ];
 }

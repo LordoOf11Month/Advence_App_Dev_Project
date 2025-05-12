@@ -27,19 +27,33 @@ import com.example.models.User;
 import com.example.repositories.ProductRepository;
 import com.example.repositories.ReviewRepository;
 import com.example.repositories.UserRepository;
+import com.example.DTO.ProductDTO.ProductResponse;
+import com.example.services.ProductService;
 
 @RestController
-@RequestMapping("/api/products")
+@RequestMapping("/api/customer/products")
 @PreAuthorize("isAuthenticated()")
 public class CustomerProductController {
     private final ProductRepository productRepository;
     private final ReviewRepository reviewRepository;
     private final UserRepository userRepository;
+    private final ProductService productService;
 
-    public CustomerProductController(ProductRepository productRepository, ReviewRepository reviewRepository, UserRepository userRepository) {
+    public CustomerProductController(ProductRepository productRepository, ReviewRepository reviewRepository, UserRepository userRepository, ProductService productService) {
         this.productRepository = productRepository;
         this.reviewRepository = reviewRepository;
         this.userRepository = userRepository;
+        this.productService = productService;
+    }
+
+    // Endpoint to get products by category slug
+    @GetMapping("/category/{slug}")
+    public ResponseEntity<List<ProductResponse>> getProductsByCategorySlug(@PathVariable String slug) {
+        List<ProductResponse> products = productService.findByCategorySlug(slug);
+        if (products.isEmpty()) {
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.ok(products);
     }
 
     // Favorites management
@@ -155,4 +169,4 @@ public class CustomerProductController {
         return userRepository.findByEmail(email)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED, "User not authenticated"));
     }
-} 
+}

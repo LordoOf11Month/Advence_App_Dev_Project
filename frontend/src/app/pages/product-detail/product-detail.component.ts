@@ -589,17 +589,18 @@ export class ProductDetailComponent implements OnInit {
   relatedProducts: Product[] = [];
   selectedImage: string = '';
   quantity: number = 1;
-  categoryName: string = '';
-  categorySlug: string = '';
+  // UI state management
   Math = Math;
   isInCompare: boolean = false;
+  categoryName: string = '';
+  categorySlug: string = '';
   
   // Loading and error states
   isLoading: boolean = true;
   hasError: boolean = false;
   loadingRelated: boolean = false;
   relatedError: boolean = false;
-  
+
   constructor(
     private route: ActivatedRoute,
     private productService: ProductService,
@@ -659,42 +660,48 @@ export class ProductDetailComponent implements OnInit {
   }
   
   setCategoryName(): void {
-    if (this.product) {
-      // Save the raw category data for linking
+    if (!this.product) return;
+
+    if (typeof this.product.category === 'object' && this.product.category) {
+      // If category is a proper Category object
+      this.categoryName = this.product.category.name;
+      this.categorySlug = this.product.category.slug;
+    } else if (typeof this.product.category === 'string') {
+      // If category is just a slug string
       this.categorySlug = this.product.category;
-      
-      // For smartphones, ensure we're using the subcategory name
-      if (this.product.title && this.product.title.toLowerCase().includes('iphone') || 
-          this.product.title.toLowerCase().includes('samsung galaxy')) {
-        this.categorySlug = 'smartphones';
-      }
-      
-      // Convert slug to display name
       this.categoryName = this.categorySlug
         .split('-')
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
+    } else {
+      // Fallback to 'All Products' if no category info
+      this.categoryName = 'All Products';
+      this.categorySlug = 'all';
     }
   }
   
   loadRelatedProducts(): void {
-    if (this.product) {
-      this.loadingRelated = true;
-      this.relatedError = false;
-      
-      this.productService.getProductsByCategory(this.product.category).subscribe({
-        next: (products) => {
-          // Filter out the current product
-          this.relatedProducts = products.filter(p => p.id !== this.productId);
-          this.loadingRelated = false;
-        },
-        error: (error) => {
-          console.error('Error loading related products:', error);
-          this.relatedError = true;
-          this.loadingRelated = false;
-        }
-      });
-    }
+    if (!this.product) return;
+
+    this.loadingRelated = true;
+    this.relatedError = false;
+    
+    const categorySlug = typeof this.product.category === 'object' 
+      ? this.product.category.slug 
+      : (typeof this.product.category === 'string' ? this.product.category : 'all');
+
+    this.productService.getProductsByCategory(categorySlug).subscribe({
+      next: (products) => {
+        // Filter out the current product
+        this.relatedProducts = products.filter(p => p.id !== this.productId);
+        this.loadingRelated = false;
+      },
+      error: (error) => {
+        console.error('Error loading related products:', error);
+        this.relatedError = true;
+        this.loadingRelated = false;
+      }
+    });
   }
   
   increaseQuantity(): void {

@@ -2,8 +2,10 @@ package com.example.services;
 
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.data.domain.Page;
@@ -20,6 +22,7 @@ import com.example.models.Product;
 import com.example.models.ProductImage;
 import com.example.models.Store;
 import com.example.models.User;
+import com.example.repositories.CategoryRepository;
 import com.example.repositories.ProductImageRepository;
 import com.example.repositories.ProductRepository;
 import com.example.repositories.StoreRepository;
@@ -27,19 +30,26 @@ import com.example.repositories.specifications.ProductSpecification;
 import com.example.services.generic.GenericServiceImpl;
 
 @Service
+@Transactional
 public class ProductService extends GenericServiceImpl<Product, ProductResponse, CreateProductRequest, Long> {
 
     private final ProductRepository productRepository;
     private final StoreRepository storeRepository;
     private final ProductImageRepository productImageRepository;
+    private final CategoryRepository categoryRepository;
+    private final CategoryService categoryService;
 
     public ProductService(ProductRepository productRepository, 
                          StoreRepository storeRepository,
-                         ProductImageRepository productImageRepository) {
+                         ProductImageRepository productImageRepository,
+                         CategoryRepository categoryRepository,
+                         CategoryService categoryService) {
         super(productRepository);
         this.productRepository = productRepository;
         this.storeRepository = storeRepository;
         this.productImageRepository = productImageRepository;
+        this.categoryRepository = categoryRepository;
+        this.categoryService = categoryService;
     }
 
     // Fetch all products
@@ -66,95 +76,46 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
     }
 
     // Get products by category ID with pagination
-    public Page<ProductResponse> findByCategory(Long categoryId, Pageable pageable) {
+    public Page<ProductResponse> findByCategory(Integer categoryId, Pageable pageable) {
         return productRepository.findByCategory_Id(categoryId, pageable)
                 .map(this::convertToDto);
     }
     
     // Get all products by category ID (no pagination)
     @Transactional(readOnly = true)
-    public List<ProductResponse> findByCategoryId(Long categoryId) {
+    public List<ProductResponse> findByCategoryId(Integer categoryId) {
         return productRepository.findByCategoryId(categoryId).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
     
-    // Get all products by category slug using category name matching
+    // Get all products by category slug, now recursively includes subcategories
     @Transactional(readOnly = true)
     public List<ProductResponse> findByCategorySlug(String slug) {
         try {
-            System.out.println("ProductService: Searching for products with category: " + slug);
+            System.out.println("Fetching products for category slug (and descendants): " + slug);
             
-            if (slug == null || slug.isEmpty()) {
-                System.out.println("Empty slug provided, returning all products");
-                return listAllProducts();
+            Set<Integer> categoryIds = categoryService.getAllDescendantIds(slug);
+            
+            if (categoryIds.isEmpty()) {
+                System.out.println("No categories found for slug (or descendants): " + slug);
+                return Collections.emptyList(); // Return empty list if no categories found
             }
             
-            // Convert slug to readable name (e.g., "smartphones" to "Smartphones")
-            String categoryName = convertSlugToCategoryName(slug);
-            System.out.println("Converted slug '" + slug + "' to category name: '" + categoryName + "'");
+            // Use the repository method that handles a list of category IDs
+            List<Product> products = productRepository.findByCategoryIdsIn(categoryIds);
+            System.out.println("Found " + products.size() + " products for category slug '" + slug + "' and its descendants.");
             
-            List<Product> products = new ArrayList<>();
-            
-            // Multi-level search strategy to find the most relevant products:
-            
-            // LEVEL 1: Try exact slug matching (most specific)
-            products = productRepository.findByCategorySlug(slug);
-            System.out.println("Level 1 search (exact slug): found " + products.size() + " products");
-            
-            // LEVEL 2: If no results, use our new broader search
-            if (products.isEmpty()) {
-                products = productRepository.findByCategoryNameBroad(categoryName);
-                System.out.println("Level 2 search (category broad): found " + products.size() + " products");
-                
-                // LEVEL 3: If still no results, try some common categories
-                if (products.isEmpty()) {
-                    // Special handling for known categories
-                    if (slug.equalsIgnoreCase("smartphones") || slug.equalsIgnoreCase("smartphone") || 
-                        slug.equalsIgnoreCase("phones") || slug.equalsIgnoreCase("mobile-phones")) {
-                        // Try looking for common smartphone brands
-                        List<Product> phoneProducts = new ArrayList<>();
-                        for (String brand : Arrays.asList("iPhone", "Samsung", "Galaxy", "Pixel", "Phone")) {
-                            phoneProducts.addAll(productRepository.searchByKeyword(brand));
-                        }
-                        products = phoneProducts.stream().distinct().collect(Collectors.toList());
-                        System.out.println("Level 3 search (smartphone special handling): found " + products.size() + " products");
-                    } 
-                    else if (slug.equalsIgnoreCase("laptops") || slug.equalsIgnoreCase("laptop") || 
-                             slug.equalsIgnoreCase("computers") || slug.equalsIgnoreCase("notebooks")) {
-                        // Try looking for common laptop brands
-                        List<Product> laptopProducts = new ArrayList<>();
-                        for (String brand : Arrays.asList("Laptop", "MacBook", "Dell", "HP", "Lenovo", "ASUS", "ThinkPad", "XPS")) {
-                            laptopProducts.addAll(productRepository.searchByKeyword(brand));
-                        }
-                        products = laptopProducts.stream().distinct().collect(Collectors.toList());
-                        System.out.println("Level 3 search (laptop special handling): found " + products.size() + " products");
-                    }
-                    
-                    // LEVEL 4: Last resort - general keyword search
-                    if (products.isEmpty()) {
-                        products = productRepository.searchByKeyword(categoryName);
-                        System.out.println("Level 4 search (keyword): found " + products.size() + " products");
-                    }
-                }
-            }
-            
-            // If we still didn't find any products, try a simple search with the original slug
-            if (products.isEmpty()) {
-                products = productRepository.searchByKeyword(slug);
-                System.out.println("Final fallback search: found " + products.size() + " products");
-            }
-            
-            System.out.println("Returning " + products.size() + " products for category: " + slug);
             return products.stream()
-                    .map(this::convertToDto)
-                    .collect(Collectors.toList());
-                    
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+                
         } catch (Exception e) {
-            System.out.println("Unexpected error in findByCategorySlug: " + e.getMessage());
+            System.err.println("Error fetching products for category slug " + slug + ": " + e.getMessage());
+            System.err.println("Stack trace:");
             e.printStackTrace();
-            // Return empty list on error rather than throwing exception
-            return new ArrayList<>();
+            // Consider throwing a more specific custom exception or re-throwing a wrapped exception
+            throw new RuntimeException("Failed to fetch products for category: " + slug, e);
         }
     }
     
@@ -178,22 +139,22 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
         }
     }
     
-    // Search products by name or description
+    // Search products by keyword (name, description, category name, or category description) with pagination
     public Page<ProductResponse> search(String query, Pageable pageable) {
         if (query == null || query.trim().isEmpty()) {
             return findAll(pageable);
         }
-        return productRepository.findByNameContainingOrDescriptionContaining(query, query, pageable)
+        return productRepository.searchByKeywordWithPagination(query.trim(), pageable)
                 .map(this::convertToDto);
     }
     
-    // Search products by keyword (name or description) without pagination
+    // Search products by keyword
     @Transactional(readOnly = true)
     public List<ProductResponse> searchByKeyword(String keyword) {
         if (keyword == null || keyword.trim().isEmpty()) {
             return listAllProducts();
         }
-        return productRepository.searchByKeyword(keyword).stream()
+        return productRepository.searchByKeyword(keyword.trim()).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
@@ -246,8 +207,7 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
             System.out.println("Product belongs to category: " + product.getCategory().getName());
             
             // Get products from the same category
-            // Convert int to Long when passing to repository method
-            relatedProducts = productRepository.findByCategoryId(Long.valueOf(product.getCategory().getId()));
+            relatedProducts = productRepository.findByCategoryId(product.getCategory().getId());
             System.out.println("Found " + relatedProducts.size() + " products in the same category");
             
             // If we didn't find enough related products, try a broader search based on category name
@@ -291,7 +251,16 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
         response.setTitle(product.getName());
         response.setDescription(product.getDescription());
         response.setPrice(product.getPrice());
-        response.setCategory(product.getCategory() != null ? product.getCategory().getName() : "Uncategorized");
+        
+        // Updated category handling
+        if (product.getCategory() != null) {
+            response.setCategoryName(product.getCategory().getName());
+            response.setCategorySlug(product.getCategory().getSlug());
+        } else {
+            response.setCategoryName("Uncategorized");
+            response.setCategorySlug(null); // Or a default slug like "uncategorized"
+        }
+        
         response.setInStock(product.getStockQuantity() > 0);
         response.setStockQuantity(product.getStockQuantity());
         response.setCreatedAt(product.getCreatedAt());
@@ -600,5 +569,16 @@ public class ProductService extends GenericServiceImpl<Product, ProductResponse,
         // Use store ID 1 as default for admin-created products
         // This can be changed to any default store ID that exists in your system
         return saveWithDefaultStore(request, 1L);
+    }
+
+    // Search products by category and keyword
+    @Transactional(readOnly = true)
+    public List<ProductResponse> searchByCategoryAndKeyword(String categorySlug, String keyword) {
+        if (categorySlug == null || categorySlug.trim().isEmpty()) {
+            return searchByKeyword(keyword);
+        }
+        return productRepository.searchByCategoryAndKeyword(categorySlug.trim(), keyword.trim()).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
     }
 }

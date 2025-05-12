@@ -124,6 +124,16 @@
 			<artifactId>spring-boot-starter-actuator</artifactId>
 		</dependency>
 
+		<dependency>
+			<groupId>com.github.ben-manes.caffeine</groupId>
+			<artifactId>caffeine</artifactId>
+			<version>3.1.8</version>
+		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-cache</artifactId>
+		</dependency>
+
 	</dependencies>
 
 	<build>
@@ -131,6 +141,27 @@
 		<plugin>
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-maven-plugin</artifactId>
+		</plugin>
+		<plugin>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-maven-plugin</artifactId>
+			<version>10.20.1</version>
+			<configuration>
+				<url>jdbc:mysql://localhost:3306/ecommerce_db</url>
+				<user>ecomm_admin</user>
+				<password>MyClearPass123!</password>
+				<schemas>ecommerce_db</schemas>
+				<locations>
+					<location>filesystem:src/main/resources/db/migration</location>
+				</locations>
+			</configuration>
+			<dependencies>
+				<dependency>
+					<groupId>com.mysql</groupId>
+					<artifactId>mysql-connector-j</artifactId>
+					<version>9.1.0</version>
+				</dependency>
+			</dependencies>
 		</plugin>
 	</plugins>
 	</build>

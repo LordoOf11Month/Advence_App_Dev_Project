@@ -1,8 +1,9 @@
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { FormsModule } from '@angular/forms';
 import { ProductService } from '../../services/product.service';
+import { CategoryService } from '../../services/category.service';
 import { CartService } from '../../services/cart.service';
 import { CompareService } from '../../services/compare.service';
 import { Product, Category } from '../../models/product.model';
@@ -11,13 +12,19 @@ import { ProductCardComponent } from '../../components/product-card/product-card
 @Component({
   selector: 'app-product-list',
   standalone: true,
-  imports: [CommonModule, FormsModule, ProductCardComponent],
+  imports: [CommonModule, FormsModule, ProductCardComponent, RouterModule],
   template: `
     <div class="container">
       <div class="category-header">
         <h1 class="category-title">{{categoryName}}</h1>
         <div class="breadcrumbs">
-          <a href="/">Home</a> / <span>{{categoryName}}</span>
+          <a routerLink="/">Home</a> / 
+          <ng-container *ngIf="parentCategory">
+            <a [routerLink]="['/category', parentCategory.slug]" class="text-neutral-600 hover:text-primary">
+              {{parentCategory.name}}
+            </a> / 
+          </ng-container>
+          <span>{{categoryName}}</span>
         </div>
       </div>
       
@@ -39,6 +46,23 @@ import { ProductCardComponent } from '../../components/product-card/product-card
       
       <div class="product-list-container" *ngIf="!isLoading && !hasError">
         <aside class="filters-sidebar">
+          <!-- Subcategories Section -->
+          <ng-container *ngIf="currentCategory">
+            <div class="filter-section" *ngIf="currentCategory.subcategories?.length">
+              <h3 class="filter-title">Subcategories</h3>
+              <div class="subcategories-list">
+                <ng-container *ngFor="let subcat of currentCategory.subcategories">
+                  <a *ngIf="subcat" 
+                     [routerLink]="['/category', subcat.slug]"
+                     class="subcategory-link"
+                     [class.active]="subcat.slug === currentSlug">
+                    {{subcat.name}}
+                  </a>
+                </ng-container>
+              </div>
+            </div>
+          </ng-container>
+
           <div class="filter-section">
             <h3 class="filter-title">Price Range</h3>
             <div class="price-range">
@@ -302,7 +326,7 @@ import { ProductCardComponent } from '../../components/product-card/product-card
     .no-results h3 {
       font-size: 1.25rem;
       margin-bottom: var(--space-2);
-      color: var(--neutral-800);
+      color: var (--neutral-800);
     }
     
     .no-results p {
@@ -389,7 +413,7 @@ import { ProductCardComponent } from '../../components/product-card/product-card
     
     .retry-button {
       background-color: var(--primary);
-      color: var(--white);
+      color: var (--white);
       padding: var(--space-2) var(--space-4);
       border-radius: var(--radius-md);
       border: none;
@@ -406,14 +430,45 @@ import { ProductCardComponent } from '../../components/product-card/product-card
       color: var(--neutral-500);
       padding: var(--space-2) 0;
     }
+    
+    .subcategories-list {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2);
+    }
+
+    .subcategory-link {
+      display: block;
+      padding: var(--space-2) var(--space-3);
+      color: var(--neutral-700);
+      text-decoration: none;
+      border-radius: var(--radius-sm);
+      transition: all 0.2s ease;
+    }
+
+    .subcategory-link:hover {
+      background-color: var(--neutral-100);
+      color: var(--primary);
+    }
+
+    .subcategory-link.active {
+      background-color: var(--primary);
+      color: var(--white);
+    }
   `]
 })
 export class ProductListComponent implements OnInit {
   products: Product[] = [];
   filteredProducts: Product[] = [];
-  categoryId: string = '';
+  currentSlug: string = '';
   categoryName: string = 'All Products';
-  categories: Category[] = []; // Store categories for better mapping
+  currentCategory: Category | null = null;
+  categories: Category[] = [];
+  private _parentCategory: Category | null = null;
+  
+  get parentCategory(): Category | null {
+    return this.currentCategory?.parentCategory || this._parentCategory;
+  }
   
   // Loading and error states
   isLoading: boolean = true;
@@ -433,53 +488,179 @@ export class ProductListComponent implements OnInit {
   
   constructor(
     private route: ActivatedRoute,
+    private router: Router,
     private productService: ProductService,
+    private categoryService: CategoryService,
     private cartService: CartService,
     private compareService: CompareService
   ) {}
   
   ngOnInit(): void {
-    // First load all available categories to use for mapping
-    this.productService.getCategories().subscribe(categories => {
-      this.categories = categories;
-      
-      // After categories are loaded, process the route parameters
-      this.route.paramMap.subscribe(params => {
-        const categorySlug = params.get('categoryId') || '';
-        this.categoryId = categorySlug; // Store the slug for reference
-        
-        if (categorySlug) {
-          // Try to find the category by slug
-          const category = this.findCategoryBySlug(categorySlug);
-          if (category) {
-            this.categoryName = category.name;
-            console.log(`Found category with slug ${categorySlug}:`, category);
-          } else {
-            console.log(`Category with slug ${categorySlug} not found, using slug as name`);
-            // If we can't find the category, use the slug as the name (capitalize first letter)
-            this.categoryName = categorySlug.charAt(0).toUpperCase() + categorySlug.slice(1);
-          }
+    this.route.params.subscribe(params => {
+      const paramValue = params['slug']; // This could be a slug or a name
+      if (paramValue && paramValue !== 'all') {
+        // The paramValue from Angular's ActivatedRoute is already URL-decoded.
+        if (this.categoryService.isLikelyCategoryName(paramValue)) {
+          this.isLoading = true; // Show loading indicator while fetching by name
+          this.hasError = false;
+          this.categoryService.getCategoryByName(paramValue).subscribe({
+            next: (category) => {
+              if (category && category.slug) {
+                this.router.navigate(['/category', category.slug], { 
+                  replaceUrl: true,
+                  // queryParamsHandling: 'preserve' // Optional: if you want to preserve existing query params
+                });
+                // Navigation will re-trigger ngOnInit or route resolvers, so no need to manually load products here
+                // or set isLoading = false.
+              } else {
+                // Category not found by name, show an appropriate message or redirect to 404
+                this.categoryName = `Category '${paramValue}' Not Found`;
+                this.currentCategory = null;
+                this.products = [];
+                this.filteredProducts = [];
+                this.isLoading = false;
+                this.hasError = true; // Indicate an error state
+              }
+            },
+            error: (err) => {
+              console.error(`Error fetching category by name '${paramValue}':`, err);
+              this.categoryName = 'Error Loading Category';
+              this.currentCategory = null;
+              this.products = [];
+              this.filteredProducts = [];
+              this.isLoading = false;
+              this.hasError = true;
+            }
+          });
+        } else {
+          // It's likely a slug, proceed with existing logic
+          this.currentSlug = paramValue; // Ensure currentSlug is set
+          this.handleCategoryParam(paramValue); // This method should handle loading by slug
         }
-        
-        this.loadProducts();
-      });
+      } else {
+        this.categoryName = 'All Products';
+        this.currentSlug = 'all';
+        this.loadAllProducts();
+      }
     });
   }
   
-  setCategoryName(): void {
-    // First try to find the category in our categories list for more accurate name
-    const foundCategory = this.findCategoryBySlug(this.categoryId);
-    
-    if (foundCategory) {
-      this.categoryName = foundCategory.name;
-      return;
+  private handleCategoryParam(param: string): void {
+    this.isLoading = true;
+    this.hasError = false;
+
+    if (this.categoryService.isLikelyCategoryName(param)) {
+      // It's likely a category name, try to fetch by name
+      this.categoryService.getCategoryByName(param).subscribe({
+        next: category => {
+          if (category && category.slug) {
+            // Category found, redirect to the slug-based URL
+            // This ensures the URL is canonical and avoids duplicate content issues.
+            this.router.navigate(['/category', category.slug], { replaceUrl: true });
+            // ngOnInit will be re-triggered with the new slug param, so no need to call loadCategoryAndProducts here directly.
+          } else {
+            // Category not found by name, or slug is missing
+            this.categoryName = `Category '${param}' not found`;
+            this.hasError = true;
+            this.isLoading = false;
+          }
+        },
+        error: () => {
+          this.categoryName = `Error loading category '${param}'`;
+          this.hasError = true;
+          this.isLoading = false;
+        }
+      });
+    } else {
+      // It's likely a slug, proceed as before
+      this.currentSlug = param;
+      this.loadCategoryAndProducts();
     }
-    
-    // Fallback to converting slug to display name
-    this.categoryName = this.categoryId
-      .split('-')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
+  }
+
+  private loadAllProducts(): void {
+    this.isLoading = true;
+    this.hasError = false;
+    this.currentCategory = null;
+
+    this.productService.getProducts().subscribe({
+      next: (products) => {
+        this.products = products;
+        this.filteredProducts = products;
+        this.extractBrands();
+        this.isLoading = false;
+      },
+      error: (error) => {
+        console.error('Error loading all products:', error);
+        this.hasError = true;
+        this.isLoading = false;
+      }
+    });
+  }
+  
+  private loadCategoryAndProducts(): void {
+    if (!this.currentSlug || this.currentSlug === 'all') {
+        this.loadAllProducts();
+        return;
+    }
+
+    this.isLoading = true;
+    this.hasError = false;
+    this._parentCategory = null;
+
+    // First, get the category by slug from the database
+    this.categoryService.getCategoryBySlug(this.currentSlug).subscribe({
+      next: (category) => {
+        if (!category) {
+          this.currentCategory = null;
+          this.categoryName = 'All Products';
+          this.loadAllProducts();
+          return;
+        }
+        
+        this.currentCategory = category;
+        this.setCategoryName(category.name);
+        
+        // Then load products using the category slug from the database
+        this.productService.getProductsByCategory(category.slug).subscribe({
+          next: (products) => {
+            this.products = products;
+            this.filteredProducts = products;
+            this.extractBrands();
+            this.isLoading = false;
+          },
+          error: (error) => {
+            console.error('Error loading products:', error);
+            this.hasError = true;
+            this.isLoading = false;
+          }
+        });
+      },
+      error: (error) => {
+        console.error('Error loading category:', error);
+        this.hasError = true;
+        this.isLoading = false;
+        // Try to redirect to parent category if available and this was a child category
+        this.tryRedirectToParentCategory(this.currentSlug);
+      }
+    });
+  }
+  
+  private tryRedirectToParentCategory(slug: string): void {
+    // If the slug contains hyphens, try the parent category
+    const parts = slug.split('-');
+    if (parts.length > 1) {
+      // Try with the parent category by removing the last segment
+      const parentSlug = parts.slice(0, -1).join('-');
+      this.router.navigate(['/category', parentSlug]);
+    } else {
+      // If there's no parent category to try, redirect to all products
+      this.router.navigate(['/category', 'all']);
+    }
+  }
+  
+  setCategoryName(name: string | undefined): void {
+    this.categoryName = name ?? 'All Products';
   }
   
   findCategoryBySlug(slug: string): Category | undefined {
@@ -512,95 +693,23 @@ export class ProductListComponent implements OnInit {
   }
   
   loadProducts(): void {
-    this.isLoading = true;
-    this.hasError = false;
-    
-    console.log(`Loading products for category: ${this.categoryId || 'all'}`);
-    
-    // For smartphones specifically, use the search API directly
-    if (this.categoryId === 'smartphones') {
-      console.log('Using direct search for smartphones');
-      this.productService.searchProducts('Smartphone').subscribe({
-        next: (products) => {
-          console.log('Loaded smartphone products via search:', products);
-          this.products = products;
-          this.filteredProducts = [...products];
-          this.extractBrands();
-          this.isLoading = false;
-        },
-        error: (error) => {
-          console.error('Error loading smartphone products:', error);
-          // Fallback to all products if search fails
-          this.fallbackToAllProducts();
-        }
-      });
+    if (!this.currentSlug) {
+      this.loadAllProducts();
       return;
     }
-    
-    // Standard category loading
-    const loadObservable = this.categoryId
-      ? this.productService.getProductsByCategory(this.categoryId) // categoryId now contains the slug
-      : this.productService.getProducts();
-      
-    loadObservable.subscribe({
+
+    this.productService.getProductsByCategory(this.currentSlug).subscribe({
       next: (products) => {
-        console.log(`Loaded ${products.length} products for category ${this.categoryId || 'all'}:`, products);
         this.products = products;
-        this.filteredProducts = [...products];
+        this.filteredProducts = products;
         this.extractBrands();
         this.isLoading = false;
-        
-        // If no products and we're in a category, try a fallback
-        if (products.length === 0 && this.categoryId) {
-          console.log('No products found for category, trying fallback search');
-          this.fallbackToSearch();
-        }
       },
       error: (error) => {
         console.error('Error loading products:', error);
-        // Try fallback method
-        if (this.categoryId) {
-          this.fallbackToSearch();
-        } else {
-          this.hasError = true;
-          this.isLoading = false;
-        }
-      }
-    });
-  }
-  
-  fallbackToAllProducts(): void {
-    console.log('Falling back to all products');
-    this.productService.getProducts().subscribe({
-      next: (products) => {
-        console.log('Loaded all products as fallback:', products);
-        this.products = products;
-        this.filteredProducts = [...products];
-        this.extractBrands();
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('Error loading fallback products:', error);
         this.hasError = true;
         this.isLoading = false;
-      }
-    });
-  }
-  
-  fallbackToSearch(): void {
-    console.log(`Falling back to search with category name: ${this.categoryName}`);
-    this.productService.searchProducts(this.categoryName).subscribe({
-      next: (products) => {
-        console.log(`Loaded ${products.length} products via fallback search:`, products);
-        this.products = products;
-        this.filteredProducts = [...products];
-        this.extractBrands();
-        this.isLoading = false;
-      },
-      error: (error) => {
-        console.error('Error using fallback search:', error);
-        // Last resort - load all products
-        this.fallbackToAllProducts();
+        this.loadAllProducts();
       }
     });
   }

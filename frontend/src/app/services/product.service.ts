@@ -1,7 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpParams } from '@angular/common/http';
 import { Observable, of, throwError } from 'rxjs';
-import { map, catchError, tap } from 'rxjs/operators';
+import { map, catchError, tap, switchMap } from 'rxjs/operators';
 import { Product, Category, Banner } from '../models/product.model';
 import { CategoryService } from './category.service';
 import { environment } from '../../environments/environment';
@@ -11,7 +11,7 @@ import { environment } from '../../environments/environment';
 })
 export class ProductService {
   // API URLs
-  private apiUrl = `${environment.apiUrl}/public/products`;
+  private apiUrl = `${environment.apiUrl}/public`;
   
   // Categories will be loaded from backend but keeping the mock data for fallback
   private categoriesLoaded = false;
@@ -159,42 +159,42 @@ export class ProductService {
   // Main method to transform backend response to our frontend Product model
   private transformApiProduct(apiProduct: any): Product {
     // Log the raw API product data to debug category structure
-    console.log('Raw API product data:', JSON.stringify(apiProduct, null, 2));
+    console.log('Raw API product data for ID ' + apiProduct?.id + ':', JSON.stringify(apiProduct, null, 2));
     
-    // Process category data with improved handling of nested structures
-    let categoryData = '';
+    // Process category data with improved handling
+    let category: string | Category | undefined = undefined;
     
     if (apiProduct.category) {
       if (typeof apiProduct.category === 'object') {
-        // If category is an object with name property
-        categoryData = apiProduct.category.name || '';
-        
-        // If we have a slug use that instead as it's more consistent for routing
-        if (apiProduct.category.slug) {
-          categoryData = apiProduct.category.slug;
-        }
-      } else if (typeof apiProduct.category === 'string') {
-        // If category is directly a string
-        categoryData = apiProduct.category;
+        // If category is a full category object
+        category = {
+          id: apiProduct.category.id,
+          name: apiProduct.category.name,
+          slug: apiProduct.category.slug,
+          imageUrl: apiProduct.category.imageUrl,
+          subcategories: apiProduct.category.subcategories,
+          parentCategory: apiProduct.category.parentCategory,
+          parentCategoryId: apiProduct.category.parentCategoryId
+        };
+      } else {
+        // If category is just a string (slug)
+        category = apiProduct.category;
       }
-    } else if (apiProduct.categoryName) {
-      // Fallback to categoryName if available
-      categoryData = apiProduct.categoryName;
-    } else if (apiProduct.category_name) {
-      // Fallback to snake_case variant
-      categoryData = apiProduct.category_name;
+    } else if (apiProduct.categorySlug) {
+      // Fallback to categorySlug if available
+      category = apiProduct.categorySlug;
     }
     
     return {
       id: apiProduct.id || 0,
       title: apiProduct.title || apiProduct.name || '',
       slug: apiProduct.slug || this.generateSlug(apiProduct.title || apiProduct.name || ''),
-      description: apiProduct.description || apiProduct.description || '',
+      description: apiProduct.description || '',
       price: apiProduct.price || 0,
       discountPercentage: apiProduct.discountPercentage || apiProduct.discount_percentage || 0,
       rating: apiProduct.rating || (apiProduct.totalRating && apiProduct.ratingCount 
                 ? apiProduct.totalRating / apiProduct.ratingCount 
-                : 4.0), // Calculate rating from total and count if available
+                : 4.0),
       reviewCount: apiProduct.reviewCount || apiProduct.rating_count || 0,
       images: this.extractImages(apiProduct),
       colors: apiProduct.colors || apiProduct.variants?.map((v: any) => v.color).filter(Boolean) || [],
@@ -202,12 +202,16 @@ export class ProductService {
       freeShipping: apiProduct.freeShipping || apiProduct.free_shipping || false,
       fastDelivery: apiProduct.fastDelivery || apiProduct.fast_delivery || false,
       inStock: this.determineStockStatus(apiProduct),
-      category: categoryData,
+      category: category, 
       brand: this.extractBrandData(apiProduct),
       sellerId: this.extractSellerId(apiProduct),
       sellerName: this.extractSellerName(apiProduct),
       variants: apiProduct.variants || [],
-      isFavorite: apiProduct.isFavorite || false
+      isFavorite: apiProduct.isFavorite || false,
+      stockQuantity: apiProduct.stockQuantity !== undefined ? apiProduct.stockQuantity 
+                    : (apiProduct.stock_quantity !== undefined ? apiProduct.stock_quantity : undefined),
+      storeId: apiProduct.storeId,
+      storeName: apiProduct.storeName
     };
   }
   
@@ -340,15 +344,8 @@ export class ProductService {
    * Get all products from the API
    */
   getProducts(): Observable<Product[]> {
-    return this.http.get<any>(`${this.apiUrl}/all`).pipe(
-      tap(response => console.log('Raw API Response:', JSON.stringify(response, null, 2))),
-      map(response => {
-        console.log('API Response for products:', response);
-        // Transform the API response to match our Product model
-        return Array.isArray(response) 
-          ? response.map(item => this.transformApiProduct(item))
-          : [];
-      }),
+    return this.http.get<any[]>(`${this.apiUrl}/products/all`).pipe(
+      map(products => products.map(product => this.transformApiProduct(product))),
       catchError(error => {
         console.error('Error fetching products:', error);
         return throwError(() => error);
@@ -360,103 +357,129 @@ export class ProductService {
    * Get a product by ID from the API
    */
   getProductById(id: number): Observable<Product | undefined> {
-    return this.http.get<any>(`${this.apiUrl}/${id}`).pipe(
-      tap(response => console.log(`Raw API Response for product ${id}:`, JSON.stringify(response, null, 2))),
-      map(response => {
-        console.log(`API Response for product ${id}:`, response);
-        return this.transformApiProduct(response);
-      }),
+    return this.http.get<any>(`${this.apiUrl}/products/${id}`).pipe(
+      map(product => this.transformApiProduct(product)),
       catchError(error => {
-        console.error(`Error fetching product with ID ${id}:`, error);
+        console.error(`Error fetching product ${id}:`, error);
         return throwError(() => error);
       })
     );
   }
 
   /**
-   * Get products by category from the API
-   * @param categoryIdOrSlug - The ID, name or slug of the category to filter by
+   * Get paginated products with optional filters
    */
-  getProductsByCategory(categoryIdOrSlug: string): Observable<Product[]> {
-    console.log(`Fetching products for category identifier: ${categoryIdOrSlug}`);
-    
-    // Special handling for problematic categories
-    if (categoryIdOrSlug === 'laptops') {
-      console.log('Using direct search for laptops');
-      return this.searchProducts('Laptop').pipe(
-        map(products => {
-          // Make sure product 1001 (MacBook) is included
-          this.getProductById(1001).subscribe(macbook => {
-            if (macbook && !products.some(p => p.id === 1001)) {
-              products.push(macbook);
-            }
-          });
-          return products;
-        })
-      );
+  getPaginatedProducts(page: number = 0, size: number = 10, filters?: any): Observable<{ content: Product[], totalElements: number, totalPages: number }> {
+    let params = new HttpParams()
+      .set('page', page.toString())
+      .set('size', size.toString());
+
+    // Add any filters if provided
+    if (filters) {
+      if (filters.category) {
+        params = params.set('category', filters.category);
+      }
+      if (filters.search) {
+        params = params.set('search', filters.search);
+      }
+      if (filters.minPrice) {
+        params = params.set('minPrice', filters.minPrice.toString());
+      }
+      if (filters.maxPrice) {
+        params = params.set('maxPrice', filters.maxPrice.toString());
+      }
+      if (filters.sort) {
+        params = params.set('sort', filters.sort);
+      }
     }
-    
-    if (categoryIdOrSlug === 'smartphones') {
-      console.log('Using direct search for smartphones');
-      return this.searchProducts('Smartphone').pipe(
-        map(products => {
-          // Ensure both iPhone and Samsung are included
-          const requiredIds = [1002, 1003]; // Samsung and iPhone
-          requiredIds.forEach(id => {
-            if (!products.some(p => p.id === id)) {
-              this.getProductById(id).subscribe(phone => {
-                if (phone) products.push(phone);
-              });
-            }
-          });
-          return products;
-        })
-      );
+
+    return this.http.get<any>(`${this.apiUrl}/products`, { params }).pipe(
+      map(response => ({
+        content: response.content.map((product: any) => this.transformApiProduct(product)),
+        totalElements: response.totalElements,
+        totalPages: response.totalPages
+      })),
+      catchError(error => {
+        console.error('Error fetching paginated products:', error);
+        return throwError(() => error);
+      })
+    );
+  }
+
+  /**
+   * Search products by keyword (searches in name and description)
+   */
+  searchProducts(keyword: string): Observable<Product[]> {
+    if (!keyword || keyword.trim().length === 0) {
+      return of([]);
     }
+
+    const params = new HttpParams().set('search', keyword.trim());
     
-    // Check if it's a numeric ID or a slug
-    let endpoint: string;
-    
-    if (!isNaN(Number(categoryIdOrSlug))) {
-      // If it's a numeric ID, use the category ID endpoint
-      const categoryId = Number(categoryIdOrSlug);
-      endpoint = `${this.apiUrl}/category/${categoryId}`;
-      console.log(`Using category ID endpoint: ${endpoint}`);
-    } else {
-      // If it's a string slug, use the slug endpoint
-      const slug = categoryIdOrSlug.toLowerCase().trim();
-      endpoint = `${this.apiUrl}/category/slug/${slug}`;
-      console.log(`Using category slug endpoint: ${endpoint}`);
-    }
-    
-    // Call the appropriate backend endpoint
-    return this.http.get<any>(endpoint).pipe(
-      tap(response => console.log(`Raw API Response for category ${categoryIdOrSlug}:`, response)),
+    return this.http.get<any>(`${this.apiUrl}/products/search`, { params }).pipe(
       map(response => {
-        console.log('API Response for category products:', response);
+        if (!response) {
+          return [];
+        }
         return Array.isArray(response) 
           ? response.map(item => this.transformApiProduct(item))
           : [];
       }),
       catchError(error => {
-        console.error(`Error fetching products for category ${categoryIdOrSlug}:`, error);
-        // Instead of throwing error, try searching with category name
-        return this.searchProducts(categoryIdOrSlug);
+        console.error(`Error searching products with keyword '${keyword}':`, error);
+        return of([]); // Return empty array instead of throwing error
       })
     );
+  }
+
+  /**
+   * Get products by category
+   */
+  getProductsByCategory(categoryIdOrSlug: string): Observable<Product[]> {
+    console.log(`Fetching products for category: ${categoryIdOrSlug}`);
+    
+    // Check if it's a numeric ID or a slug
+    if (!isNaN(Number(categoryIdOrSlug))) {
+      // If it's a numeric ID, use the category ID endpoint
+      const categoryId = Number(categoryIdOrSlug);
+      return this.http.get<any>(`${this.apiUrl}/products/category/${categoryId}`).pipe(
+        map(response => {
+          console.log(`Products for category ID ${categoryId}:`, response);
+          const products = response.content || response;
+          return Array.isArray(products) 
+            ? products.map(item => this.transformApiProduct(item))
+            : [];
+        }),
+        catchError(error => {
+          console.error(`Error fetching products for category ID ${categoryId}:`, error);
+          return throwError(() => error);
+        })
+      );
+    } else {
+      // If it's a string slug, use the slug endpoint
+      const slug = categoryIdOrSlug.toLowerCase().trim();
+      return this.http.get<any>(`${this.apiUrl}/products/category/${slug}`).pipe(
+        map(response => {
+          console.log(`Products for category slug ${slug}:`, response);
+          const products = response.content || response;
+          return Array.isArray(products) 
+            ? products.map(item => this.transformApiProduct(item))
+            : [];
+        }),
+        catchError(error => {
+          console.error(`Error fetching products for category slug ${slug}:`, error);
+          return throwError(() => error);
+        })
+      );
+    }
   }
 
   /**
    * Get products by store from the API
    */
   getProductsByStore(storeId: number): Observable<Product[]> {
-    return this.http.get<any>(`${this.apiUrl}/stores/${storeId}`).pipe(
-      map(response => {
-        console.log(`API Response for store ${storeId}:`, response);
-        return Array.isArray(response) 
-          ? response.map(item => this.transformApiProduct(item))
-          : [];
-      }),
+    return this.http.get<any[]>(`${this.apiUrl}/stores/${storeId}`).pipe(
+      map(products => products.map(product => this.transformApiProduct(product))),
       catchError(error => {
         console.error(`Error fetching products for store ${storeId}:`, error);
         return throwError(() => error);
@@ -468,7 +491,7 @@ export class ProductService {
    * Get featured products from the API
    */
   getFeaturedProducts(): Observable<Product[]> {
-    return this.http.get<any>(`${this.apiUrl}/featured`).pipe(
+    return this.http.get<any>(`${this.apiUrl}/products/featured`).pipe(
       map(response => {
         console.log('API Response for featured products:', response);
         const items = response && response.content ? response.content : response;
@@ -512,7 +535,7 @@ export class ProductService {
    * Get new arrivals products
    */
   getNewArrivals(): Observable<Product[]> {
-    return this.http.get<any>(`${this.apiUrl}/new-arrivals`).pipe(
+    return this.http.get<any>(`${this.apiUrl}/products/new-arrivals`).pipe(
       tap(response => console.log('Raw API Response for new arrivals:', JSON.stringify(response, null, 2))),
       map(response => {
         console.log('API Response for new arrivals:', response);
@@ -532,23 +555,25 @@ export class ProductService {
   }
 
   /**
-   * Search products by keyword
+   * Get category URL information for a specific product
    */
-  searchProducts(keyword: string): Observable<Product[]> {
-    const params = new HttpParams().set('keyword', keyword);
-    
-    return this.http.get<any>(`${this.apiUrl}/search`, { params }).pipe(
-      tap(response => console.log(`Raw API Response for search '${keyword}':`, JSON.stringify(response, null, 2))),
+  getProductCategoryUrl(productId: number): Observable<{url: string, slug: string, name: string}> {
+    return this.http.get<{url: string, slug: string, name: string}>(`${this.apiUrl}/products/${productId}/category-url`).pipe(
       map(response => {
-        console.log(`API Response for search '${keyword}':`, response);
-        // Transform the API response to match our Product model
-        return Array.isArray(response) 
-          ? response.map(item => this.transformApiProduct(item))
-          : [];
+        // Ensure URL starts with /category/
+        if (!response.url.startsWith('/category/')) {
+          response.url = `/category/${response.slug}`;
+        }
+        return response;
       }),
       catchError(error => {
-        console.error(`Error searching products with keyword '${keyword}':`, error);
-        return throwError(() => error);
+        console.error('Error getting product category URL:', error);
+        // Return a default response that routes to all products
+        return of({
+          url: '/category/all',
+          slug: 'all',
+          name: 'All Products'
+        });
       })
     );
   }
