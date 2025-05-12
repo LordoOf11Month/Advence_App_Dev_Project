@@ -1,0 +1,9 @@
+/* features/cart/components/cart/cart.component.scss */
+.cart-item {
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid #ddd; padding: 0.5rem 0;
+}
+.prod-info span { margin-left: 1rem; }
+.qty-control input { width: 50px; text-align: center; }
+.cart-summary { text-align: right; margin-top: 1rem; }
+.cart-summary button { font-size: 1.1rem; padding: 0.5rem 1rem; }

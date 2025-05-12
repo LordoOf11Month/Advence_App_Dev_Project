@@ -1,0 +1,48 @@
+<!-- core/header/header.component.html -->
+<nav class="navbar">
+  <a class="logo" routerLink="/">E-Shop</a>
+  <div class="nav-container">
+    <ul class="nav-links">
+      <li><a routerLink="/catalogue">Catalogue</a></li>
+      <li><a routerLink="/cart">Cart</a></li>
+      <li *ngIf="isLoggedIn"><a routerLink="/orders">My Orders</a></li>
+
+      <!-- Admin Portal Link -->
+      <li *ngIf="isAdmin"><a routerLink="/admin">Admin Portal</a></li>
+
+      <!-- Seller Dashboard Link -->
+      <li *ngIf="isSeller"><a routerLink="/seller">Seller Dashboard</a></li>
+    </ul>
+  </div>
+
+  <div class="auth-section">
+    <ng-container *ngIf="isLoggedIn; else guestLinks">
+      <span>Welcome, {{ username }}!</span>
+      <button (click)="logout()">Logout</button>
+    </ng-container>
+    <ng-template #guestLinks>
+      <a routerLink="/auth/login">Login</a>
+      <a routerLink="/auth/register">Register</a>
+    </ng-template>
+  </div>
+</nav>
+
+<!-- Admin Menu (separate from navbar, always visible when admin) -->
+<div *ngIf="isAdmin" class="submenu admin-menu">
+  <ul>
+    <li><a routerLink="/admin/users">User Management</a></li>
+    <li><a routerLink="/admin/sellers">Seller Management</a></li>
+    <li><a routerLink="/admin/orders">Order Management</a></li>
+    <li><a routerLink="/admin/payments">Payment Issues</a></li>
+    <li><a routerLink="/admin/products">Product Management</a></li>
+  </ul>
+</div>
+
+<!-- Seller Menu (separate from navbar, always visible when seller) -->
+<div *ngIf="isSeller" class="submenu seller-menu">
+  <ul>
+    <li><a routerLink="/seller/products">My Products</a></li>
+    <li><a routerLink="/seller/orders">Seller Orders</a></li>
+    <li><a routerLink="/seller/products/new">Add Product</a></li>
+  </ul>
+</div>

@@ -73,38 +73,38 @@ public class User {
     @Column(name = "avatar_url" , columnDefinition = "TEXT")
     private String avatarUrl;
 
-    @OneToMany(mappedBy = "seller", fetch = FetchType.LAZY)
-    @JsonIgnoreProperties({"seller", "products", "hibernateLazyInitializer", "handler"})
+    @OneToMany(mappedBy = "seller")
+    @JsonIgnoreProperties({"seller", "products", "handler"})
     private List<Store> stores;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    @JsonIgnoreProperties({"user", "hibernateLazyInitializer", "handler"})
+    @OneToMany(mappedBy = "user")
+    @JsonIgnoreProperties({"user", "handler"})
     private List<OrderEntity> orders;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    @JsonIgnoreProperties({"user", "hibernateLazyInitializer", "handler"})
+    @OneToMany(mappedBy = "user")
+    @JsonIgnoreProperties({"user", "handler"})
     private List<PaymentMethod> paymentMethods;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    @JsonIgnoreProperties({"user", "hibernateLazyInitializer", "handler"})
+    @OneToMany(mappedBy = "user")
+    @JsonIgnoreProperties({"user", "handler"})
     private List<Address> addresses;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    @JsonIgnoreProperties({"user", "hibernateLazyInitializer", "handler"})
+    @OneToMany(mappedBy = "user")
+    @JsonIgnoreProperties({"user", "handler"})
     private List<CartItem> cartItems;
 
-    @OneToMany(mappedBy = "user", fetch = FetchType.LAZY)
-    @JsonIgnoreProperties({"user", "product", "hibernateLazyInitializer", "handler"})
+    @OneToMany(mappedBy = "user")
+    @JsonIgnoreProperties({"user", "product", "handler"})
     private List<Review> reviews;
 
     // Many-to-many relationship for favorite products
-    @ManyToMany(fetch = FetchType.LAZY)
+    @ManyToMany
     @JoinTable(
         name = "user_favorite_products",
         joinColumns = @JoinColumn(name = "user_id"),
         inverseJoinColumns = @JoinColumn(name = "product_id")
     )
-    @JsonIgnoreProperties({"reviews", "favoriteUsers", "hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({"reviews", "favoriteUsers", "handler"})
     private List<Product> favoriteProducts = new ArrayList<>();
 
     public enum Role {

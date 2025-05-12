@@ -20,6 +20,13 @@ public class StripeService {
     private String stripeApiKey;
 
     /**
+     * Get the Stripe API key
+     */
+    public String getStripeApiKey() {
+        return stripeApiKey;
+    }
+
+    /**
      * Initialize a Stripe customer for a new user
      */
     public String createCustomer(String email, String name) throws StripeException {
@@ -92,6 +99,30 @@ public class StripeService {
                 .setAmount(amount)
                 .setCurrency(currency)
                 .setCustomer(customerId)
+                .setAutomaticPaymentMethods(
+                    PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
+                        .setEnabled(true)
+                        .build()
+                )
+                .build();
+
+        PaymentIntent paymentIntent = PaymentIntent.create(params);
+        
+        return Map.of(
+            "paymentIntentId", paymentIntent.getId(),
+            "clientSecret", paymentIntent.getClientSecret()
+        );
+    }
+
+    /**
+     * Create a payment intent without requiring a customer ID (for guest checkout)
+     */
+    public Map<String, String> createPaymentIntentWithoutCustomer(Long amount, String currency) throws StripeException {
+        Stripe.apiKey = stripeApiKey;
+        
+        PaymentIntentCreateParams params = PaymentIntentCreateParams.builder()
+                .setAmount(amount)
+                .setCurrency(currency)
                 .setAutomaticPaymentMethods(
                     PaymentIntentCreateParams.AutomaticPaymentMethods.builder()
                         .setEnabled(true)

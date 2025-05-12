@@ -1,0 +1,5 @@
+/* features/catalogue/components/product-list/product-list.component.scss */
+.catalogue-container { padding: 1rem; }
+.toolbar { margin-bottom: 1rem; }
+.product-grid { display: flex; flex-wrap: wrap; gap: 1rem; }
+.compare-bar { margin-top: 1rem; padding: 0.5rem; background: #e0e0e0; }

@@ -3,6 +3,7 @@ package com.example.DTO;
 import jakarta.validation.constraints.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import lombok.Data;
 import com.example.models.Address;
@@ -19,8 +20,33 @@ public class OrderDTO {
         private BigDecimal subtotal;
         private BigDecimal shipping;
         private BigDecimal total;
+        private BigDecimal tax;
         private CustomerDTO customer;
-        private Address shippingAddress;
+        private ShippingAddressDTO shippingAddress;
+        private String trackingNumber;
+        private LocalDate estimatedDelivery;
+        private PaymentMethodDTO paymentMethod;
+    }
+
+    @Data
+    public static class ShippingAddressDTO {
+        private Integer id;
+        private String street;
+        private String city;
+        private String state;
+        private String country;
+        private String zipCode;
+        private String firstName;
+        private String lastName;
+        private String phone;
+    }
+
+    @Data
+    public static class PaymentMethodDTO {
+        private String type;
+        private String cardNumber;
+        private String cardholderName;
+        private String expiryDate;
     }
 
     @Data
@@ -43,8 +69,11 @@ public class OrderDTO {
         @NotEmpty
         private List<OrderItemDTO> items;
         
-        @NotNull
-        private int shippingAddressId;
+        // Either shippingAddressId or newShippingAddress must be provided
+        private Integer shippingAddressId;
+        
+        // Allow creating a new address during order
+        private AddressDTO.CreateAddressRequest newShippingAddress;
         
         // @NotBlank
         // private String paymentMethodId; // Stripe payment method ID

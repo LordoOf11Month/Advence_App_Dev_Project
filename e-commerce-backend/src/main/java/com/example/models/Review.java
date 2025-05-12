@@ -58,11 +58,11 @@ public class Review {
 
     @ManyToOne
     @JoinColumn(name = "product_id", nullable = false)
-    @JsonIgnoreProperties({"reviews", "categories", "seller", "hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({"reviews", "categories", "seller", "handler"})
     private Product product;
 
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
-    @JsonIgnoreProperties({"reviews", "favoriteProducts", "orders", "password", "role", "hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({"reviews", "favoriteProducts", "orders", "password", "role", "handler"})
     private User user;
 }

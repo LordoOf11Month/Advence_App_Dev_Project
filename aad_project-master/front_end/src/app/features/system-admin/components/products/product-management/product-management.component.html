@@ -1,0 +1,50 @@
+<div class="container mt-4">
+  <h2>Platform Product Management</h2>
+  <div class="alert alert-info">
+    As a system administrator, you can view and manage all products across the platform.
+  </div>
+
+  <div *ngIf="error" class="alert alert-danger">{{ error }}</div>
+
+  <div *ngIf="loading" class="text-center my-5">
+    <div class="spinner-border" role="status">
+      <span class="visually-hidden">Loading...</span>
+    </div>
+    <p>Loading products...</p>
+  </div>
+
+  <div *ngIf="!loading && products.length === 0" class="alert alert-warning">
+    No products found.
+  </div>
+
+  <div *ngIf="!loading && products.length > 0" class="table-responsive">
+    <table class="table table-striped">
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Name</th>
+          <th>Category</th>
+          <th>Price</th>
+          <th>Stock</th>
+          <th>Seller</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let product of products">
+          <td>{{ product.id }}</td>
+          <td>{{ product.name }}</td>
+          <td>{{ product.categoryId }}</td>
+          <td>{{ product.price | currency }}</td>
+          <td>{{ product.stockQuantity }}</td>
+          <td>{{ product.storeId }}</td>
+          <td>
+            <button (click)="removeProduct(product.id)" class="btn btn-sm btn-danger">
+              Remove
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

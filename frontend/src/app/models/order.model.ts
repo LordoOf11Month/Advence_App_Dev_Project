@@ -12,6 +12,7 @@ export interface ShippingAddress {
   phone: string;
   email: string;
   saveAddress?: boolean;
+  addressId?: number;
 }
 
 export interface PaymentMethod {
@@ -21,6 +22,7 @@ export interface PaymentMethod {
   expiryDate?: string;
   cvv?: string;
   saveCard?: boolean;
+  stripePaymentMethodId?: string;
 }
 
 export interface Order {
@@ -50,4 +52,4 @@ export interface OrderSummary {
   total: number;
 }
 
-export type CheckoutStep = 'shipping' | 'payment' | 'review' | 'confirmation'; 
+export type CheckoutStep = 'shipping' | 'payment' | 'review' | 'confirmation';

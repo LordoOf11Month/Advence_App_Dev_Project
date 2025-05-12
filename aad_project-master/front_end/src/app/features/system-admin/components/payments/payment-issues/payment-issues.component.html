@@ -1,0 +1,14 @@
+<!-- features/system-admin/components/payments/payment-issues/payment-issues.component.html -->
+<h2>Payment Issues</h2>
+<app-loading-spinner *ngIf="loading"></app-loading-spinner>
+<app-error-alert *ngIf="error" [errorMessage]="error"></app-error-alert>
+<table *ngIf="!loading && issues.length" class="list-table">
+  <tr><th>Order #</th><th>User</th><th>Issue</th><th></th></tr>
+  <tr *ngFor="let issue of issues">
+    <td>{{ issue.id }}</td>
+    <td>{{ issue.userId }}</td>
+    <td>Payment failed</td> <!-- Could expand with details if available -->
+    <td><button (click)="resolve(issue)">Resolve</button></td>
+  </tr>
+</table>
+<p *ngIf="!loading && !issues.length">No payment issues.</p>

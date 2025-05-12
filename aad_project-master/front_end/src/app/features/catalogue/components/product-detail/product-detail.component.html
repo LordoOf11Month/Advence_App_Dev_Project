@@ -1,0 +1,78 @@
+<!-- features/catalogue/components/product-detail/product-detail.component.html -->
+<div *ngIf="product; else loadingOrError">
+  <div class="product-details">
+    <div class="product-images">
+      <div class="main-image-container">
+        <button class="nav-button prev" (click)="prevImage()" *ngIf="product.imageUrls && product.imageUrls.length > 1">
+          <span class="arrow">&#10094;</span>
+        </button>
+        <img
+          class="main-image"
+          [src]="product.imageUrls && product.imageUrls.length > 0 ? product.imageUrls[activeImageIndex] : '/assets/placeholder.png'"
+          alt="{{ product.name }}"
+        >
+        <button class="nav-button next" (click)="nextImage()" *ngIf="product.imageUrls && product.imageUrls.length > 1">
+          <span class="arrow">&#10095;</span>
+        </button>
+      </div>
+
+      <div class="thumbnails" *ngIf="product.imageUrls && product.imageUrls.length > 1">
+        <div
+          *ngFor="let img of product.imageUrls; let i = index"
+          class="thumbnail"
+          [class.active]="i === activeImageIndex"
+          (click)="selectImage(i)"
+        >
+          <img [src]="img" alt="{{ product.name }} thumbnail {{ i + 1 }}">
+        </div>
+      </div>
+    </div>
+
+    <div class="info">
+      <h2>{{ product.name }}</h2>
+      <p class="price">{{ product.price | money }}</p>
+      <p class="desc">{{ product.description }}</p>
+      <p class="seller">Sold by: {{ product.sellerName }}</p>
+      <button (click)="addToCart(product)">Add to Cart</button>
+    </div>
+  </div>
+
+  <!-- Reviews Section -->
+  <div class="reviews-section">
+    <h3>Reviews ({{ reviews.length }})</h3>
+    <app-review-list [reviews]="reviews"></app-review-list>
+
+    <!-- Review Form Section -->
+    <div *ngIf="isLoggedIn; else loginPrompt">
+      <div *ngIf="checkingEligibility">
+        <p>Checking if you can review this product...</p>
+      </div>
+
+      <div *ngIf="!checkingEligibility">
+        <div *ngIf="canReview; else cannotReview">
+          <app-review-form [productId]="product.id" (reviewSubmitted)="onReviewSubmitted($event)"></app-review-form>
+        </div>
+
+        <ng-template #cannotReview>
+          <div class="review-eligibility-notice">
+            <p *ngIf="role === 'SELLER' || role === 'PLATFORM_ADMIN'">
+              Sellers and administrators cannot submit product reviews.
+            </p>
+            <p *ngIf="role !== 'SELLER' && role !== 'PLATFORM_ADMIN' && !hasAlreadyPurchased">
+              You can only review products you have purchased and received.
+            </p>
+          </div>
+        </ng-template>
+      </div>
+    </div>
+
+    <ng-template #loginPrompt>
+      <p><a routerLink="/auth/login">Log in</a> to write a review.</p>
+    </ng-template>
+  </div>
+</div>
+
+<ng-template #loadingOrError>
+  <app-error-alert *ngIf="error" [errorMessage]="error"></app-error-alert>
+  <app-loading-spinner *ngIf="!error"></app-loading-spinner>
+</ng-template>

@@ -33,14 +33,14 @@ public class Product {
     @Column(name = "product_id")
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "store_id", nullable = false)
-    @JsonIgnoreProperties({"products", "orders", "hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({"products", "orders", "handler"})
     private Store store;
 
     @ManyToOne()
     @JoinColumn(name = "category_id")
-    @JsonIgnoreProperties({"products", "hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({"products", "handler"})
     private Category category;
 
     @Column(name = "name", length = 80, nullable = false)
@@ -86,19 +86,19 @@ public class Product {
     private LocalDateTime updatedAt;
 
     @OneToMany(mappedBy = "product")
-    @JsonIgnoreProperties({"product", "hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({"product", "handler"})
     private List<ProductImage> images;
 
-    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
-    @JsonIgnoreProperties({"product", "hibernateLazyInitializer", "handler"})
+    @OneToMany(mappedBy = "product")
+    @JsonIgnoreProperties({"product", "handler"})
     private List<OrderItem> orderItems;
 
     @OneToMany(mappedBy = "product")
-    @JsonIgnoreProperties({"product", "hibernateLazyInitializer", "handler"})
+    @JsonIgnoreProperties({"product", "handler"})
     private List<Discount> discounts;
 
-    @OneToMany(mappedBy = "product", fetch = FetchType.LAZY)
-    @JsonIgnoreProperties({"product", "user", "hibernateLazyInitializer", "handler"})
+    @OneToMany(mappedBy = "product")
+    @JsonIgnoreProperties({"product", "user", "handler"})
     private List<Review> reviews;
     
     @PrePersist

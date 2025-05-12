@@ -6,6 +6,8 @@ import com.example.models.User;
 import com.example.repositories.OrderItemRepository;
 import com.example.repositories.RefundRepository;
 import com.example.repositories.UserRepository;
+import com.example.repositories.OrderRepository;
+import com.example.models.OrderEntity;
 import com.stripe.Stripe;
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.*;
@@ -26,14 +28,17 @@ public class StripeWebhookService {
     private final UserRepository userRepository;
     private final OrderItemRepository orderItemRepository;
     private final RefundRepository refundRepository;
+    private final OrderRepository orderRepository;
 
     public StripeWebhookService(
             UserRepository userRepository,
             OrderItemRepository orderItemRepository,
-            RefundRepository refundRepository) {
+            RefundRepository refundRepository,
+            OrderRepository orderRepository) {
         this.userRepository = userRepository;
         this.orderItemRepository = orderItemRepository;
         this.refundRepository = refundRepository;
+        this.orderRepository = orderRepository;
     }
 
     @Transactional
@@ -115,14 +120,54 @@ public class StripeWebhookService {
     }
 
     @SuppressWarnings("deprecation")
+    @Transactional
     private void handleChargeSucceeded(Event event) {
         Charge charge = (Charge) event.getData().getObject();
+        
+        // Get the payment intent ID
+        String paymentIntentId = charge.getPaymentIntent();
+        
+        if (paymentIntentId == null || paymentIntentId.isEmpty()) {
+            System.out.println("Warning: Charge doesn't have a payment intent ID: " + charge.getId());
+            return;
+        }
+        
+        // Find the order item associated with this payment intent
+        OrderItem orderItem = orderItemRepository.findByStripePaymentIntentId(paymentIntentId)
+                .orElse(null);
+                
+        if (orderItem == null) {
+            System.out.println("Warning: Could not find order item for payment intent: " + paymentIntentId);
+            return;
+        }
+        
         // Update order item with charge ID
-        orderItemRepository.findByStripePaymentIntentId(charge.getPaymentIntent())
-                .ifPresent(orderItem -> {
-                    orderItem.setStripeChargeId(charge.getId());
-                    orderItemRepository.save(orderItem);
-                });
+        orderItem.setStripeChargeId(charge.getId());
+        orderItemRepository.save(orderItem);
+        
+        // Get the parent order
+        OrderEntity order = orderItem.getOrder();
+        if (order == null) {
+            System.out.println("Warning: Order item has no associated order");
+            return;
+        }
+        
+        // Check if all items in the order are now paid
+        boolean allItemsPaid = true;
+        for (OrderItem item : order.getOrderItems()) {
+            if (item.getStripeChargeId() == null) {
+                allItemsPaid = false;
+                break;
+            }
+        }
+        
+        // Update order status if all items are paid
+        if (allItemsPaid) {
+            System.out.println("All items paid for order ID: " + order.getId() + ". Updating status to processing.");
+            order.setStatus(OrderEntity.Status.processing);
+            order.setStripeChargeId(charge.getId());
+            orderRepository.save(order);
+        }
     }
 
     @SuppressWarnings("deprecation")

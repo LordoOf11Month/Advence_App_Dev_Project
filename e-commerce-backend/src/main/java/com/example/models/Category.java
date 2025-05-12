@@ -32,7 +32,7 @@ public class Category {
     @Column(name = "is_active")
     private Boolean active = true;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne
     @JoinColumn(name = "parent_category_id")
     @JsonIgnore // Prevents infinite recursion in JSON serialization
     private Category parentCategory;

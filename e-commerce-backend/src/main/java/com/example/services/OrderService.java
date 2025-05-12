@@ -29,10 +29,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.HashMap;
+import java.util.Optional;
 
 
 import com.example.models.PaymentMethod;
 import com.stripe.model.PaymentIntent;
+import com.example.models.Address;
 
 @Service
 public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.OrderResponse, OrderDTO.CreateOrderRequest, Long> {
@@ -63,96 +65,217 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
 
     @Override
     @Transactional
-    protected OrderEntity convertToEntity(OrderDTO.CreateOrderRequest createDto) {
-        // Get the current user
-        User user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        // Create the order entity
-        OrderEntity order = new OrderEntity();
-        order.setUser(user);
-        order.setStatus(OrderEntity.Status.pending);
-        order.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
-        order.setEstimatedDelivery(LocalDate.now().plusDays(7));
-        order.setTrackingNumber(generateTrackingNumber());
-        order.setShippingAddress(addressRepository.findById(createDto.getShippingAddressId())
-            .orElseThrow(() -> new RuntimeException("Shipping address not found")));
-        // Process each order item and create payment intents
-        List<OrderItem> orderItems = new ArrayList<>();
-        for (OrderDTO.OrderItemDTO itemDto : createDto.getItems()) {
-            Product product = productRepository.findById(itemDto.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found"));
-
-            OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order);
-            orderItem.setProduct(product);
-            orderItem.setQuantity(itemDto.getQuantity());
-            orderItem.setPriceAtPurchase(product.getPrice());
-
-            try {
-                // Create a payment intent for this item
-                Map<String, String> paymentIntent = stripeService.createPaymentIntent(
-                    user.getStripeCustomerId(),
-                    product.getPrice().multiply(new java.math.BigDecimal(itemDto.getQuantity())).longValue(),
-                    "usd"
-                );
-
-                orderItem.setStripePaymentIntentId(paymentIntent.get("paymentIntentId"));
-                orderItems.add(orderItem);
-            } catch (StripeException e) {
-                throw new RuntimeException("Failed to create payment intent: " + e.getMessage());
-            }
-        }
-
-        order.setOrderItems(orderItems);
-        return order;
-    }
-
-    @Transactional
-    public OrderDTO.OrderResponse confirmPayment(String paymentIntentId) {
-        OrderItem orderItem = orderRepository.findByStripePaymentIntentId(paymentIntentId)
-                .orElseThrow(() -> new RuntimeException("Order item not found for payment intent: " + paymentIntentId));
-
+    public OrderDTO.OrderResponse save(OrderDTO.CreateOrderRequest createDto) {
         try {
-            String chargeId = stripeService.confirmPaymentIntent(paymentIntentId);
-            orderItem.setStripeChargeId(chargeId);
-            
-            // Check if all items in the order are paid
-            OrderEntity order = orderItem.getOrder();
-            boolean allItemsPaid = order.getOrderItems().stream()
-                    .allMatch(item -> item.getStripeChargeId() != null);
+            // Get the current user
+            User user = userRepository.findByEmail(SecurityContextHolder.getContext().getAuthentication().getName())
+                    .orElseThrow(() -> new RuntimeException("User not found"));
 
-            // If all items are paid, update order status
-            if (allItemsPaid) {
-                order.setStatus(OrderEntity.Status.processing);
-                order.setStripeChargeId(chargeId);
+            // Create the order entity
+            OrderEntity order = new OrderEntity();
+            order.setUser(user);
+            order.setStatus(OrderEntity.Status.pending);
+            order.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
+            order.setEstimatedDelivery(LocalDate.now().plusDays(7));
+            order.setTrackingNumber(generateTrackingNumber());
+            
+            // Handle shipping address - either use existing address by ID or create a new one
+            Address shippingAddress;
+            if (createDto.getShippingAddressId() != null) {
+                // Use existing address
+                shippingAddress = addressRepository.findById(createDto.getShippingAddressId())
+                    .orElseThrow(() -> new RuntimeException("Shipping address not found"));
+                    
+                // Verify the address belongs to the current user
+                if (shippingAddress.getUser().getId() != user.getId()) {
+                    throw new RuntimeException("Address does not belong to current user");
+                }
+            } else if (createDto.getNewShippingAddress() != null) {
+                // Create a new address from the request
+                Address newAddress = new Address();
+                newAddress.setUser(user);
+                newAddress.setStreet(createDto.getNewShippingAddress().getStreet());
+                newAddress.setCity(createDto.getNewShippingAddress().getCity());
+                newAddress.setState(createDto.getNewShippingAddress().getState());
+                newAddress.setCountry(createDto.getNewShippingAddress().getCountry());
+                newAddress.setZipCode(createDto.getNewShippingAddress().getZipCode());
+                newAddress.setDefault(createDto.getNewShippingAddress().isDefault());
+                
+                // If this is set as default, unset any existing default address
+                if (createDto.getNewShippingAddress().isDefault()) {
+                    addressRepository.findByUserAndIsDefaultTrue(user)
+                            .ifPresent(existingDefault -> {
+                                existingDefault.setDefault(false);
+                                addressRepository.save(existingDefault);
+                            });
+                }
+                
+                shippingAddress = addressRepository.save(newAddress);
+            } else {
+                throw new RuntimeException("Shipping address information is required");
+            }
+            
+            order.setShippingAddress(shippingAddress);
+            
+            // Process each order item and create payment intents
+            List<OrderItem> orderItems = new ArrayList<>();
+            for (OrderDTO.OrderItemDTO itemDto : createDto.getItems()) {
+                Product product = productRepository.findById(itemDto.getProductId())
+                        .orElseThrow(() -> new RuntimeException("Product not found"));
+
+                OrderItem orderItem = new OrderItem();
+                orderItem.setOrder(order);
+                orderItem.setProduct(product);
+                orderItem.setQuantity(itemDto.getQuantity());
+                orderItem.setPriceAtPurchase(product.getPrice());
+
+                try {
+                    // Create a payment intent for this item
+                    Map<String, String> paymentIntent;
+                    
+                    // Check if user has a valid Stripe customer ID
+                    if (user.getStripeCustomerId() != null && !user.getStripeCustomerId().isEmpty()) {
+                        // Use customer ID for the payment intent
+                        paymentIntent = stripeService.createPaymentIntent(
+                            user.getStripeCustomerId(),
+                            product.getPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity())).longValue(),
+                            "usd"
+                        );
+                    } else {
+                        // Create payment intent without customer ID
+                        paymentIntent = stripeService.createPaymentIntentWithoutCustomer(
+                            product.getPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity())).longValue(),
+                            "usd"
+                        );
+                    }
+
+                    orderItem.setStripePaymentIntentId(paymentIntent.get("paymentIntentId"));
+                    orderItems.add(orderItem);
+                } catch (StripeException e) {
+                    throw new RuntimeException("Failed to create payment intent: " + e.getMessage(), e);
+                }
             }
 
-            orderRepository.save(order);
-            return convertToDto(order);
-        } catch (StripeException e) {
-            throw new RuntimeException("Failed to confirm payment: " + e.getMessage());
+            order.setOrderItems(orderItems);
+            return convertToDto(orderRepository.save(order));
+        } catch (Exception e) {
+            if (e instanceof RuntimeException) {
+                throw (RuntimeException) e;
+            }
+            throw new RuntimeException("Error creating order: " + e.getMessage(), e);
         }
     }
 
-    @Transactional
-    public OrderDTO.OrderResponse handlePaymentFailure(String paymentIntentId) {
-        OrderItem orderItem = orderRepository.findByStripePaymentIntentId(paymentIntentId)
-                .orElseThrow(() -> new RuntimeException("Order item not found for payment intent: " + paymentIntentId));
+    @Override
+    protected OrderDTO.OrderResponse convertToDto(OrderEntity entity) {
+        if (entity == null) return null;
+        OrderDTO.OrderResponse dto = new OrderDTO.OrderResponse();
+        dto.setId(entity.getId() != null ? entity.getId().toString() : null);
+        dto.setStatus(entity.getStatus() != null ? entity.getStatus().name() : null);
+        dto.setCreatedAt(entity.getCreatedAt() != null ? entity.getCreatedAt().toLocalDateTime() : null);
+        dto.setUpdatedAt(entity.getUpdatedAt() != null ? entity.getUpdatedAt().toLocalDateTime() : null);
+        
+        // Set shipping address if available
+        if (entity.getShippingAddress() != null) {
+            OrderDTO.ShippingAddressDTO addressDTO = new OrderDTO.ShippingAddressDTO();
+            Address address = entity.getShippingAddress();
+            addressDTO.setId(address.getId());
+            addressDTO.setStreet(address.getStreet());
+            addressDTO.setCity(address.getCity());
+            addressDTO.setState(address.getState());
+            addressDTO.setCountry(address.getCountry());
+            addressDTO.setZipCode(address.getZipCode());
+            dto.setShippingAddress(addressDTO);
+        }
+        
+        // Set tracking information
+        dto.setTrackingNumber(entity.getTrackingNumber());
+        dto.setEstimatedDelivery(entity.getEstimatedDelivery());
+        
+        // Calculate totals
+        BigDecimal subtotal = BigDecimal.ZERO;
+        List<OrderDTO.OrderItemDTO> itemDtos = new ArrayList<>();
+        
+        try {
+            if (entity.getOrderItems() != null) {
+                for (OrderItem item : entity.getOrderItems()) {
+                    if (item != null) {
+                        OrderDTO.OrderItemDTO itemDto = convertOrderItemToDto(item);
+                        if (itemDto != null) {
+                            itemDtos.add(itemDto);
+                            
+                            // Add to subtotal
+                            if (item.getPriceAtPurchase() != null && item.getQuantity() > 0) {
+                                subtotal = subtotal.add(
+                                    item.getPriceAtPurchase().multiply(BigDecimal.valueOf(item.getQuantity()))
+                                );
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            // Log the error but don't fail the entire conversion
+            System.err.println("Error processing order items: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
+        dto.setItems(itemDtos);
+        
+        // Set financial details
+        dto.setSubtotal(subtotal);
+        // Apply shipping cost calculation (simplified example)
+        BigDecimal shipping = subtotal.compareTo(BigDecimal.valueOf(100)) > 0 ? 
+                           BigDecimal.ZERO : BigDecimal.valueOf(10);
+        dto.setShipping(shipping);
+        
+        // Apply tax calculation (simplified example - 8%)
+        BigDecimal tax = subtotal.multiply(BigDecimal.valueOf(0.08)).setScale(2, java.math.RoundingMode.HALF_UP);
+        dto.setTax(tax);
+        
+        // Calculate total
+        BigDecimal total = subtotal.add(shipping).add(tax);
+        dto.setTotal(total);
+        
+        // Add payment method info if available
+        if (entity.getStripeChargeId() != null) {
+            OrderDTO.PaymentMethodDTO paymentMethodDTO = new OrderDTO.PaymentMethodDTO();
+            paymentMethodDTO.setType("stripe");
+            dto.setPaymentMethod(paymentMethodDTO);
+        }
 
-        OrderEntity order = orderItem.getOrder();
-        
-        // You might want to implement retry logic or notify the user
-        // For now, we'll just mark the order as cancelled
-        order.setStatus(OrderEntity.Status.cancelled);
-        
-        orderRepository.save(order);
-        return convertToDto(order);
+        return dto;
     }
 
- 
+    private OrderDTO.OrderItemDTO convertOrderItemToDto(OrderItem item) {
+        if (item == null) return null;
+        OrderDTO.OrderItemDTO dto = new OrderDTO.OrderItemDTO();
+        dto.setProductId(item.getProduct().getId());
+        dto.setQuantity(item.getQuantity());
+        dto.setPriceAtPurchase(item.getPriceAtPurchase());
+        dto.setStripePaymentIntentId(item.getStripePaymentIntentId());
+        // Get client secret from Stripe service
+        try {
+            PaymentIntent paymentIntent = stripeService.getPaymentIntent(item.getStripePaymentIntentId());
+            dto.setClientSecret(paymentIntent.getClientSecret());
+        } catch (StripeException e) {
+            // Log error but don't fail the request
+            System.err.println("Error getting payment intent client secret: " + e.getMessage());
+        }
+        return dto;
+    }
 
-    
+    @Override
+    protected OrderEntity convertToEntity(OrderDTO.CreateOrderRequest createDto) {
+        // This is handled in the save method
+        throw new UnsupportedOperationException("Manual conversion is handled in save method");
+    }
+
+    @Override
+    protected OrderEntity convertToEntityForUpdate(Long id, OrderDTO.CreateOrderRequest updateDto) {
+        // This is handled in specific update methods
+        throw new UnsupportedOperationException("Manual conversion is handled in specific update methods");
+    }
 
     public Page<OrderDTO.OrderResponse> findAllAdminOrders(AdminOrderDTO.AdminOrderFilterRequest filter, Pageable pageable) {
         // Implementation of complex filtering using JPA Specifications
@@ -247,69 +370,56 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
         return convertToDto(updatedOrder);
     }
 
-    @Override
-    protected OrderDTO.OrderResponse convertToDto(OrderEntity entity) {
-        if (entity == null) return null;
-        OrderDTO.OrderResponse dto = new OrderDTO.OrderResponse();
-        dto.setId(entity.getId() != null ? entity.getId().toString() : null);
-        dto.setStatus(entity.getStatus() != null ? entity.getStatus().name() : null);
-        dto.setCreatedAt(entity.getCreatedAt() != null ? entity.getCreatedAt().toLocalDateTime() : null);
-        dto.setUpdatedAt(entity.getUpdatedAt() != null ? entity.getUpdatedAt().toLocalDateTime() : null);
-        // dto.setShippingAddress(...); // Requires mapping Address entity to ShippingAddressDTO
-        // dto.setSubtotal(...); dto.setShipping(...); dto.setTotal(...); // These might need calculation
-
-        if (entity.getOrderItems() != null) {
-            dto.setItems(entity.getOrderItems().stream()
-                .map(this::convertOrderItemToDto)
-                .collect(Collectors.toList()));
-        }
-        // Calculate totals if not stored directly on OrderEntity
-        // For simplicity, let's assume they might be null or pre-calculated.
-        // Proper calculation would iterate through items.
-        return dto;
-    }
-
-    private OrderDTO.OrderItemDTO convertOrderItemToDto(OrderItem item) {
-        if (item == null) return null;
-        OrderDTO.OrderItemDTO dto = new OrderDTO.OrderItemDTO();
-        dto.setProductId(item.getProduct().getId());
-        dto.setQuantity(item.getQuantity());
-        dto.setPriceAtPurchase(item.getPriceAtPurchase());
-        dto.setStripePaymentIntentId(item.getStripePaymentIntentId());
-        // Get client secret from Stripe service
-        try {
-            PaymentIntent paymentIntent = stripeService.getPaymentIntent(item.getStripePaymentIntentId());
-            dto.setClientSecret(paymentIntent.getClientSecret());
-        } catch (StripeException e) {
-            // Log error but don't fail the request
-            System.err.println("Error getting payment intent client secret: " + e.getMessage());
-        }
-        return dto;
-    }
-
-    @Override
-    protected OrderEntity convertToEntityForUpdate(Long id, OrderDTO.CreateOrderRequest updateDto) {
-        // Similar to convertToEntity, updating an order via CreateOrderRequest is unusual.
-        // Usually, there'd be a specific OrderUpdateDTO.
-        // For admin, most updates might be status changes or minor corrections.
-        OrderEntity existingOrder = orderRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Order not found with id: " + id));
-        // Apply updates from updateDto to existingOrder
-        // This needs careful consideration of what fields an admin can update.
-        // throw new UnsupportedOperationException("Order update via admin is complex and not fully implemented yet.");
-        return existingOrder; // Basic, needs full implementation if used
-    }
-
+    @Transactional
     public List<OrderDTO.OrderResponse> getOrdersForCurrentUser() {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-        
-        return orderRepository.findByUser_Id(user.getId()).stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+        try {
+            // Get the current authenticated user's email
+            String username = SecurityContextHolder.getContext().getAuthentication().getName();
+            if (username == null || username.isEmpty()) {
+                throw new RuntimeException("User not authenticated");
+            }
+            
+            // Find the user by email
+            User user = userRepository.findByEmail(username)
+                    .orElseThrow(() -> new RuntimeException("User not found with email: " + username));
+            
+            // Find all orders for the user with eager loading to prevent LazyInitializationException
+            List<OrderEntity> userOrders = orderRepository.findByUser_Id(user.getId());
+            
+            // Initialize the collections to prevent LazyInitializationException
+            userOrders.forEach(order -> {
+                if (order.getOrderItems() != null) {
+                    order.getOrderItems().size(); // This forces initialization of the collection
+                    // Initialize product for each order item
+                    order.getOrderItems().forEach(item -> {
+                        if (item.getProduct() != null) {
+                            item.getProduct().getName(); // Force initialization
+                            // Initialize other necessary properties
+                        }
+                    });
+                }
+                // Initialize other necessary collections or properties
+                if (order.getShippingAddress() != null) {
+                    order.getShippingAddress().getStreet(); // Force initialization
+                }
+            });
+            
+            // Convert each order entity to DTO
+            List<OrderDTO.OrderResponse> orderDtos = userOrders.stream()
+                    .map(this::convertToDto)
+                    .collect(Collectors.toList());
+            
+            System.out.println("Retrieved " + orderDtos.size() + " orders for user: " + username);
+            
+            return orderDtos;
+        } catch (Exception e) {
+            System.err.println("Error retrieving orders for current user: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to retrieve orders: " + e.getMessage(), e);
+        }
     }
 
+    @Transactional
     public OrderDTO.OrderResponse getOrderForCurrentUser(Long orderId) {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         User user = userRepository.findByEmail(username)
@@ -322,48 +432,21 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
             throw new RuntimeException("Order does not belong to user");
         }
         
-        return convertToDto(order);
-    }
-
-    @Transactional
-    public OrderDTO.OrderResponse create(OrderDTO.CreateOrderRequest createDto) throws StripeException {
-        String username = SecurityContextHolder.getContext().getAuthentication().getName();
-        User user = userRepository.findByEmail(username)
-                .orElseThrow(() -> new RuntimeException("User not found"));
-
-        OrderEntity order = new OrderEntity();
-        order.setUser(user);
-        order.setStatus(OrderEntity.Status.pending);
-        order.setCreatedAt(new java.sql.Timestamp(System.currentTimeMillis()));
-        order.setShippingAddress(addressRepository.findById(createDto.getShippingAddressId())
-            .orElseThrow(() -> new RuntimeException("Shipping address not found")));
-        order.setEstimatedDelivery(LocalDate.now().plusDays(7));
-        order.setTrackingNumber(generateTrackingNumber());
-
-        List<OrderItem> orderItems = new ArrayList<>();
-        for (OrderDTO.OrderItemDTO itemDto : createDto.getItems()) {
-            Product product = productRepository.findById(itemDto.getProductId())
-                    .orElseThrow(() -> new RuntimeException("Product not found: " + itemDto.getProductId()));
-
-            OrderItem orderItem = new OrderItem();
-            orderItem.setOrder(order);
-            orderItem.setProduct(product);
-            orderItem.setQuantity(itemDto.getQuantity());
-            orderItem.setPriceAtPurchase(product.getPrice());
-
-            // Create payment intent for this item
-            Map<String, String> paymentIntent = stripeService.createPaymentIntent(
-                user.getStripeCustomerId(),
-                product.getPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity())).longValue(),
-                "usd"
-            );
-            orderItem.setStripePaymentIntentId(paymentIntent.get("paymentIntentId"));
-
-            orderItems.add(orderItem);
+        // Initialize collections to prevent LazyInitializationException
+        if (order.getOrderItems() != null) {
+            order.getOrderItems().size(); // Force initialization
+            order.getOrderItems().forEach(item -> {
+                if (item.getProduct() != null) {
+                    item.getProduct().getName(); // Force initialization
+                }
+            });
         }
-        order.setOrderItems(orderItems);
-
-        return convertToDto(orderRepository.save(order));
+        
+        if (order.getShippingAddress() != null) {
+            order.getShippingAddress().getStreet(); // Force initialization
+        }
+        
+        return convertToDto(order);
     }
 
     @Transactional
@@ -459,11 +542,23 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
             orderItem.setPriceAtPurchase(product.getPrice());
 
             // Create payment intent for this item
-            Map<String, String> paymentIntent = stripeService.createPaymentIntent(
-                user.getStripeCustomerId(),
-                product.getPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity())).longValue(),
-                "usd"
-            );
+            Map<String, String> paymentIntent;
+            
+            // Check if user has a valid Stripe customer ID
+            if (user.getStripeCustomerId() != null && !user.getStripeCustomerId().isEmpty()) {
+                // Use customer ID for the payment intent
+                paymentIntent = stripeService.createPaymentIntent(
+                    user.getStripeCustomerId(),
+                    product.getPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity())).longValue(),
+                    "usd"
+                );
+            } else {
+                // Create payment intent without customer ID
+                paymentIntent = stripeService.createPaymentIntentWithoutCustomer(
+                    product.getPrice().multiply(BigDecimal.valueOf(itemDto.getQuantity())).longValue(),
+                    "usd"
+                );
+            }
             orderItem.setStripePaymentIntentId(paymentIntent.get("paymentIntentId"));
 
             orderItems.add(orderItem);
@@ -511,5 +606,91 @@ public class OrderService extends GenericServiceImpl<OrderEntity, OrderDTO.Order
         OrderItem orderItem = orderRepository.findOrderItemById(orderItemId)
                 .orElseThrow(() -> new RuntimeException("Order item not found"));
         return orderItem.getOrder().getId().equals(orderId);
+    }
+
+    @Transactional
+    public OrderDTO.OrderResponse confirmPayment(String paymentIntentId) {
+        try {
+            OrderItem orderItem = orderRepository.findByStripePaymentIntentId(paymentIntentId)
+                    .orElseThrow(() -> new RuntimeException("Order item not found for payment intent: " + paymentIntentId));
+
+            String chargeId = stripeService.confirmPaymentIntent(paymentIntentId);
+            orderItem.setStripeChargeId(chargeId);
+            
+            // Check if all items in the order are paid
+            OrderEntity order = orderItem.getOrder();
+            boolean allItemsPaid = order.getOrderItems().stream()
+                    .allMatch(item -> item.getStripeChargeId() != null);
+
+            // If all items are paid, update order status
+            if (allItemsPaid) {
+                order.setStatus(OrderEntity.Status.processing);
+                order.setStripeChargeId(chargeId);
+            }
+
+            orderRepository.save(order);
+            return convertToDto(order);
+        } catch (StripeException e) {
+            throw new RuntimeException("Failed to confirm payment: " + e.getMessage(), e);
+        }
+    }
+
+    @Transactional
+    public OrderDTO.OrderResponse handlePaymentFailure(String paymentIntentId) {
+        OrderItem orderItem = orderRepository.findByStripePaymentIntentId(paymentIntentId)
+                .orElseThrow(() -> new RuntimeException("Order item not found for payment intent: " + paymentIntentId));
+
+        OrderEntity order = orderItem.getOrder();
+        
+        // You might want to implement retry logic or notify the user
+        // For now, we'll just mark the order as cancelled
+        order.setStatus(OrderEntity.Status.cancelled);
+        
+        orderRepository.save(order);
+        return convertToDto(order);
+    }
+
+    /**
+     * Find an order by payment intent ID
+     * @param paymentIntentId Stripe payment intent ID
+     * @return OrderDTO.OrderResponse
+     * @throws RuntimeException if order not found
+     */
+    @Transactional
+    public OrderDTO.OrderResponse findByPaymentIntentId(String paymentIntentId) {
+        // Validate input
+        if (paymentIntentId == null || paymentIntentId.isEmpty()) {
+            throw new IllegalArgumentException("Payment intent ID cannot be null or empty");
+        }
+        
+        // Try to find the order item
+        Optional<OrderItem> orderItemOpt = orderRepository.findByStripePaymentIntentId(paymentIntentId);
+        
+        if (orderItemOpt.isEmpty()) {
+            throw new RuntimeException("No order item found with payment intent ID: " + paymentIntentId);
+        }
+        
+        OrderItem orderItem = orderItemOpt.get();
+        OrderEntity order = orderItem.getOrder();
+        
+        if (order == null) {
+            throw new RuntimeException("Order item with payment intent ID " + paymentIntentId + " has no associated order");
+        }
+        
+        // Initialize collections to prevent LazyInitializationException
+        if (order.getOrderItems() != null) {
+            order.getOrderItems().size(); // Force initialization
+            order.getOrderItems().forEach(item -> {
+                if (item.getProduct() != null) {
+                    item.getProduct().getName(); // Force initialization
+                }
+            });
+        }
+        
+        if (order.getShippingAddress() != null) {
+            order.getShippingAddress().getStreet(); // Force initialization
+        }
+        
+        return convertToDto(order);
     }
 } 
