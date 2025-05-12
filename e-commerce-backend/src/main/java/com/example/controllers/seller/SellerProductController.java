@@ -4,7 +4,7 @@ import com.example.DTO.ProductDTO.ProductResponse;
 import com.example.DTO.ProductDTO.CreateProductRequest;
 import com.example.models.Store;
 import com.example.models.User;
-import com.example.repositories.UserRepository;
+
 import com.example.security.CustomUserDetails;
 import com.example.services.ProductService;
 import org.springframework.data.domain.Page;
@@ -30,12 +30,10 @@ import java.util.stream.Collectors;
 public class SellerProductController {
     
     private final ProductService productService;
-    private final UserRepository userRepository;
-    
-
-    public SellerProductController(ProductService productService, UserRepository userRepository) {
+ 
+    public SellerProductController(ProductService productService) {
         this.productService = productService;
-        this.userRepository = userRepository;
+      
     }
 
     private Long getCurrentSellerStoreId() {
